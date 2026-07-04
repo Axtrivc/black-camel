@@ -16,7 +16,7 @@ const pkData = [
     sub:"谁更暴力？",
     cr7:{val:14,note:"曼联4 + 皇马6 + 尤文1 + 利雅得胜利1 + 国家队2"},
     messi:{val:3,note:"含2005首秀43秒红牌"},
-    winner:"cr7",  // 红牌多=黑点高
+    winner:"cr7",
     tip:"14 : 3，C 罗「赢」了 11 张"
   },
   {
@@ -25,41 +25,59 @@ const pkData = [
     sub:"五届世界杯的真实答卷",
     cr7:{val:0,note:"8 场淘汰赛 0 球 0 助（2026 前）"},
     messi:{val:8,note:"2022 决赛封王，多届淘汰赛建功"},
-    winner:"messi",  // 这里进球少=黑点高
+    winner:"messi",
     tip:"8 场 0 球 vs 2022 夺冠"
   },
   {
     id:"penalty",
     label:"生涯点球进球数",
     sub:"点球依赖度",
-    cr7:{val:175,note:"主罚 208 次，命中率约 84%"},
+    cr7:{val:175,note:"主罚 208 次，占比生涯进球近 1/6"},
     messi:{val:109,note:"主罚约 140 次"},
     winner:"cr7",
-    tip:"175 个点球，占比生涯进球近 1/6"
+    tip:"175 : 109，多踢进 66 个点球"
   },
   {
     id:"firsttitle",
-    label:"新东家首冠耗时",
+    label:"新东家首冠耗时(天)",
     sub:"沙特 vs 迈阿密",
-    cr7:{val:1460,note:"利雅得胜利 ≈ 4 年才拿到联赛冠军"},
+    cr7:{val:1460,note:"利雅得胜利 ≈ 4 年才拿联赛冠军"},
     messi:{val:30,note:"迈阿密国际 ≈ 1 个月即夺联赛杯"},
     winner:"cr7",
-    tip:"1460 天 vs 30 天"
+    tip:"1460 天 vs 30 天，差了 48 倍"
   },
   {
     id:"ballondor",
     label:"金球奖次数",
     sub:"个人最高荣誉",
     cr7:{val:5,note:"2008/2013/2014/2016/2017"},
-    messi:{val:8,note:"2009/2010/2011/2012/2015/2019/2021/2023"},
+    messi:{val:8,note:"2009-2023 共 8 座"},
     winner:"cr7",
-    tip:"5 : 8，差了 3 座"
+    tip:"5 : 8，差了 3 座金球"
+  },
+  {
+    id:"freekick",
+    label:"近年任意球荒(天)",
+    sub:"招牌技能的保质期",
+    cr7:{val:600,note:"联赛 59 次尝试零进球"},
+    messi:{val:50,note:"2022 世界杯对尼日利亚任意球中柱"},
+    winner:"cr7",
+    tip:"600 天 0 球 vs 仍能制造威胁"
+  },
+  {
+    id:"weakteam",
+    label:"国家队刷弱旅进球",
+    sub:"含金量试金石",
+    cr7:{val:25,note:"卢森堡 11 + 立陶宛 7 + 瑞典 7"},
+    messi:{val:10,note:"主要对手为南美强队"},
+    winner:"cr7",
+    tip:"卢森堡一个队就刷 11 个"
   },
   {
     id:"diving",
     label:"\"跳水\"名场面",
     sub:"假摔黑历史",
-    cr7:{val:99,note:"2006世界杯假摔、英媒封\"跳水王\"，绰号\"水罗\""},
+    cr7:{val:99,note:"2006世界杯假摔、英媒封「跳水王」，绰号「水罗」"},
     messi:{val:12,note:"偶有倒地争议，但从未形成绰号"},
     winner:"cr7",
     tip:"水罗 vs 无此梗"
@@ -71,15 +89,17 @@ const pkData = [
  */
 const penaltyData = {
   items:[
-    {label:"生涯点球进球",value:"175",unit:"个",note:"占生涯进球近 1/6",score:18},
+    {label:"生涯点球进球",value:"175",unit:"个",note:"占生涯进球近 1/6，主罚 208 次",score:18},
     {label:"国家队刷弱旅",value:"卢森堡 11 球",unit:"",note:"立陶宛/瑞典各 7，含大四喜",score:22},
-    {label:"沙特征服速度",value:"4 年 1 冠",unit:"",note:"对比梅西迈阿密 1 个月",score:15},
+    {label:"沙特征服速度",value:"4 年 1 冠",unit:"",note:"对比梅西迈阿密 1 个月即夺冠",score:15},
     {label:"任意球荒",value:"600 天",unit:"0 球",note:"联赛 59 次尝试零进球",score:20},
     {label:"世界杯淘汰赛",value:"0 球 0 助",unit:"/8场",note:"五届世界杯 8 场淘汰赛",score:8},
-    {label:"社交媒体含水量",value:"24.3%",unit:"假粉",note:"6亿粉中约 5020 万~1 亿假粉",score:25}
+    {label:"欧冠淘汰赛隐身",value:"近 5 年",unit:"",note:"多次关键战 0 射正或被换下",score:25},
+    {label:"社交媒体含水量",value:"24.3%",unit:"假粉",note:"6亿粉中约 5020 万~1 亿假粉",score:25},
+    {label:"单赛季射门垄断",value:"135 次",unit:"",note:"贝尔 50 + 本泽马 60 = 不及他一人",score:20},
+    {label:"沙特点球占比",value:"35 球含点",unit:"",note:"2023/24 赛季大量来自点球",score:18}
   ],
-  // 总含金量百分比（讽刺值：越低越"水"）
-  totalScore:18,
+  totalScore:16,
   totalLabel:"综合含金量"
 };
 
@@ -99,19 +119,29 @@ const moneyLedger = [
 ];
 
 /* ========== C罗表情生成器素材 ==========
- * memePhotos: 从 hero-mo 37 张里挑讽刺性强的做底图
+ * memePhotos: 嬷照底图池 —— 从 hero-mo 全部 37 张 + 部分绰号/事件图，保证多样性
  * memePresets: 预设讽刺金句（上下两行，meme 经典格式）
  */
 const memePhotos = [
-  "assets/images/hero-mo/mo-03.jpg",
-  "assets/images/hero-mo/mo-07.jpg",
-  "assets/images/hero-mo/mo-12.jpg",
-  "assets/images/hero-mo/mo-15.jpg",
-  "assets/images/hero-mo/mo-18.jpg",
-  "assets/images/hero-mo/mo-22.jpg",
-  "assets/images/hero-mo/mo-25.jpg",
-  "assets/images/hero-mo/mo-29.jpg",
-  "assets/images/hero-mo/mo-33.jpg"
+  // hero-mo 全部 37 张嬷照
+  "assets/images/hero-mo/mo-01.jpg","assets/images/hero-mo/mo-02.jpg","assets/images/hero-mo/mo-03.jpg",
+  "assets/images/hero-mo/mo-04.jpg","assets/images/hero-mo/mo-05.jpg","assets/images/hero-mo/mo-06.jpg",
+  "assets/images/hero-mo/mo-07.jpg","assets/images/hero-mo/mo-08.jpg","assets/images/hero-mo/mo-09.jpg",
+  "assets/images/hero-mo/mo-10.jpg","assets/images/hero-mo/mo-11.jpg","assets/images/hero-mo/mo-12.jpg",
+  "assets/images/hero-mo/mo-13.jpg","assets/images/hero-mo/mo-14.jpg","assets/images/hero-mo/mo-15.jpg",
+  "assets/images/hero-mo/mo-16.jpg","assets/images/hero-mo/mo-17.jpg","assets/images/hero-mo/mo-18.jpg",
+  "assets/images/hero-mo/mo-19.jpg","assets/images/hero-mo/mo-20.jpg","assets/images/hero-mo/mo-21.jpg",
+  "assets/images/hero-mo/mo-22.jpg","assets/images/hero-mo/mo-23.jpg","assets/images/hero-mo/mo-24.jpg",
+  "assets/images/hero-mo/mo-25.jpg","assets/images/hero-mo/mo-26.jpg","assets/images/hero-mo/mo-27.jpg",
+  "assets/images/hero-mo/mo-28.jpg","assets/images/hero-mo/mo-29.jpg","assets/images/hero-mo/mo-30.jpg",
+  "assets/images/hero-mo/mo-31.jpg","assets/images/hero-mo/mo-32.jpg","assets/images/hero-mo/mo-33.jpg",
+  "assets/images/hero-mo/mo-34.jpg","assets/images/hero-mo/mo-35.jpg","assets/images/hero-mo/mo-36.jpg",
+  "assets/images/hero-mo/mo-37.jpg",
+  // 绰号图（更具表情包感）
+  "assets/images/nick/nick-new-1.jpg","assets/images/nick/nick-new-2.jpg","assets/images/nick/nick-new-3.jpg",
+  "assets/images/nick/nick-new-5.jpg","assets/images/nick/nick-new-7.jpg","assets/images/nick/nick-new-9.jpg",
+  // 部分事件档案图（经典黑历史瞬间）
+  "assets/images/report/r-18.jpg","assets/images/report/r-17.jpg","assets/images/report/r-29.jpg"
 ];
 
 const memePresets = [
@@ -122,5 +152,9 @@ const memePresets = [
   {top:"梅西拿了世界杯",bottom:"Factos! Factos! Factos!"},
   {top:"我又摔了袖标/手机/麦克风",bottom:"这次是裁判的错"},
   {top:"14 张红牌",bottom:"那都是对方挑衅"},
-  {top:"6 亿粉丝 24% 是假的",bottom:"但点赞是真的"}
+  {top:"6 亿粉丝 24% 是假的",bottom:"但点赞是真的"},
+  {top:"教练不让我首发",bottom:"我炮轰曼联然后去沙特"},
+  {top:"任意球 600 天没进",bottom:"我念咒了但没用"},
+  {top:"卢森堡我进了 11 个",bottom:"我是国家队历史射手王"},
+  {top:"你们不尊重我",bottom:"所以我摔袖标离场"}
 ];

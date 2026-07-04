@@ -1,6 +1,6 @@
 /* ========== 设计系统 ========== */
 /* 主题色通过 [data-theme] 在 <html> 上切换。
-   默认（无 data-theme 或 = xiaoxiaoluo）：曼联红 —— 小小罗时期 */
+   默认（无 data-theme 或 = xiaoxiaoluo）：曼联 —— 红黄配色 */
 :root{
   --bg:#0b0b0d;
   --bg-2:#131316;
@@ -8,59 +8,94 @@
   --card-hover:#1e1e24;
   --border:#2a2a30;
   --border-hot:#3a2020;
-  --crimson:#dc143c;          /* 曼联红 */
+  --crimson:#dc143c;
   --crimson-dim:#8b0a1e;
   --crimson-glow:rgba(220,20,60,.15);
-  --accent:#dc143c;
-  --accent-dim:#8b0a1e;
-  --theme-name:"小小罗";
+  --accent:#e8b923;            /* 曼联辅色：金 */
+  --accent-2:#dc143c;
   --gold:#c9a84c;
+  --theme-name:"小小罗";
   --text:#d6d6db;
   --text-dim:#7a7a82;
   --text-bright:#f0f0f4;
+  --on-accent:#fff;            /* 主色块上的文字色 */
   --serif:Georgia,'Times New Roman','Noto Serif SC',serif;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;
   --mono:'Courier New','Consolas',monospace;
 }
 
-/* 沙漠骆驼主题 —— 利雅得胜利时期（黄+沙） */
+/* 沙漠骆驼主题 —— 利雅得胜利：黄+蓝（深底+黄主+蓝辅） */
 [data-theme="camel"]{
-  --crimson:#e8b923;           /* 骆驼金 */
-  --crimson-dim:#8a6d10;
-  --crimson-glow:rgba(232,185,35,.15);
-  --accent:#e8b923;
-  --accent-dim:#8a6d10;
-  --border-hot:#3a3010;
-  --bg:#0d0c08;
-  --bg-2:#16140c;
-  --card:#1a180e;
-  --card-hover:#211e12;
-  --border:#2c2818;
+  --bg:#0a0d18;
+  --bg-2:#101628;
+  --card:#141d33;
+  --card-hover:#1a2540;
+  --border:#243352;
+  --border-hot:#1f3055;
+  --crimson:#e8b923;            /* 利雅得胜利黄 */
+  --crimson-dim:#9c7d12;
+  --crimson-glow:rgba(232,185,35,.16);
+  --accent:#4a90e2;             /* 蓝 */
+  --accent-2:#e8b923;
+  --text:#d8def0;
+  --text-dim:#7a85a8;
+  --text-bright:#f2f5ff;
+  --on-accent:#1a1a1a;
   --theme-name:"沙漠骆驼";
 }
 
-/* 菌鞭罗主题 —— 皇马时期（紫白） */
+/* 菌鞭罗主题 —— 皇马：纯白底 + 黑字（浅色主题） */
 [data-theme="galactico"]{
-  --crimson:#8e6bd6;           /* 皇马紫 */
-  --crimson-dim:#4a3478;
-  --crimson-glow:rgba(142,107,214,.16);
-  --accent:#8e6bd6;
-  --accent-dim:#4a3478;
-  --border-hot:#2a1f3a;
-  --bg:#0a0a12;
-  --bg-2:#12121e;
-  --card:#16162a;
-  --card-hover:#1c1c36;
-  --border:#26263e;
+  --bg:#ffffff;
+  --bg-2:#f5f6f8;
+  --card:#ffffff;
+  --card-hover:#eef0f3;
+  --border:#d4d7dc;
+  --border-hot:#b8bdc5;
+  --crimson:#1a1a1a;            /* 皇马：黑白，主色用黑 */
+  --crimson-dim:#444;
+  --crimson-glow:rgba(0,0,0,.08);
+  --accent:#1a1a1a;
+  --accent-2:#666;
+  --text:#1a1a1a;
+  --text-dim:#5a5f66;
+  --text-bright:#000;
+  --on-accent:#fff;
+  --gold:#b8941f;
   --theme-name:"菌鞭罗";
 }
 
 /* 主题切换平滑过渡 */
 body,nav,.ticker,.modal,.event-card,.nick-card,.viz-card,.filter-chip,
-.btn,.name-expose,.hero-stats,.quote-wall,.footer{
+.btn,.name-expose,.hero-stats,.quote-wall,.footer,.tl-item,.scan-item,
+.pk-arena,.meme-studio,.ledger,.nick-card-img{
   transition:background-color .5s,color .5s,border-color .5s;
 }
 .bar-fill,.btn-primary,.back-to-top{transition:background-color .5s,border-color .5s}
+
+/* 浅色主题（皇马）特殊处理：文字对比 */
+[data-theme="galactico"] body{background:#fff;color:#1a1a1a}
+[data-theme="galactico"] .ticker{background:#1a1a1a;color:#fff}
+[data-theme="galactico"] .nav{background:rgba(255,255,255,.92);border-bottom-color:#d4d7dc}
+[data-theme="galactico"] .nav-toggle{border-color:#d4d7dc}
+[data-theme="galactico"] .nav-toggle span{background:#1a1a1a}
+[data-theme="galactico"] .nav-search{background:#f5f6f8;border-color:#d4d7dc}
+[data-theme="galactico"] .hero-bg{
+  background:radial-gradient(ellipse at 75% 40%,rgba(0,0,0,.06),transparent 60%),radial-gradient(ellipse at 20% 80%,rgba(0,0,0,.04),transparent 50%);
+}
+[data-theme="galactico"] .hero-grid{opacity:.5}
+[data-theme="galactico"] .hero-stats{background:rgba(255,255,255,.9);border-top-color:#d4d7dc}
+[data-theme="galactico"] .modal{background:#fff}
+[data-theme="galactico"] .modal-overlay{background:rgba(0,0,0,.5)}
+[data-theme="galactico"] .quote-wall::before{color:#1a1a1a}
+[data-theme="galactico"] .bar-track{background:#eef0f3}
+[data-theme="galactico"] .timeline-section,
+[data-theme="galactico"] .nickname-section,
+[data-theme="galactico"] .meme-section{background:#f5f6f8}
+[data-theme="galactico"] .pk-section{background:linear-gradient(180deg,#fff,#f5f6f8)}
+[data-theme="galactico"] .tl-item::after{border-color:#fff}
+[data-theme="galactico"] ::-webkit-scrollbar-track{background:#fff}
+[data-theme="galactico"] ::-webkit-scrollbar-thumb{background:#ccc}
 
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -1331,7 +1366,7 @@ a{color:inherit;text-decoration:none}
 }
 .pk-sides{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(2,minmax(280px,1fr));
   min-height:340px;
 }
 .pk-side{
@@ -1629,8 +1664,14 @@ a{color:inherit;text-decoration:none}
 .meme-field input:focus{border-color:var(--crimson)}
 .meme-thumbs{
   display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:6px;
+  grid-template-columns:repeat(7,1fr);
+  gap:5px;
+  max-height:180px;
+  overflow-y:auto;
+  padding:4px;
+  background:var(--bg);
+  border-radius:4px;
+  border:1px solid var(--border);
 }
 .meme-thumb{
   aspect-ratio:1/1;
