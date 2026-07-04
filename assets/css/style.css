@@ -1058,37 +1058,150 @@ a{color:inherit;text-decoration:none}
 .quote-btn.quote-play{font-size:11px;letter-spacing:1px}
 
 /* ========== 响应式 ========== */
+/* 平板及以下：≤900px */
 @media(max-width:900px){
-  .hero-inner{grid-template-columns:1fr;gap:40px}
-  .hero-visual{max-width:400px;margin:0 auto}
+  .hero{min-height:auto;padding:40px 20px 0}
+  .hero-inner{grid-template-columns:1fr;gap:32px}
+  .hero-visual{max-width:360px;margin:0 auto;width:100%}
+  .hero-stats{
+    position:static;
+    margin-top:40px;
+    padding:24px 20px;
+  }
+  .hero-stats-inner{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:18px 12px;
+  }
   .data-viz{grid-template-columns:1fr}
   .timeline::before{left:20px}
   .tl-item{width:100%;left:0!important;text-align:left!important;padding:20px 20px 20px 50px}
   .tl-item::after{left:13px!important;right:auto!important}
-  .section-desc{text-align:left}
-  /* 移动端导航：汉堡菜单展开，而非直接隐藏丢失导航 */
+  .section-header{align-items:flex-start;flex-direction:column}
+  .section-desc{text-align:left;max-width:none}
+  .section{padding:40px 20px}
+  /* 移动端导航：汉堡菜单展开 */
   .nav-toggle{display:flex}
   .nav-links{
     position:absolute;
     top:100%;left:0;right:0;
     flex-direction:column;
+    align-items:stretch;
     background:rgba(11,11,13,.98);
+    backdrop-filter:blur(12px);
     border-bottom:1px solid var(--border);
-    padding:14px 24px;
+    padding:14px 20px 18px;
     gap:14px;
     transform:translateY(-8px);
     opacity:0;visibility:hidden;
     transition:.25s;
   }
   .nav-links.open{transform:translateY(0);opacity:1;visibility:visible}
-  .nav-search{display:none}
+  /* 搜索框不再隐藏，而是收进汉堡菜单层（恢复移动端搜索能力） */
+  .nav-search{
+    width:100%;
+    border-radius:20px;
+  }
+  .nav-search:focus{width:100%}
   .modal-nav-prev{left:8px}
   .modal-nav-next{right:8px}
   .modal-body{padding:24px 20px}
   .modal-title{font-size:24px}
+  .modal-hero{aspect-ratio:16/9}
+  .bar-label{width:96px}
 }
+
+/* 中型手机：≤768px */
+@media(max-width:768px){
+  .hero{padding:32px 16px 0}
+  .section{padding:36px 16px}
+  .hero h1{font-size:clamp(40px,11vw,60px)}
+  .hero-sub{font-size:18px;margin-bottom:20px}
+  .hero-desc{font-size:14px;margin-bottom:28px}
+  .hero-cta{flex-wrap:wrap}
+  .btn{padding:12px 22px;font-size:12px}
+  .section-title{font-size:clamp(28px,7vw,40px)}
+  .data-viz{gap:24px}
+  .viz-card{padding:20px 18px}
+  /* 数据条形图：标签更窄、允许换行，避免挤压条形 */
+  .bar-label{width:84px;font-size:11px;line-height:1.3;word-break:keep-all}
+  .bar-row{align-items:center}
+  .bar-track{height:22px}
+}
+
+/* 小屏手机：≤600px */
 @media(max-width:600px){
-  .cards-grid{grid-template-columns:1fr}
-  .hero-stats-inner{flex-direction:column;gap:12px}
-  .bar-label{width:80px;font-size:11px}
+  .cards-grid{grid-template-columns:1fr;gap:14px}
+  /* Hero 统计：2 列网格，整齐不拥挤 */
+  .hero-stats-inner{grid-template-columns:repeat(2,1fr);gap:20px 12px}
+  .hstat-num{font-size:clamp(24px,7vw,32px)}
+  .hstat-label{font-size:9px;letter-spacing:1px}
+  .bar-label{width:76px;font-size:10.5px}
+  /* 跑马灯：略放大，避免误触阅读 */
+  .ticker{font-size:11.5px;padding:5px 0;letter-spacing:.5px}
+  .ticker-track span{margin-right:40px}
+  /* 卡片正文：略放大提升可读性 */
+  .card-summary{font-size:12.5px}
+  .card-title{font-size:16px}
+  .card-body{padding:14px 16px}
+  /* 分类筛选条：横向滚动，避免换行堆叠占高 */
+  .filter-bar{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    margin:0 -16px 24px;
+    padding:0 16px 16px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .filter-bar::-webkit-scrollbar{display:none}
+  .filter-chip{flex-shrink:0;white-space:nowrap}
+  .severity-filter{flex-wrap:wrap;gap:8px;font-size:11px}
+  .severity-filter #resultCount{width:100%;margin:4px 0 0}
+  /* 名字辟谣条：纵向堆叠 */
+  .name-expose{flex-direction:column;text-align:left;align-items:flex-start;gap:14px;padding:20px 18px}
+  .name-expose-icon{font-size:40px}
+  .name-expose-title{font-size:15px}
+  .name-expose-desc{font-size:12.5px}
+  /* 引用墙 */
+  .quote-wall{padding:44px 18px}
+  .quote-text{font-size:clamp(18px,5.2vw,24px)}
+  .quote-author{font-size:11px;letter-spacing:1px}
+  .quote-btn{width:42px;height:42px}
+  /* 模态框：贴边翻页、减小外边距 */
+  .modal-overlay{padding:0}
+  .modal{max-height:100vh;border-radius:0}
+  .modal-nav{width:36px;height:52px;font-size:26px}
+  .modal-nav-prev{left:6px}
+  .modal-nav-next{right:6px}
+  .modal-body{padding:22px 18px 32px}
+  .modal-title{font-size:21px;margin-bottom:14px}
+  .modal-detail{font-size:14px;line-height:1.75}
+  .modal-meta{gap:10px 18px;padding:12px 0}
+  .modal-quote{padding:12px 16px;font-size:14px;margin:18px 0}
+  .modal-close{top:10px;right:10px;width:34px;height:34px;font-size:16px}
+  /* 返回顶部：缩小，避开内容 */
+  .back-to-top{right:16px;bottom:16px;width:42px;height:42px;font-size:18px}
+  /* 绰号卡片：单列 */
+  .nickname-grid{grid-template-columns:1fr;gap:16px;padding:0 16px}
+  /* Footer */
+  .footer{padding:44px 18px 26px}
+  .footer-logo{font-size:22px}
+  .footer-text{font-size:12px}
+  /* 模态框计数器贴近底部 */
+  .modal-counter{bottom:-28px;font-size:11px}
+}
+
+/* 超小屏：≤380px */
+@media(max-width:380px){
+  .hero-stats-inner{grid-template-columns:1fr 1fr;gap:16px}
+  .hero h1{font-size:40px}
+  .bar-label{width:68px;font-size:10px}
+  .nav-logo{font-size:17px}
+}
+
+/* 触控设备：确保可点击区域足够大 */
+@media (pointer:coarse){
+  .quote-btn,.modal-close,.nav-toggle{min-width:42px;min-height:42px}
+  .filter-chip{padding:9px 16px}
+  .card-tag,.modal-tag{padding:3px 9px}
 }
