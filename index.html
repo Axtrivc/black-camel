@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CA7 黑历史档案馆 — The Aveiro Files</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- 跑马灯 -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span>本名 Cristiano dos Santos Aveiro — "Ronaldo"只是中间名</span>
+    <span>背弃祖姓 · 改用蹭热度的"Ronaldo" · 真缩写是 CA7</span>
+    <span>绰号进化：小小罗→花罗→水罗→罗三票→沙漠骆驼→总裁→球玊→阿伟罗→骡子</span>
+    <span>12任女友完整名单 · 从嫩模到柜姐 · 希尔顿卡戴珊榜上有名</span>
+    <span>14张红牌 · 职业生涯暴力史</span>
+    <span>1880万欧元 · 西班牙逃税罚款</span>
+    <span>40亿美元 · 可口可乐市值蒸发</span>
+    <span>37.5万美元 · 拉斯维加斯封口费</span>
+    <span>12任女友 · 5个孩子3个妈</span>
+    <span>摔手机 · 扔麦克风 · 摔袖标 · 不雅动作</span>
+    <span>炮轰曼联 · 转会闹剧 · 被切尔西拜仁拒绝</span>
+    <span>本名 Cristiano dos Santos Aveiro — "Ronaldo"只是中间名</span>
+    <span>背弃祖姓 · 改用蹭热度的"Ronaldo" · 真缩写是 CA7</span>
+    <span>绰号进化：小小罗→花罗→水罗→罗三票→沙漠骆驼→总裁→球玊→阿伟罗→骡子</span>
+    <span>12任女友完整名单 · 从嫩模到柜姐 · 希尔顿卡戴珊榜上有名</span>
+    <span>罗三脚 · 刀削面 · 吕七优人 · 总裁找裁判 · 任意球念咒</span>
+    <span>"世界杯不是我的梦想" · "我是历史第一第二第三"</span>
+    <span>沙漠骆驼 · 4年1冠 · 2亿年薪逃避欧洲</span>
+    <span>14张红牌 · 职业生涯暴力史</span>
+    <span>1880万欧元 · 西班牙逃税罚款</span>
+    <span>12任女友 · 5个孩子3个妈</span>
+  </div>
+</div>
+
+<!-- 导航 -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">THE <span class="red">AVEIRO</span> FILES</div>
+    <div class="nav-links" id="navLinks">
+      <a href="#archive">档案库</a>
+      <a href="#timeline">时间线</a>
+      <a href="#data">数据</a>
+      <a href="#quotes">语录</a>
+    </div>
+    <input type="text" class="nav-search" placeholder="搜索事件..." id="searchInput">
+    <button class="nav-toggle" id="navToggle" aria-label="菜单">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-tag">机密档案 · CONFIDENTIAL</div>
+      <h1>CA7<br><span class="strike">黑历史</span>档案馆</h1>
+      <div class="hero-sub">The Aveiro Files — 一部关于争议的全记录</div>
+      <p class="hero-desc">
+        他自称"<strong>CR7</strong>"，但全名其实是<strong>Cristiano Ronaldo dos Santos Aveiro</strong>——
+        "<strong>Aveiro</strong>"才是他的家族姓氏，"Ronaldo"不过是中间名。
+        为了出名，他背弃祖姓、选择了蹭热度的"Ronaldo"。
+        真正的缩写应该是 <strong style="color:var(--crimson)">CA7</strong>。
+        本档案馆系统收录其职业生涯中最具争议的<strong>56起事件</strong>，
+        横跨人设、暴力、失态、俱乐部与国家队五大类别。
+        所有内容均基于公开新闻报道整理。
+      </p>
+      <div class="hero-cta">
+        <button class="btn btn-primary" data-scroll="#archive">进入档案库</button>
+        <button class="btn btn-ghost" data-scroll="#timeline">查看时间线</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-gallery">
+        <div class="hero-gallery-tag">嬷照档案 · UNFLATTERING PHOTOS</div>
+        <div class="hero-gallery-track" id="heroGallery">
+          <!-- 38张嬷照由 app.js 动态注入，随机循环播放 -->
+        </div>
+        <div class="hero-gallery-nav"><span class="hero-counter" id="heroCounter">1 / 37</span></div>
+        <div class="hero-stamp">
+          <span>56</span>
+          CASES<br>ON FILE
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stats-inner">
+      <div class="hstat"><div class="hstat-num" data-target="14">0</div><div class="hstat-label">红牌</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="1880" data-suffix="万">0</div><div class="hstat-label">逃税罚款 (€)</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="40" data-suffix="亿">0</div><div class="hstat-label">可乐市值蒸发 ($)</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="55">0</div><div class="hstat-label">收录事件</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="5">0</div><div class="hstat-label">争议分类</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="12">0</div><div class="hstat-label">历任女友</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 档案库 -->
+<section class="section" id="archive">
+  <div class="section-header">
+    <div>
+      <div class="section-label">// 档案库 · ARCHIVE</div>
+      <div class="section-title">争议事件全记录</div>
+    </div>
+    <div class="section-desc">点击任意档案卡片查看完整卷宗，可按分类或严重程度筛选。</div>
+  </div>
+
+  <!-- 名字辟谣条 -->
+  <div class="name-expose">
+    <div class="name-expose-icon">CA7</div>
+    <div class="name-expose-body">
+      <div class="name-expose-label">// 名字真相 · THE NAME TRUTH</div>
+      <div class="name-expose-title">
+        全名：Cristiano Ronaldo dos Santos <span class="real">Aveiro</span>
+      </div>
+      <div class="name-expose-desc">
+        按葡萄牙命名惯例，最后的"<strong style="color:#9b59b6">Aveiro</strong>"才是家族姓氏（父姓），"dos Santos"是母姓，
+        而"Ronaldo"只是他母亲崇拜里根而起的<strong>中间名</strong>——一个和家族毫无关系的名字。
+        他却抛弃祖姓、自称 <span class="crossed">CR7</span>，硬蹭当时已红透足坛的巴西"大罗"罗纳尔多 (Ronaldo) 的热度。
+        若忠于血脉，他该叫 <strong style="color:#9b59b6">CA7 — Cristiano Aveiro</strong>。
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-bar" id="filterBar">
+    <div class="filter-chip active" data-cat="all">全部 <span class="count" id="count-all">56</span></div>
+    <div class="filter-chip" data-cat="persona">人设争议 <span class="count" id="count-persona">17</span></div>
+    <div class="filter-chip" data-cat="violence">场内暴力 <span class="count" id="count-violence">10</span></div>
+    <div class="filter-chip" data-cat="offpitch">场外失态 <span class="count" id="count-offpitch">12</span></div>
+    <div class="filter-chip" data-cat="club">俱乐部与法律 <span class="count" id="count-club">9</span></div>
+    <div class="filter-chip" data-cat="national">国家队争议 <span class="count" id="count-national">7</span></div>
+  </div>
+
+  <div class="severity-filter">
+    <span>严重程度筛选：</span>
+    <select id="severitySelect">
+      <option value="0">全部级别</option>
+      <option value="3">3星及以上</option>
+      <option value="4">4星及以上</option>
+      <option value="5">仅5星 (最严重)</option>
+    </select>
+    <span id="resultCount" style="margin-left:auto;color:var(--text-dim)">显示全部 63 条记录</span>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid"></div>
+</section>
+
+<!-- 数据可视化 -->
+<section class="section" id="data">
+  <div class="section-header">
+    <div>
+      <div class="section-label">// 数据透视 · DATA</div>
+      <div class="section-title">数字里的黑历史</div>
+    </div>
+    <div class="section-desc">用数据丈量争议的规模。</div>
+  </div>
+  <div class="data-viz">
+    <div class="viz-card">
+      <div class="viz-title">红牌分布 (按俱乐部)</div>
+      <div class="bar-row"><div class="bar-label">曼联 (两段)</div><div class="bar-track"><div class="bar-fill" data-w="35%"></div><div class="bar-val">4</div></div></div>
+      <div class="bar-row"><div class="bar-label">皇家马德里</div><div class="bar-track"><div class="bar-fill" data-w="55%"></div><div class="bar-val">6</div></div></div>
+      <div class="bar-row"><div class="bar-label">尤文图斯</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
+      <div class="bar-row"><div class="bar-label">利雅得胜利</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
+      <div class="bar-row"><div class="bar-label">葡萄牙队</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
+      <div class="bar-row"><div class="bar-label">其他/未确认</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
+    </div>
+    <div class="viz-card">
+      <div class="viz-title">争议分类占比</div>
+      <div class="bar-row"><div class="bar-label">人设争议</div><div class="bar-track"><div class="bar-fill" data-w="31%"></div><div class="bar-val">17</div></div></div>
+      <div class="bar-row"><div class="bar-label">场外失态</div><div class="bar-track"><div class="bar-fill" data-w="22%"></div><div class="bar-val">12</div></div></div>
+      <div class="bar-row"><div class="bar-label">俱乐部与法律</div><div class="bar-track"><div class="bar-fill" data-w="16%"></div><div class="bar-val">9</div></div></div>
+      <div class="bar-row"><div class="bar-label">场内暴力</div><div class="bar-track"><div class="bar-fill" data-w="18%"></div><div class="bar-val">10</div></div></div>
+      <div class="bar-row"><div class="bar-label">国家队争议</div><div class="bar-track"><div class="bar-fill" data-w="13%"></div><div class="bar-val">7</div></div></div>
+      <div class="bar-row"><div class="bar-label">法律纠纷</div><div class="bar-track"><div class="bar-fill" data-w="4%"></div><div class="bar-val">2</div></div></div>
+    </div>
+    <div class="viz-card">
+      <div class="viz-title">私生活数据</div>
+      <div class="bar-row"><div class="bar-label">历任女友</div><div class="bar-track"><div class="bar-fill" data-w="80%"></div><div class="bar-val">12</div></div></div>
+      <div class="bar-row"><div class="bar-label">子女数量</div><div class="bar-track"><div class="bar-fill" data-w="33%"></div><div class="bar-val">5</div></div></div>
+      <div class="bar-row"><div class="bar-label">孩子生母数</div><div class="bar-track"><div class="bar-fill" data-w="20%"></div><div class="bar-val">3</div></div></div>
+      <div class="bar-row"><div class="bar-label">生母身份公开</div><div class="bar-track"><div class="bar-fill" data-w="40%"></div><div class="bar-val">2/5</div></div></div>
+      <div class="bar-row"><div class="bar-label">迷你罗生母</div><div class="bar-track"><div class="bar-fill" data-w="5%"></div><div class="bar-val">成谜</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 时间线 -->
+<section class="timeline-section" id="timeline">
+  <div class="section" style="padding-top:50px;padding-bottom:50px">
+    <div class="section-header">
+      <div>
+        <div class="section-label">// 编年史 · CHRONOLOGY</div>
+        <div class="section-title">争议时间线</div>
+      </div>
+      <div class="section-desc">从出道到2026，二十余年争议编年。</div>
+    </div>
+    <div class="timeline" id="timelineTrack"></div>
+  </div>
+</section>
+
+<!-- 绰号进化史 -->
+<section class="nickname-section">
+  <div class="section" style="padding-top:0;padding-bottom:0">
+    <div class="section-header">
+      <div>
+        <div class="section-label">// 绰号进化史 · NICKNAME EVOLUTION</div>
+        <div class="section-title">九个绰号 一部黑历史</div>
+      </div>
+      <div class="section-desc">从"小小罗"到"总裁"，每个绰号都是一段争议的注脚。</div>
+    </div>
+    <div class="nickname-grid">
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">01</span>
+        <img src="assets/images/nick/nick-new-1.jpg" alt="小小罗">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">小小罗</div>
+        <div class="nick-period">2003-2006 · 曼联出道期</div>
+        <div class="nick-desc">出道时巴西"大罗"罗纳尔多、"小罗"罗纳尔迪尼奥已封神，初来曼联的他按长幼被叫"小小罗"。方便面发型、踩单车花活、一碰就倒——这个称呼带着"小弟"的轻视，直到他在曼联踢出金球级表现才慢慢摘掉。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">02</span>
+        <img src="assets/images/nick/nick-new-2.jpg" alt="花罗">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">花罗</div>
+        <div class="nick-period">2004-2007 · 花哨期</div>
+        <div class="nick-desc">沉迷盘带爱秀花活，一场踩十几个单车却贻误战机，被英格兰媒体讽刺为SHOWBOAT（华而不实）。范尼、阿兰·史密斯都因他"只花不传"在训练场爆发冲突。场外五颜六色奇葩着装更坐实"花"名。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">03</span>
+        <img src="assets/images/nick/nick-new-3.jpg" alt="水罗">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">水罗 / 跳水王</div>
+        <div class="nick-period">2005-2007 · 假摔期</div>
+        <div class="nick-desc">2006世界杯对法国禁区假摔、足总杯对米堡假摔被英媒狂批"跳水"。弗格森2007年还嘴硬说漏嘴："罗纳尔多已经不假摔了。"——等于变相承认此前确实假摔。"水罗""跳水王"由此传开。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">04</span>
+        <img src="assets/images/report/r-18.jpg" alt="罗三票">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">罗三票 / 票哥</div>
+        <div class="nick-period">2011-2014 · 调侃期</div>
+        <div class="nick-desc">2011年欧足联最佳球员评选，梅西蝉联，C罗竟只获<strong>3票</strong>。球迷戏称"罗三票"，自嘲的粉丝则叫"票哥"。2014年他拿第三座金球后，黑粉又把"罗三票"升级为"罗三球"——怎么都要带个"三"。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">05</span>
+        <img src="assets/images/nick/nick-new-5.jpg" alt="沙漠骆驼">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">沙漠骆驼</div>
+        <div class="nick-period">2023至今 · 沙特淘金期</div>
+        <div class="nick-desc">2023年C罗以2亿欧元年薪远走沙特利雅得胜利，被嘲讽"去沙漠养老"。结果一待就是4年，期间<strong>4年才拿到1个联赛冠军</strong>，与梅西加盟迈阿密1个月即夺冠形成惨烈对比。"沙漠骆驼"既是地域调侃，也是对其"驮着数据走不出沙漠"的讽刺。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">06</span>
+        <img src="assets/images/report/r-17.jpg" alt="总裁">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">总裁</div>
+        <div class="nick-period">2014至今 · 巅峰期</div>
+        <div class="nick-desc">最早是<strong>黑称</strong>——"<em>总</em>是靠<em>裁</em>判"，讽刺他进球靠裁判照顾、点球多。但C罗霸道形象、CR7商业帝国、多金多情的做派，反而让"总裁"黑出感情，被粉丝当作褒义供奉，成了他最响亮的标签。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">07</span>
+        <img src="assets/images/nick/nick-new-7.jpg" alt="球玊">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">球玊 / 典韦</div>
+        <div class="nick-period">2015至今 · 自封球王期</div>
+        <div class="nick-desc">"球玊"把"球王"的"王"换成形近的"玊"（sù）——玊比王多一"点"，既讽其多一"点"（点球），发音又酷似C罗招牌庆祝动作"siu"，一语双关。"典韦"则谐音"点伟"，暗讽爱罚点球的"阿伟罗"。两个黑称都是罗黑圈的拆字顶流。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">08</span>
+        <img src="assets/images/report/r-29.jpg" alt="阿伟罗">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">阿伟罗</div>
+        <div class="nick-period">长期 · 谐音戏称</div>
+        <div class="nick-desc">取C罗全名"阿韦罗（Aveiro）"的"伟"，配上"阿"字戏谑化，读起来像"阿伟罗"——既谐音父姓Aveiro，又暗讽其关键战隐身时的"伟岸缺席"。是中文圈对C罗最戏谑的简称之一，常与"球玊""典韦"组合出现。</div>
+      </div>
+    </div>
+    <div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">09</span>
+        <img src="assets/images/nick/nick-new-9.jpg" alt="骡子">
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">骡子</div>
+        <div class="nick-period">长期 · 谐音黑称</div>
+        <div class="nick-desc">"罗"的谐音黑称，罗黑圈子传播极广。"骡子"既暗讽其"驮着数据走不远"（淘汰赛隐身），也带明显的侮辱色彩。常与"点罗""球玉"组合出现，构成中文互联网对C罗最密集的黑称矩阵。</div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<!-- 引用墙 -->
+<section class="quote-wall" id="quotes">
+  <div class="quote-text" id="quoteText">"把阿伟罗这个父姓给彻底扔了，除了蹭热度并且想要掩盖事实以外，实在是没觉得有什么别的可能。"</div>
+  <div class="quote-author" id="quoteAuthor">— 知乎足球评论，论背弃祖姓</div>
+  <div class="quote-controls">
+    <button class="quote-btn" id="quotePrev" aria-label="上一条">◀</button>
+    <button class="quote-btn" id="quoteNext" aria-label="下一条">▶</button>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-logo">THE <span class="red">AVEIRO</span> FILES</div>
+  <p class="footer-text">
+    本网站为球迷文化创作，所有事件均基于公开新闻报道整理，不代表任何官方立场。<br>
+    克里斯蒂亚诺·罗纳尔多（本名 Cristiano Ronaldo dos Santos Aveiro）是世界足坛最伟大的球员之一，
+    本站仅记录其职业生涯中的争议事件，包括其背弃祖姓选择"Ronaldo"作为称呼的身份争议。
+  </p>
+  <div class="footer-disclaimer">
+    DATA SOURCES: AP / ESPN / CNN / BBC / SKY SPORTS / 腾讯体育 / 知乎 · CONTENT FOR ENTERTAINMENT PURPOSES ONLY
+  </div>
+</footer>
+
+<!-- 模态框 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modalClose" aria-label="关闭">&times;</button>
+    <div id="modalContent"></div>
+    <button class="modal-nav modal-nav-prev" id="modalPrev" aria-label="上一档案">‹</button>
+    <button class="modal-nav modal-nav-next" id="modalNext" aria-label="下一档案">›</button>
+    <div class="modal-counter" id="modalCounter"></div>
+  </div>
+</div>
+
+<!-- 返回顶部 -->
+<button class="back-to-top" id="backToTop" aria-label="返回顶部">↑</button>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
