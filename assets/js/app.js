@@ -414,6 +414,271 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   card.querySelectorAll(".bar-row").forEach(row=>barObserver.observe(row));
 });
 
+/* ============================================================
+ * 创新模块逻辑（主题切换 / 梅罗PK / 检测仪 / 表情生成器 / 烧钱榜）
+ * 依赖 extra-data.js: pkData, penaltyData, moneyLedger, memePhotos, memePresets
+ * ============================================================ */
+
+/* ========== 主题切换 ========== */
+(function(){
+  const root=document.documentElement;
+  const switcher=document.getElementById("themeSwitcher");
+  // 移动端：把主题切换器也放进汉堡菜单层
+  const navLinks=document.getElementById("navLinks");
+  function applyTheme(t){
+    if(t==="xiaoxiaoluo") root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme",t);
+    try{localStorage.setItem("ca7-theme",t);}catch(e){}
+  }
+  // 读取记忆
+  let saved="xiaoxiaoluo";
+  try{saved=localStorage.getItem("ca7-theme")||"xiaoxiaoluo";}catch(e){}
+  applyTheme(saved);
+  function syncActive(t){
+    switcher.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.theme===t));
+  }
+  syncActive(saved);
+  switcher.addEventListener("click",e=>{
+    const btn=e.target.closest(".theme-btn");
+    if(!btn) return;
+    applyTheme(btn.dataset.theme);
+    syncActive(btn.dataset.theme);
+  });
+})();
+
+/* ========== 梅罗 PK 大战 ========== */
+(function(){
+  const sides=document.getElementById("pkSides");
+  const tabs=document.getElementById("pkTabs");
+  const tip=document.getElementById("pkTip");
+  if(!sides||typeof pkData==="undefined") return;
+  let curIdx=0;
+  // 渲染维度 tabs
+  tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${d.label}</button>`).join("");
+  // 算对决宽度（两边按比例，最大值撑满）
+  function render(){
+    const d=pkData[curIdx];
+    const cr7N=typeof d.cr7.val==="number"?d.cr7.val:0;
+    const messiN=typeof d.messi.val==="number"?d.messi.val:0;
+    // 渲染两侧
+    sides.innerHTML=`
+      <div class="pk-side cr7 ${d.winner==='cr7'?'winner':''}">
+        <div class="pk-name">C 罗</div>
+        <div class="pk-subname">CRISTIANO · CA7</div>
+        <div class="pk-val">${d.cr7.val}</div>
+        <div class="pk-note">${d.cr7.note}</div>
+      </div>
+      <div class="pk-side messi ${d.winner==='messi'?'winner':''}">
+        <div class="pk-name">梅西</div>
+        <div class="pk-subname">MESSI</div>
+        <div class="pk-val">${d.messi.val}</div>
+        <div class="pk-note">${d.messi.note}</div>
+      </div>`;
+    tip.innerHTML=`<strong>${d.tip}</strong>`;
+  }
+  render();
+  tabs.addEventListener("click",e=>{
+    const t=e.target.closest(".pk-tab");
+    if(!t) return;
+    curIdx=parseInt(t.dataset.idx);
+    tabs.querySelectorAll(".pk-tab").forEach(x=>x.classList.toggle("active",x===t));
+    render();
+  });
+})();
+
+/* ========== 点球含金量检测仪 ========== */
+(function(){
+  const scanner=document.getElementById("scanner");
+  const grid=document.getElementById("scanGrid");
+  const gaugeFill=document.getElementById("gaugeFill");
+  const gaugeNum=document.getElementById("gaugeNum");
+  const verdict=document.getElementById("gaugeVerdict");
+  const status=scanner?scanner.querySelector(".scanner-status"):null;
+  if(!grid||typeof penaltyData==="undefined") return;
+  // 渲染检测项
+  grid.innerHTML=penaltyData.items.map(it=>`
+    <div class="scan-item" data-score="${it.score}">
+      <div class="scan-label">${it.label}</div>
+      <div class="scan-value">${it.value}<span class="unit"> ${it.unit||''}</span></div>
+      <div class="scan-note">${it.note}</div>
+    </div>`).join("");
+  const circumference=292; // 半圆弧长近似
+  let scanned=false;
+  function runScan(){
+    if(scanned) return; scanned=true;
+    scanner.classList.add("scanning");
+    status.innerHTML='<span class="blink"></span>SCANNING... 检测中';
+    // 逐项高亮
+    const items=grid.querySelectorAll(".scan-item");
+    items.forEach((it,i)=>{
+      setTimeout(()=>it.classList.add("detected"),i*350);
+    });
+    // 仪表盘
+    setTimeout(()=>{
+      const score=penaltyData.totalScore;
+      const offset=circumference*(1-score/100);
+      gaugeFill.style.strokeDashoffset=offset;
+      // 数字动画
+      let n=0; const target=score; const t0=performance.now();
+      function tick(now){
+        const p=Math.min((now-t0)/1500,1);
+        n=Math.floor((1-Math.pow(1-p,3))*target);
+        gaugeNum.textContent=n+"%";
+        if(p<1) requestAnimationFrame(tick);
+        else gaugeNum.textContent=target+"%";
+      }
+      requestAnimationFrame(tick);
+      status.innerHTML='<span class="blink"></span>检测完成 · 含金量严重不足';
+      let v=""; if(score<20) v="严重注水，建议脱水后重测"; else if(score<40) v="含金量堪忧";
+      else v="勉强及格"; verdict.textContent=v;
+      setTimeout(()=>scanner.classList.remove("scanning"),3000);
+    },items.length*350+400);
+  }
+  // 进入视口触发
+  const so=new IntersectionObserver((ents)=>{
+    ents.forEach(en=>{ if(en.isIntersecting){ runScan(); so.unobserve(en.target); }});
+  },{threshold:0.3});
+  so.observe(scanner);
+  // 点击可重测
+  scanner.addEventListener("click",()=>{
+    scanned=false;
+    grid.querySelectorAll(".scan-item").forEach(it=>it.classList.remove("detected"));
+    gaugeFill.style.strokeDashoffset=circumference;
+    gaugeNum.textContent="--"; verdict.textContent="等待检测...";
+    setTimeout(runScan,200);
+  });
+})();
+
+/* ========== C罗表情生成器 ========== */
+(function(){
+  const canvas=document.getElementById("memeCanvas");
+  const thumbs=document.getElementById("memeThumbs");
+  const top=document.getElementById("memeTop");
+  const bot=document.getElementById("memeBottom");
+  const presetsEl=document.getElementById("memePresets");
+  const dl=document.getElementById("memeDownload");
+  if(!canvas||typeof memePhotos==="undefined") return;
+  const ctx=canvas.getContext("2d");
+  let curPhoto=memePhotos[0];
+  let img=new Image(); img.crossOrigin="anonymous";
+  // 缩略图
+  thumbs.innerHTML=memePhotos.map((p,i)=>`<div class="meme-thumb ${i===0?'active':''}" data-src="${p}" style="background-image:url('${p}')"></div>`).join("");
+  // 预设
+  presetsEl.innerHTML=memePresets.map((p,i)=>`<span class="meme-preset" data-i="${i}">${p.top.slice(0,8)}…</span>`).join("");
+  function draw(){
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    // 居中绘制图片（cover）
+    if(img.complete&&img.naturalWidth){
+      const cw=canvas.width, ch=canvas.height;
+      const ir=img.naturalWidth/img.naturalHeight;
+      const cr=cw/ch;
+      let sw=img.naturalWidth, sh=img.naturalHeight, sx=0, sy=0;
+      if(ir>cr){ sw=img.naturalHeight*cr; sx=(img.naturalWidth-sw)/2; }
+      else { sh=img.naturalWidth/cr; sy=(img.naturalHeight-sh)/2; }
+      ctx.drawImage(img,sx,sy,sw,sh,0,0,cw,ch);
+    }
+    // 文字
+    const drawText=(txt,baseY)=>{
+      if(!txt) return;
+      ctx.save();
+      ctx.font="bold 44px Arial, 'Microsoft YaHei', sans-serif";
+      ctx.textAlign="center";
+      ctx.lineWidth=6; ctx.strokeStyle="#000"; ctx.fillStyle="#fff";
+      ctx.textBaseline="top";
+      // 自动换行
+      const maxW=canvas.width-40;
+      const lines=wrapText(ctx,txt,maxW);
+      let y=baseY;
+      lines.forEach(l=>{ ctx.strokeText(l,canvas.width/2,y); ctx.fillText(l,canvas.width/2,y); y+=50; });
+      ctx.restore();
+    };
+    drawText(top.value.trim().toUpperCase(),24);
+    // 底部从下往上排
+    if(bot.value.trim()){
+      ctx.save();
+      ctx.font="bold 44px Arial, 'Microsoft YaHei', sans-serif";
+      ctx.textAlign="center"; ctx.lineWidth=6; ctx.strokeStyle="#000"; ctx.fillStyle="#fff";
+      const lines=wrapText(ctx,bot.value.trim().toUpperCase(),canvas.width-40);
+      let y=canvas.height-24;
+      for(let i=lines.length-1;i>=0;i--){ ctx.textBaseline="bottom"; ctx.strokeText(lines[i],canvas.width/2,y); ctx.fillText(lines[i],canvas.width/2,y); y-=50; }
+      ctx.restore();
+    }
+  }
+  function wrapText(ctx,txt,maxW){
+    // 按字符断行（中英混排）
+    const lines=[]; let line="";
+    for(const ch of txt){
+      const test=line+ch;
+      if(ctx.measureText(test).width>maxW&&line){ lines.push(line); line=ch; }
+      else line=test;
+    }
+    if(line) lines.push(line);
+    return lines.slice(0,3);
+  }
+  img.onload=draw; img.src=curPhoto;
+  thumbs.addEventListener("click",e=>{
+    const t=e.target.closest(".meme-thumb"); if(!t) return;
+    curPhoto=t.dataset.src;
+    thumbs.querySelectorAll(".meme-thumb").forEach(x=>x.classList.toggle("active",x===t));
+    img=new Image(); img.onload=draw; img.src=curPhoto;
+  });
+  top.addEventListener("input",draw);
+  bot.addEventListener("input",draw);
+  presetsEl.addEventListener("click",e=>{
+    const t=e.target.closest(".meme-preset"); if(!t) return;
+    const p=memePresets[parseInt(t.dataset.i)];
+    top.value=p.top; bot.value=p.bottom; draw();
+  });
+  dl.addEventListener("click",()=>{
+    try{
+      const a=document.createElement("a");
+      a.download="ca7-meme.png";
+      a.href=canvas.toDataURL("image/png");
+      a.click();
+    }catch(err){
+      dl.textContent="下载失败(跨域)";
+    }
+  });
+  // 默认填一句
+  top.value="SIUUUUU"; bot.value="点球进了";
+  draw();
+})();
+
+/* ========== 罪恶账本烧钱榜 ========== */
+(function(){
+  const ledger=document.getElementById("ledger");
+  if(!ledger||typeof moneyLedger==="undefined") return;
+  ledger.innerHTML=`
+    <div class="ledger-head">
+      <div class="ledger-title">罪恶账本</div>
+      <div class="ledger-no">NO. CA7-2026-${moneyLedger.length}ENTRIES</div>
+    </div>
+    <div class="ledger-rows">
+      ${moneyLedger.map((m,i)=>`
+        <div class="ledger-row" data-i="${i}">
+          <div class="ld-desc">
+            <span class="ledger-cat">${m.cat}</span>${m.desc}
+            <small>${m.detail}</small>
+          </div>
+          <div class="ld-amount">${m.amount}<span class="cur"> ${m.currency}</span></div>
+        </div>`).join("")}
+    </div>
+    <div class="ledger-foot">
+      <div class="ledger-total">TOTAL DISPUTED VALUE · <span class="n">不可估量</span></div>
+    </div>`;
+  // 逐行揭示
+  const rows=ledger.querySelectorAll(".ledger-row");
+  const lo=new IntersectionObserver((ents)=>{
+    ents.forEach(en=>{
+      if(en.isIntersecting){
+        rows.forEach((r,i)=>setTimeout(()=>r.classList.add("show"),i*180));
+        lo.unobserve(en.target);
+      }
+    });
+  },{threshold:0.2});
+  lo.observe(ledger);
+})();
+
 /* ========== 初始渲染 ========== */
 renderCards();
 })();

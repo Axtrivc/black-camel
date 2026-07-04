@@ -1,4 +1,6 @@
 /* ========== 设计系统 ========== */
+/* 主题色通过 [data-theme] 在 <html> 上切换。
+   默认（无 data-theme 或 = xiaoxiaoluo）：曼联红 —— 小小罗时期 */
 :root{
   --bg:#0b0b0d;
   --bg-2:#131316;
@@ -6,9 +8,12 @@
   --card-hover:#1e1e24;
   --border:#2a2a30;
   --border-hot:#3a2020;
-  --crimson:#dc143c;
+  --crimson:#dc143c;          /* 曼联红 */
   --crimson-dim:#8b0a1e;
   --crimson-glow:rgba(220,20,60,.15);
+  --accent:#dc143c;
+  --accent-dim:#8b0a1e;
+  --theme-name:"小小罗";
   --gold:#c9a84c;
   --text:#d6d6db;
   --text-dim:#7a7a82;
@@ -17,6 +22,46 @@
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;
   --mono:'Courier New','Consolas',monospace;
 }
+
+/* 沙漠骆驼主题 —— 利雅得胜利时期（黄+沙） */
+[data-theme="camel"]{
+  --crimson:#e8b923;           /* 骆驼金 */
+  --crimson-dim:#8a6d10;
+  --crimson-glow:rgba(232,185,35,.15);
+  --accent:#e8b923;
+  --accent-dim:#8a6d10;
+  --border-hot:#3a3010;
+  --bg:#0d0c08;
+  --bg-2:#16140c;
+  --card:#1a180e;
+  --card-hover:#211e12;
+  --border:#2c2818;
+  --theme-name:"沙漠骆驼";
+}
+
+/* 菌鞭罗主题 —— 皇马时期（紫白） */
+[data-theme="galactico"]{
+  --crimson:#8e6bd6;           /* 皇马紫 */
+  --crimson-dim:#4a3478;
+  --crimson-glow:rgba(142,107,214,.16);
+  --accent:#8e6bd6;
+  --accent-dim:#4a3478;
+  --border-hot:#2a1f3a;
+  --bg:#0a0a12;
+  --bg-2:#12121e;
+  --card:#16162a;
+  --card-hover:#1c1c36;
+  --border:#26263e;
+  --theme-name:"菌鞭罗";
+}
+
+/* 主题切换平滑过渡 */
+body,nav,.ticker,.modal,.event-card,.nick-card,.viz-card,.filter-chip,
+.btn,.name-expose,.hero-stats,.quote-wall,.footer{
+  transition:background-color .5s,color .5s,border-color .5s;
+}
+.bar-fill,.btn-primary,.back-to-top{transition:background-color .5s,border-color .5s}
+
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
@@ -1204,4 +1249,513 @@ a{color:inherit;text-decoration:none}
   .quote-btn,.modal-close,.nav-toggle{min-width:42px;min-height:42px}
   .filter-chip{padding:9px 16px}
   .card-tag,.modal-tag{padding:3px 9px}
+}
+
+
+/* ============================================================ */
+/* ========== 创新模块（主题切换/梅罗PK/检测仪/表情/账本） ======== */
+/* ============================================================ */
+
+/* ========== 主题切换器 ========== */
+.theme-switcher{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 6px;
+}
+.theme-btn{
+  font-family:var(--mono);
+  font-size:11px;
+  padding:6px 12px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all .25s;
+  white-space:nowrap;
+  letter-spacing:.5px;
+}
+.theme-btn:hover{border-color:var(--crimson);color:var(--text-bright)}
+.theme-btn.active{
+  background:var(--crimson);
+  border-color:var(--crimson);
+  color:#fff;
+  box-shadow:0 0 12px var(--crimson-glow);
+}
+.theme-btn .theme-dot{
+  display:inline-block;
+  width:9px;height:9px;
+  border-radius:50%;
+  margin-right:5px;
+  vertical-align:middle;
+}
+.theme-btn[data-theme="xiaoxiaoluo"] .theme-dot{background:#dc143c}
+.theme-btn[data-theme="camel"] .theme-dot{background:#e8b923}
+.theme-btn[data-theme="galactico"] .theme-dot{background:#8e6bd6}
+.theme-btn.active .theme-dot{background:#fff}
+
+/* ========== 通用：创新模块 section ========== */
+.innov-section{
+  max-width:1300px;
+  margin:0 auto;
+  padding:60px 24px;
+}
+
+/* ========== 梅罗 PK 大战 ========== */
+.pk-section{
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg-2) 100%);
+  border-top:1px solid var(--border);
+}
+.pk-arena{
+  position:relative;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:30px;
+}
+.pk-vs{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-family:var(--serif);
+  font-size:clamp(48px,8vw,80px);
+  font-weight:900;
+  color:var(--crimson);
+  text-shadow:0 0 30px var(--crimson-glow);
+  z-index:5;
+  letter-spacing:-2px;
+  font-style:italic;
+  pointer-events:none;
+}
+.pk-sides{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  min-height:340px;
+}
+.pk-side{
+  padding:40px 32px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  position:relative;
+  transition:background .4s;
+}
+.pk-side.cr7{
+  background:linear-gradient(135deg,rgba(220,20,60,.08),transparent);
+  border-right:1px dashed var(--border);
+  text-align:right;
+}
+.pk-side.messi{
+  background:linear-gradient(225deg,rgba(120,170,255,.08),transparent);
+  text-align:left;
+}
+.pk-side.winner::after{
+  content:"赢家";
+  position:absolute;
+  top:14px;
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:1.5px;
+  color:var(--crimson);
+  background:var(--crimson-glow);
+  padding:3px 8px;
+  border-radius:3px;
+}
+.pk-side.cr7.winner::after{right:14px}
+.pk-side.messi.winner::after{left:14px}
+.pk-name{
+  font-family:var(--serif);
+  font-size:clamp(22px,3vw,32px);
+  font-weight:900;
+  color:var(--text-bright);
+  margin-bottom:4px;
+}
+.pk-subname{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--text-dim);
+  letter-spacing:1px;
+  margin-bottom:18px;
+}
+.pk-val{
+  font-family:var(--serif);
+  font-size:clamp(44px,8vw,72px);
+  font-weight:900;
+  line-height:1;
+  margin-bottom:10px;
+}
+.pk-side.cr7 .pk-val{color:var(--crimson)}
+.pk-side.messi .pk-val{color:#7aa8ff}
+.pk-note{
+  font-size:13px;
+  color:var(--text-dim);
+  line-height:1.5;
+  max-width:280px;
+}
+.pk-side.cr7 .pk-note{margin-left:auto}
+/* 维度切换 */
+.pk-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:center;
+  padding:18px 20px;
+  border-top:1px solid var(--border);
+  background:var(--bg-2);
+}
+.pk-tab{
+  font-family:var(--mono);
+  font-size:12px;
+  padding:8px 16px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all .2s;
+}
+.pk-tab:hover{border-color:var(--crimson);color:var(--text-bright)}
+.pk-tab.active{
+  background:var(--crimson);
+  border-color:var(--crimson);
+  color:#fff;
+}
+.pk-tip{
+  text-align:center;
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--text-dim);
+  padding:0 20px 20px;
+  letter-spacing:.5px;
+}
+.pk-tip strong{color:var(--crimson)}
+
+/* ========== 点球含金量检测仪 ========== */
+.scanner-section{border-top:1px solid var(--border)}
+.scanner{
+  position:relative;
+  background:radial-gradient(ellipse at 50% 0%,var(--crimson-glow),transparent 70%),var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:40px 28px;
+  margin-top:30px;
+  overflow:hidden;
+}
+/* 扫描线动画 */
+.scanner::before{
+  content:"";
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:linear-gradient(90deg,transparent,var(--crimson),transparent);
+  box-shadow:0 0 20px var(--crimson);
+  animation:scanLine 3s ease-in-out infinite;
+  opacity:0;
+}
+.scanner.scanning::before{opacity:1}
+@keyframes scanLine{
+  0%{top:0}
+  50%{top:100%}
+  100%{top:0}
+}
+.scanner-status{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--crimson);
+  margin-bottom:24px;
+  letter-spacing:1px;
+}
+.scanner-status .blink{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--crimson);
+  animation:blink 1s infinite;
+}
+@keyframes blink{50%{opacity:.2}}
+.scanner-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;
+  margin-bottom:32px;
+}
+.scan-item{
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:18px 16px;
+  position:relative;
+  transition:all .3s;
+}
+.scan-item.detected{
+  border-color:var(--crimson);
+  box-shadow:0 0 16px var(--crimson-glow);
+}
+.scan-label{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--text-dim);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.scan-value{
+  font-family:var(--serif);
+  font-size:28px;
+  font-weight:900;
+  color:var(--text-bright);
+  margin-bottom:4px;
+  line-height:1.1;
+}
+.scan-value .unit{font-size:14px;color:var(--text-dim);font-weight:400}
+.scan-note{font-size:11px;color:var(--text-dim);line-height:1.4}
+/* 仪表盘 */
+.gauge-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin-top:8px;
+  padding-top:28px;
+  border-top:1px solid var(--border);
+}
+.gauge{
+  position:relative;
+  width:200px;height:100px;
+  overflow:hidden;
+}
+.gauge svg{width:100%;height:100%;display:block}
+.gauge-bg{stroke:var(--border);fill:none;stroke-width:14}
+.gauge-fill{
+  stroke:var(--crimson);fill:none;stroke-width:14;stroke-linecap:round;
+  stroke-dasharray:314;
+  stroke-dashoffset:314;
+  transition:stroke-dashoffset 1.8s cubic-bezier(.2,.8,.2,1);
+  filter:drop-shadow(0 0 6px var(--crimson-glow));
+}
+.gauge-num{
+  position:absolute;
+  bottom:0;left:50%;
+  transform:translateX(-50%);
+  text-align:center;
+}
+.gauge-num .n{
+  font-family:var(--serif);
+  font-size:40px;
+  font-weight:900;
+  color:var(--crimson);
+  line-height:1;
+}
+.gauge-num .l{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--text-dim);
+  letter-spacing:1.5px;
+}
+.gauge-verdict{
+  font-family:var(--mono);
+  font-size:14px;
+  color:var(--crimson);
+  margin-top:14px;
+  letter-spacing:1px;
+  text-align:center;
+}
+
+/* ========== C罗表情生成器 ========== */
+.meme-section{
+  background:var(--bg-2);
+  border-top:1px solid var(--border);
+}
+.meme-studio{
+  display:grid;
+  grid-template-columns:1.2fr 1fr;
+  gap:28px;
+  margin-top:30px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:24px;
+}
+.meme-canvas-wrap{
+  position:relative;
+  background:#000;
+  border-radius:6px;
+  overflow:hidden;
+  aspect-ratio:1/1;
+}
+.meme-canvas-wrap canvas{
+  width:100%;height:100%;
+  display:block;
+}
+.meme-download{
+  position:absolute;
+  bottom:10px;right:10px;
+  font-family:var(--mono);
+  font-size:11px;
+  padding:7px 14px;
+  background:var(--crimson);
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
+  z-index:3;
+  letter-spacing:.5px;
+}
+.meme-download:hover{background:var(--crimson-dim)}
+.meme-controls{display:flex;flex-direction:column;gap:14px}
+.meme-field label{
+  display:block;
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--text-dim);
+  letter-spacing:1px;
+  margin-bottom:5px;
+  text-transform:uppercase;
+}
+.meme-field input{
+  width:100%;
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  color:var(--text-bright);
+  padding:9px 12px;
+  border-radius:4px;
+  font-size:13px;
+  font-family:var(--sans);
+  outline:none;
+}
+.meme-field input:focus{border-color:var(--crimson)}
+.meme-thumbs{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:6px;
+}
+.meme-thumb{
+  aspect-ratio:1/1;
+  background-size:cover;
+  background-position:center;
+  border-radius:4px;
+  cursor:pointer;
+  border:2px solid transparent;
+  transition:border-color .2s;
+  filter:grayscale(.4);
+}
+.meme-thumb:hover{filter:grayscale(0)}
+.meme-thumb.active{border-color:var(--crimson);filter:grayscale(0)}
+.meme-presets-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.meme-preset{
+  font-size:11px;
+  padding:5px 10px;
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all .2s;
+  line-height:1.3;
+}
+.meme-preset:hover{border-color:var(--crimson);color:var(--text-bright)}
+
+/* ========== 罪恶账本烧钱榜 ========== */
+.ledger-section{border-top:1px solid var(--border)}
+.ledger{
+  max-width:560px;
+  margin:30px auto 0;
+  background:#15120a;
+  border:1px dashed rgba(232,185,35,.4);
+  border-radius:6px;
+  padding:24px 22px;
+  font-family:var(--mono);
+  position:relative;
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+}
+[data-theme="galactico"] .ledger{background:#100c1c;border-color:rgba(142,107,214,.4)}
+.ledger-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px dashed rgba(255,255,255,.15);
+  padding-bottom:14px;
+  margin-bottom:14px;
+}
+.ledger-title{
+  font-family:var(--serif);
+  font-size:18px;
+  color:#e8b923;
+  font-weight:900;
+}
+.ledger-no{font-size:10px;color:var(--text-dim);letter-spacing:1px}
+.ledger-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  padding:12px 0;
+  border-bottom:1px dashed rgba(255,255,255,.08);
+  opacity:0;
+  transform:translateX(-12px);
+  transition:all .5s;
+}
+.ledger-row.show{opacity:1;transform:translateX(0)}
+.ledger-row .ld-desc{flex:1;font-size:12px;color:var(--text);line-height:1.4}
+.ledger-row .ld-desc small{display:block;color:var(--text-dim);font-size:10px;margin-top:2px}
+.ledger-row .ld-amount{
+  font-size:18px;
+  font-weight:bold;
+  color:#e8b923;
+  white-space:nowrap;
+  margin-left:12px;
+}
+.ledger-row .ld-amount .cur{font-size:11px;color:var(--text-dim)}
+.ledger-cat{
+  display:inline-block;
+  font-size:9px;
+  background:rgba(220,20,60,.15);
+  color:var(--crimson);
+  padding:1px 6px;
+  border-radius:2px;
+  margin-right:6px;
+  letter-spacing:.5px;
+}
+.ledger-foot{
+  margin-top:16px;
+  padding-top:14px;
+  border-top:2px solid rgba(255,255,255,.15);
+  text-align:right;
+}
+.ledger-total{
+  font-size:12px;
+  color:var(--text-dim);
+  letter-spacing:1px;
+  margin-bottom:4px;
+}
+.ledger-total .n{color:#e8b923;font-size:15px;font-weight:bold}
+
+/* ========== 创新模块响应式 ========== */
+@media(max-width:900px){
+  .innov-section{padding:40px 18px}
+  .meme-studio{grid-template-columns:1fr}
+  .theme-switcher{gap:5px}
+  .theme-btn{font-size:10px;padding:5px 9px}
+}
+@media(max-width:600px){
+  .pk-sides{grid-template-columns:1fr;min-height:auto}
+  .pk-side{padding:28px 20px}
+  .pk-side.cr7{border-right:none;border-bottom:1px dashed var(--border);text-align:center}
+  .pk-side.messi{text-align:center}
+  .pk-vs{font-size:48px}
+  .scanner-grid{grid-template-columns:1fr 1fr}
+  .scan-value{font-size:22px}
+  .meme-thumbs{grid-template-columns:repeat(5,1fr)}
+  .gauge{width:160px;height:80px}
+  .gauge-num .n{font-size:32px}
+}
+@media(max-width:380px){
+  .scanner-grid{grid-template-columns:1fr}
+  .theme-btn{padding:4px 7px;font-size:9px}
 }

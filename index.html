@@ -47,6 +47,11 @@
       <a href="#quotes">语录</a>
     </div>
     <input type="text" class="nav-search" placeholder="搜索事件..." id="searchInput">
+    <div class="theme-switcher" id="themeSwitcher">
+      <button class="theme-btn active" data-theme="xiaoxiaoluo"><span class="theme-dot"></span>小小罗</button>
+      <button class="theme-btn" data-theme="camel"><span class="theme-dot"></span>沙漠骆驼</button>
+      <button class="theme-btn" data-theme="galactico"><span class="theme-dot"></span>菌鞭罗</button>
+    </div>
     <button class="nav-toggle" id="navToggle" aria-label="菜单">
       <span></span><span></span><span></span>
     </button>
@@ -150,6 +155,114 @@
   </div>
 
   <div class="cards-grid" id="cardsGrid"></div>
+</section>
+
+<!-- 梅罗 PK 大战 -->
+<section class="pk-section">
+  <div class="innov-section">
+    <div class="section-header">
+      <div>
+        <div class="section-label">// 终极对决 · MESSI vs CA7</div>
+        <div class="section-title">梅罗 PK 大战</div>
+      </div>
+      <div class="section-desc">切换维度，看谁"赢"了。数字不撒谎。</div>
+    </div>
+    <div class="pk-arena">
+      <div class="pk-vs">VS</div>
+      <div class="pk-sides" id="pkSides">
+        <!-- JS 渲染 -->
+      </div>
+      <div class="pk-tabs" id="pkTabs">
+        <!-- JS 渲染维度切换 -->
+      </div>
+      <div class="pk-tip" id="pkTip"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 点球含金量检测仪 -->
+<section class="scanner-section">
+  <div class="innov-section">
+    <div class="section-header">
+      <div>
+        <div class="section-label">// 黑科技检测 · AUTHENTICITY SCANNER</div>
+        <div class="section-title">点球含金量检测仪</div>
+      </div>
+      <div class="section-desc">扫描"注水"成分，自动评估含金量。</div>
+    </div>
+    <div class="scanner" id="scanner">
+      <div class="scanner-status"><span class="blink"></span>SYSTEM READY · 点击开始检测</div>
+      <div class="scanner-grid" id="scanGrid">
+        <!-- JS 渲染检测项 -->
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge">
+          <svg viewBox="0 0 200 100">
+            <path class="gauge-bg" d="M 14 93 A 86 86 0 0 1 186 93"/>
+            <path class="gauge-fill" id="gaugeFill" d="M 14 93 A 86 86 0 0 1 186 93"/>
+          </svg>
+          <div class="gauge-num">
+            <div class="n" id="gaugeNum">--</div>
+            <div class="l">综合含金量</div>
+          </div>
+        </div>
+        <div class="gauge-verdict" id="gaugeVerdict">等待检测...</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- C罗表情生成器 -->
+<section class="meme-section">
+  <div class="innov-section">
+    <div class="section-header">
+      <div>
+        <div class="section-label">// 嬷照工厂 · MEME GENERATOR</div>
+        <div class="section-title">CA7 表情生成器</div>
+      </div>
+      <div class="section-desc">选图、填字、下载。一键造梗。</div>
+    </div>
+    <div class="meme-studio">
+      <div class="meme-canvas-wrap">
+        <canvas id="memeCanvas" width="600" height="600"></canvas>
+        <button class="meme-download" id="memeDownload">↓ 下载表情</button>
+      </div>
+      <div class="meme-controls">
+        <div class="meme-field">
+          <label>选择嬷照</label>
+          <div class="meme-thumbs" id="memeThumbs"></div>
+        </div>
+        <div class="meme-field">
+          <label>顶部文字</label>
+          <input type="text" id="memeTop" maxlength="24" placeholder="CA7...">
+        </div>
+        <div class="meme-field">
+          <label>底部文字</label>
+          <input type="text" id="memeBottom" maxlength="24" placeholder="siuuuu">
+        </div>
+        <div class="meme-field">
+          <label>一键套用预设金句</label>
+          <div class="meme-presets-list" id="memePresets"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 罪恶账本烧钱榜 -->
+<section class="ledger-section">
+  <div class="innov-section">
+    <div class="section-header">
+      <div>
+        <div class="section-label">// 财务流水 · MONEY TRAIL</div>
+        <div class="section-title">罪恶账本烧钱榜</div>
+      </div>
+      <div class="section-desc">每一笔，都是争议的标价。</div>
+    </div>
+    <div class="ledger" id="ledger">
+      <!-- JS 渲染 -->
+    </div>
+  </div>
 </section>
 
 <!-- 数据可视化 -->
@@ -357,6 +470,7 @@
 <button class="back-to-top" id="backToTop" aria-label="返回顶部">↑</button>
 
 <script src="assets/js/data.js"></script>
+<script src="assets/js/extra-data.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
