@@ -6,8 +6,10 @@
 "use strict";
 
 /* ========== 梅罗 PK 大战数据 ==========
- * 每个维度：左=C罗，右=梅西。winner 指定谁"赢"（这里 C罗的黑点更高=讽刺他）
- * 大部分维度里 C罗 数据是"黑历史更重"的一方
+ * 这是一个讽刺 C罗的黑历史网站。
+ * 字段 loser：表示该维度下"黑点更重 / 被讽刺"的一方（绝大部分是 cr7）。
+ * 数据驱动：哪一方数值代表"更差/更黑"，就把该方标为 loser。
+ * tip 的措辞统一为讽刺口吻。
  */
 const pkData = [
   {
@@ -16,8 +18,8 @@ const pkData = [
     sub:"谁更暴力？",
     cr7:{val:14,note:"曼联4 + 皇马6 + 尤文1 + 利雅得胜利1 + 国家队2"},
     messi:{val:3,note:"含2005首秀43秒红牌"},
-    winner:"cr7",
-    tip:"14 : 3，C 罗「赢」了 11 张"
+    loser:"cr7",
+    tip:"14 : 3，C罗的红牌是梅西的近 5 倍"
   },
   {
     id:"wc",
@@ -25,17 +27,17 @@ const pkData = [
     sub:"五届世界杯的真实答卷",
     cr7:{val:0,note:"8 场淘汰赛 0 球 0 助（2026 前）"},
     messi:{val:8,note:"2022 决赛封王，多届淘汰赛建功"},
-    winner:"messi",
-    tip:"8 场 0 球 vs 2022 夺冠"
+    loser:"cr7",
+    tip:"8 场 0 球 vs 梅西 2022 夺冠"
   },
   {
     id:"penalty",
     label:"生涯点球进球数",
     sub:"点球依赖度",
-    cr7:{val:175,note:"主罚 208 次，占比生涯进球近 1/6"},
+    cr7:{val:175,note:"主罚 208 次，占生涯进球近 1/6"},
     messi:{val:109,note:"主罚约 140 次"},
-    winner:"cr7",
-    tip:"175 : 109，多踢进 66 个点球"
+    loser:"cr7",
+    tip:"比梅西多踢进 66 个点球"
   },
   {
     id:"firsttitle",
@@ -43,8 +45,8 @@ const pkData = [
     sub:"沙特 vs 迈阿密",
     cr7:{val:1460,note:"利雅得胜利 ≈ 4 年才拿联赛冠军"},
     messi:{val:30,note:"迈阿密国际 ≈ 1 个月即夺联赛杯"},
-    winner:"cr7",
-    tip:"1460 天 vs 30 天，差了 48 倍"
+    loser:"cr7",
+    tip:"1460 天 vs 30 天，慢了 48 倍"
   },
   {
     id:"ballondor",
@@ -52,8 +54,8 @@ const pkData = [
     sub:"个人最高荣誉",
     cr7:{val:5,note:"2008/2013/2014/2016/2017"},
     messi:{val:8,note:"2009-2023 共 8 座"},
-    winner:"cr7",
-    tip:"5 : 8，差了 3 座金球"
+    loser:"cr7",
+    tip:"5 : 8，金球数落后 3 座"
   },
   {
     id:"freekick",
@@ -61,8 +63,8 @@ const pkData = [
     sub:"招牌技能的保质期",
     cr7:{val:600,note:"联赛 59 次尝试零进球"},
     messi:{val:50,note:"2022 世界杯对尼日利亚任意球中柱"},
-    winner:"cr7",
-    tip:"600 天 0 球 vs 仍能制造威胁"
+    loser:"cr7",
+    tip:"600 天 0 球 vs 梅西仍能造威胁"
   },
   {
     id:"weakteam",
@@ -70,8 +72,8 @@ const pkData = [
     sub:"含金量试金石",
     cr7:{val:25,note:"卢森堡 11 + 立陶宛 7 + 瑞典 7"},
     messi:{val:10,note:"主要对手为南美强队"},
-    winner:"cr7",
-    tip:"卢森堡一个队就刷 11 个"
+    loser:"cr7",
+    tip:"单是对卢森堡就刷了 11 个"
   },
   {
     id:"diving",
@@ -79,8 +81,8 @@ const pkData = [
     sub:"假摔黑历史",
     cr7:{val:99,note:"2006世界杯假摔、英媒封「跳水王」，绰号「水罗」"},
     messi:{val:12,note:"偶有倒地争议，但从未形成绰号"},
-    winner:"cr7",
-    tip:"水罗 vs 无此梗"
+    loser:"cr7",
+    tip:"「水罗」vs 梅西无此梗"
   }
 ];
 

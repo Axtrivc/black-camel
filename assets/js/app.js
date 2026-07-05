@@ -472,20 +472,19 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   let curIdx=0;
   // 渲染维度 tabs
   tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${d.label}</button>`).join("");
-  // 算对决宽度（两边按比例，最大值撑满）
+  // 渲染维度 tabs
+  tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${d.label}</button>`).join("");
   function render(){
     const d=pkData[curIdx];
-    const cr7N=typeof d.cr7.val==="number"?d.cr7.val:0;
-    const messiN=typeof d.messi.val==="number"?d.messi.val:0;
-    // 渲染两侧
+    // 渲染两侧：loser 方（黑点更重/被讽刺方）打上 loser 类高亮
     sides.innerHTML=`
-      <div class="pk-side cr7 ${d.winner==='cr7'?'winner':''}">
+      <div class="pk-side cr7 ${d.loser==='cr7'?'loser':''}">
         <div class="pk-name">C 罗</div>
         <div class="pk-subname">CRISTIANO · CA7</div>
         <div class="pk-val">${d.cr7.val}</div>
         <div class="pk-note">${d.cr7.note}</div>
       </div>
-      <div class="pk-side messi ${d.winner==='messi'?'winner':''}">
+      <div class="pk-side messi ${d.loser==='messi'?'loser':''}">
         <div class="pk-name">梅西</div>
         <div class="pk-subname">MESSI</div>
         <div class="pk-val">${d.messi.val}</div>
