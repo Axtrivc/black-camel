@@ -1183,6 +1183,13 @@ a{color:inherit;text-decoration:none}
     border-radius:20px;
   }
   .nav-search:focus{width:100%}
+  /* 主题切换器移入汉堡菜单后的样式：三按钮横向均分 */
+  .nav-links .theme-switcher{
+    justify-content:space-between;
+    width:100%;
+    margin-top:4px;
+  }
+  .nav-links .theme-switcher .theme-btn{flex:1;text-align:center}
   .modal-nav-prev{left:8px}
   .modal-nav-next{right:8px}
   .modal-body{padding:24px 20px}

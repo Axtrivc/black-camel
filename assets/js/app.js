@@ -444,6 +444,23 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     applyTheme(btn.dataset.theme);
     syncActive(btn.dataset.theme);
   });
+  // 移动端：把主题切换器移进汉堡菜单展开层，避免导航栏挤压溢出
+  const mq=window.matchMedia("(max-width:900px)");
+  const navInner=document.querySelector(".nav-inner");
+  const navToggle=document.getElementById("navToggle");
+  function relocateSwitcher(){
+    if(mq.matches){
+      // 窄屏：移进汉堡菜单层
+      if(!navLinks.contains(switcher)) navLinks.appendChild(switcher);
+    }else{
+      // 宽屏：放回 nav-inner（汉堡按钮之前）
+      if(navInner && !navInner.contains(switcher) && navToggle){
+        navInner.insertBefore(switcher,navToggle);
+      }
+    }
+  }
+  relocateSwitcher();
+  mq.addEventListener("change",relocateSwitcher);
 })();
 
 /* ========== 梅罗 PK 大战 ========== */
