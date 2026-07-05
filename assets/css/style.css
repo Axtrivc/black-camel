@@ -1787,9 +1787,32 @@ a{color:inherit;text-decoration:none}
 @media(max-width:600px){
   .pk-sides{grid-template-columns:1fr;min-height:auto}
   .pk-side{padding:28px 20px}
-  .pk-side.cr7{border-right:none;border-bottom:1px dashed var(--border);text-align:center}
-  .pk-side.messi{text-align:center}
-  .pk-vs{font-size:48px}
+  .pk-side.cr7{border-right:none;border-bottom:none;text-align:center;position:relative}
+  .pk-side.cr7::before{
+    /* 移动端用伪元素在 C罗/梅西之间插入 VS 分隔，避免 absolute VS 重叠 */
+    content:"VS";
+    position:absolute;
+    bottom:-26px;left:50%;
+    transform:translateX(-50%);
+    font-family:var(--serif);
+    font-size:36px;
+    font-weight:900;
+    color:var(--crimson);
+    font-style:italic;
+    letter-spacing:-1px;
+    text-shadow:0 0 18px var(--crimson-glow);
+    z-index:5;
+    background:var(--card);
+    padding:0 14px;
+    line-height:1;
+  }
+  .pk-side.cr7{
+    border-bottom:1px dashed var(--border);
+    padding-bottom:42px;
+  }
+  .pk-side.messi{text-align:center;padding-top:42px}
+  /* 隐藏原 absolute 定位的 VS（移动端用上面的伪元素代替） */
+  .pk-vs{display:none}
   .scanner-grid{grid-template-columns:1fr 1fr}
   .scan-value{font-size:22px}
   .meme-thumbs{grid-template-columns:repeat(5,1fr)}
