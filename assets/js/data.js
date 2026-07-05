@@ -425,8 +425,8 @@ const events = [
   },
   {
     id:23, cat:"national", catLabel:"国家队争议", severity:3,
-    title:"世界杯淘汰赛0球0助",
-    date:"2006 — 2022 (五届世界杯)",
+    title:"世界杯淘汰赛20年进球荒",
+    date:"2006 — 2026 (五届世界杯，2026 破零)",
     location:"多届世界杯",
     img:"assets/images/report/r-23.jpg",
     summary:"作为足坛历史顶级射手，C罗在五届世界杯的淘汰赛阶段交出了0球0助攻的成绩单，与其“大赛先生”人设形成巨大反差。",

@@ -25,10 +25,10 @@ const pkData = [
     id:"wc",
     label:"世界杯淘汰赛进球",
     sub:"五届世界杯的真实答卷",
-    cr7:{val:0,note:"8 场淘汰赛 0 球 0 助（2026 前）"},
+    cr7:{val:1,note:"五届世界杯淘汰赛 8 场仅 1 球（2026 破零）"},
     messi:{val:8,note:"2022 决赛封王，多届淘汰赛建功"},
     loser:"cr7",
-    tip:"8 场 0 球 vs 梅西 2022 夺冠"
+    tip:"8 场淘汰赛仅 1 球 vs 梅西 2022 夺冠"
   },
   {
     id:"penalty",
@@ -95,7 +95,7 @@ const penaltyData = {
     {label:"国家队刷弱旅",value:"卢森堡 11 球",unit:"",note:"立陶宛/瑞典各 7，含大四喜",score:22},
     {label:"沙特征服速度",value:"4 年 1 冠",unit:"",note:"对比梅西迈阿密 1 个月即夺冠",score:15},
     {label:"任意球荒",value:"600 天",unit:"0 球",note:"联赛 59 次尝试零进球",score:20},
-    {label:"世界杯淘汰赛",value:"0 球 0 助",unit:"/8场",note:"五届世界杯 8 场淘汰赛",score:8},
+    {label:"世界杯淘汰赛",value:"8场1球",unit:"",note:"五届世界杯淘汰赛仅 1 球",score:12},
     {label:"欧冠淘汰赛隐身",value:"近 5 年",unit:"",note:"多次关键战 0 射正或被换下",score:25},
     {label:"社交媒体含水量",value:"24.3%",unit:"假粉",note:"6亿粉中约 5020 万~1 亿假粉",score:25},
     {label:"单赛季射门垄断",value:"135 次",unit:"",note:"贝尔 50 + 本泽马 60 = 不及他一人",score:20},
@@ -149,7 +149,7 @@ const memePhotos = [
 const memePresets = [
   {top:"我的父姓是 Aveiro",bottom:"但我偏要叫 Ronaldo"},
   {top:"点球进了！",bottom:"siuuuuuuu"},
-  {top:"世界杯淘汰赛 0 球",bottom:"但我是历史第一第二第三"},
+  {top:"世界杯淘汰赛 8 场才 1 球",bottom:"但我是历史第一第二第三"},
   {top:"4 年才拿 1 个沙特冠",bottom:"沙漠骆驼不是白叫的"},
   {top:"梅西拿了世界杯",bottom:"Factos! Factos! Factos!"},
   {top:"我又摔了袖标/手机/麦克风",bottom:"这次是裁判的错"},
