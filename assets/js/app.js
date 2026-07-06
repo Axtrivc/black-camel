@@ -916,6 +916,72 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   requestAnimationFrame(loop);
 })();
 
+/* ========== 签名彩蛋（档案封印）========== */
+(function(){
+  const seal=document.getElementById("footerSeal");
+  const stamp=document.getElementById("sealStamp");
+  const hint=document.getElementById("sealHint");
+  const countEl=document.getElementById("sealCount");
+  const titleEl=document.getElementById("sealTitle");
+  const marks=document.getElementById("sealMarks");
+  if(!seal||!stamp) return;
+
+  // 称号阶梯：达到对应次数解锁，仅升不降
+  const TITLES=[
+    {n:1,name:"见习封印官",line:"第一枚封印已落下。"},
+    {n:3,name:"档案守护者",line:"三枚红印，黑历史由你看管。"},
+    {n:7,name:"首席档案官",line:"七印成阵，本馆非你莫属。"},
+    {n:15,name:"终身馆长",line:"十五印封顶，你就是这座档案馆本身。"},
+    {n:30,name:"传说之印",line:"30 印……你确定不是本人来销毁档案的吗？"}
+  ];
+  let count=0, titleIdx=-1;
+
+  function stamp_seal(){
+    count++;
+    // 1) 印章砸落
+    const drop=document.createElement("div");
+    drop.className="seal-drop";
+    drop.textContent="封印\n#"+count;
+    drop.style.whiteSpace="pre";
+    seal.querySelector(".seal-stage").appendChild(drop);
+    drop.addEventListener("animationend",()=>drop.remove(),{once:true});
+    // 2) stage 震动
+    stamp.classList.remove("shaking");
+    void stamp.offsetWidth;
+    stamp.classList.add("shaking");
+    stamp.addEventListener("animationend",function ae(){
+      stamp.removeEventListener("animationend",ae);
+      stamp.classList.remove("shaking");
+    });
+    // 3) 永久墨迹印记（累积）
+    const ink=document.createElement("span");
+    ink.className="seal-inkmark";
+    marks.appendChild(ink);
+    // 4) 计数显示
+    countEl.hidden=false;
+    countEl.textContent="封印次数 · "+count;
+    // 5) 解锁称号
+    let newIdx=titleIdx;
+    TITLES.forEach((t,i)=>{ if(count>=t.n) newIdx=i; });
+    if(newIdx>titleIdx){
+      titleIdx=newIdx;
+      const t=TITLES[newIdx];
+      titleEl.hidden=false;
+      titleEl.textContent="« "+t.name+" »";
+      titleEl.style.animation="none"; void titleEl.offsetWidth;
+      titleEl.style.animation="";
+      hint.textContent=t.line;
+    }
+    // 6) 首次盖章后改提示
+    if(count===1) hint.textContent="再点几下，解锁隐藏称号 →";
+  }
+
+  stamp.addEventListener("click",stamp_seal);
+  stamp.addEventListener("keydown",e=>{
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); stamp_seal(); }
+  });
+})();
+
 /* ========== 初始渲染 ========== */
 renderCards();
 })();

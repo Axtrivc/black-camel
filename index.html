@@ -506,6 +506,21 @@
   <div class="footer-disclaimer">
     DATA SOURCES: AP / ESPN / CNN / BBC / SKY SPORTS / 腾讯体育 / 知乎 · CONTENT FOR ENTERTAINMENT PURPOSES ONLY
   </div>
+
+  <!-- 签名彩蛋：悬停显形，点击盖章 -->
+  <div class="footer-seal" id="footerSeal">
+    <div class="seal-stage">
+      <div class="seal-stamp" id="sealStamp" role="button" tabindex="0" aria-label="盖章">
+        <span class="seal-glyph">ɐ</span>
+        <span class="seal-name">ℒℯℯ</span>
+      </div>
+      <div class="seal-hint" id="sealHint">悬停解密 · 点击封印</div>
+      <div class="seal-count" id="sealCount" hidden></div>
+      <div class="seal-title" id="sealTitle" hidden></div>
+    </div>
+    <!-- 盖章印记层（JS 注入印章砸落）-->
+    <div class="seal-marks" id="sealMarks" aria-hidden="true"></div>
+  </div>
 </footer>
 
 <!-- 模态框 -->
