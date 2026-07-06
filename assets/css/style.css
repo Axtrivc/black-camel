@@ -1847,8 +1847,7 @@ a{color:inherit;text-decoration:none}
 
 /* ========== 新增：简约微交互（保留原有视觉，仅新增交互细节）========== */
 
-/* 导航链接：下划线由中间向两侧展开 */
-.nav-links a{position:relative}
+/* 导航链接：下划线由中间向两侧展开（position:relative 已在 line 172 声明，不再重复）*/
 .nav-links a::after{
   content:"";position:absolute;left:50%;bottom:-5px;
   width:0;height:2px;background:var(--crimson);
@@ -1862,14 +1861,15 @@ a{color:inherit;text-decoration:none}
 .back-to-top:active,.modal-close:active,.modal-nav:active{
   transform:scale(.96);
 }
+/* primary 按钮：active 时保留 hover 的 translateY(-2px)，叠加缩放，避免按下跳位 */
+.btn-primary:active{transform:translateY(-2px) scale(.96)}
 
 /* 模态框打开：scale + 淡入动画（仅 .show 触发，不破坏默认隐藏）*/
 @keyframes modalPopIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
 .modal-overlay.show .modal{animation:modalPopIn .28s cubic-bezier(.2,.7,.3,1)}
 
-/* 时间线条目 hover：右移 + 左边线高亮 */
-.tl-item{transition:transform .25s ease,border-left-color .25s ease,background-color .25s ease,opacity .6s ease}
-.tl-item:hover{transform:translateX(6px);border-left-color:var(--crimson);background:var(--card-hover)}
+/* 时间线条目 hover：高亮（不重写 transition/transform，避免覆盖 line 756 的 all .6s 入场动画与主题切换过渡）*/
+.tl-item:hover{border-left-color:var(--crimson);background:var(--card-hover)}
 
 /* 数据条形图 hover：行高亮 + 条形提亮 */
 .bar-row{transition:background-color .2s ease,border-radius .2s ease}
@@ -1891,6 +1891,5 @@ a{color:inherit;text-decoration:none}
 .footer-logo{transition:color .25s ease}
 .footer-logo:hover{color:var(--crimson)}
 
-/* 主题切换按钮 hover 微浮 */
-.theme-btn{transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .15s ease}
+/* 主题切换按钮 hover 微浮（不重写 transition，沿用原 line 1317 的 all .25s，已涵盖 transform）*/
 .theme-btn:hover{transform:translateY(-1px)}
