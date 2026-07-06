@@ -1844,3 +1844,53 @@ a{color:inherit;text-decoration:none}
   .scanner-grid{grid-template-columns:1fr}
   .theme-btn{padding:4px 7px;font-size:9px}
 }
+
+/* ========== 新增：简约微交互（保留原有视觉，仅新增交互细节）========== */
+
+/* 导航链接：下划线由中间向两侧展开 */
+.nav-links a{position:relative}
+.nav-links a::after{
+  content:"";position:absolute;left:50%;bottom:-5px;
+  width:0;height:2px;background:var(--crimson);
+  transition:width .25s ease,left .25s ease;
+}
+.nav-links a:hover::after,.nav-links a:focus::after{width:100%;left:0}
+
+/* 按下反馈：可点击元素 active 时轻微缩放 */
+.btn:active,.filter-chip:active,.theme-btn:active,.quote-btn:active,
+.meme-thumb:active,.meme-preset:active,.nav-logo:active,.event-card:active,
+.back-to-top:active,.modal-close:active,.modal-nav:active{
+  transform:scale(.96);
+}
+
+/* 模态框打开：scale + 淡入动画（仅 .show 触发，不破坏默认隐藏）*/
+@keyframes modalPopIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-overlay.show .modal{animation:modalPopIn .28s cubic-bezier(.2,.7,.3,1)}
+
+/* 时间线条目 hover：右移 + 左边线高亮 */
+.tl-item{transition:transform .25s ease,border-left-color .25s ease,background-color .25s ease,opacity .6s ease}
+.tl-item:hover{transform:translateX(6px);border-left-color:var(--crimson);background:var(--card-hover)}
+
+/* 数据条形图 hover：行高亮 + 条形提亮 */
+.bar-row{transition:background-color .2s ease,border-radius .2s ease}
+.bar-row:hover{background:var(--card-hover);border-radius:6px}
+.bar-row:hover .bar-fill{filter:brightness(1.15)}
+
+/* 绰号卡片图片 hover 微缩放（原有仅 grayscale 变化，新增 scale）*/
+.nick-card-img img{transition:transform .4s ease,filter .4s ease}
+.nick-card:hover .nick-card-img img{transform:scale(1.05)}
+
+/* 引用墙按钮 hover */
+.quote-btn{transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .2s ease}
+.quote-btn:hover{transform:scale(1.1);background:var(--crimson);color:#fff}
+
+/* 烧钱榜行 hover：高亮（不重写原有 transition，避免破坏 .show 动画）*/
+.ledger-row:hover{background:var(--card-hover)}
+
+/* footer logo hover 变色 */
+.footer-logo{transition:color .25s ease}
+.footer-logo:hover{color:var(--crimson)}
+
+/* 主题切换按钮 hover 微浮 */
+.theme-btn{transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .15s ease}
+.theme-btn:hover{transform:translateY(-1px)}
