@@ -916,7 +916,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   requestAnimationFrame(loop);
 })();
 
-/* ========== 签名彩蛋（档案封印）========== */
+/* ========== 签名彩蛋（档案封印 + SIU）========== */
 (function(){
   const seal=document.getElementById("footerSeal");
   const stamp=document.getElementById("sealStamp");
@@ -926,17 +926,66 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   const marks=document.getElementById("sealMarks");
   if(!seal||!stamp) return;
 
-  // 称号阶梯：达到对应次数解锁，仅升不降
+  const MAX=7;   // 封顶 7 印
+  // 称号阶梯（封顶 7）
   const TITLES=[
     {n:1,name:"见习封印官",line:"第一枚封印已落下。"},
     {n:3,name:"档案守护者",line:"三枚红印，黑历史由你看管。"},
-    {n:7,name:"首席档案官",line:"七印成阵，本馆非你莫属。"},
-    {n:15,name:"终身馆长",line:"十五印封顶，你就是这座档案馆本身。"},
-    {n:30,name:"传说之印",line:"30 印……你确定不是本人来销毁档案的吗？"}
+    {n:7,name:"首席档案官",line:"七印封顶 · SIU! 触发庆祝。"}
   ];
-  let count=0, titleIdx=-1;
+  let count=0, titleIdx=-1, siuUnlocked=false, siuPlaying=false;
+
+  /* —— SIU 全屏庆祝 —— */
+  function playSIU(){
+    if(siuPlaying) return;
+    siuPlaying=true;
+    const ov=document.createElement("div");
+    ov.className="siu-overlay";
+    ov.innerHTML=`
+      <div class="siu-figure" aria-hidden="true">
+        <svg viewBox="0 0 100 140" width="100" height="140">
+          <!-- 头 -->
+          <circle cx="50" cy="18" r="12" fill="#1a1a1a"/>
+          <!-- 躯干（张开双臂向后下举的 SIU 姿势）-->
+          <path d="M50 30 L50 80" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+          <!-- 左臂向后下伸展 -->
+          <path d="M50 42 L20 78" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
+          <!-- 右臂向后下伸展 -->
+          <path d="M50 42 L80 78" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
+          <!-- 左腿张开 -->
+          <path d="M50 80 L28 130" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+          <!-- 右腿张开 -->
+          <path d="M50 80 L72 130" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="siu-text">SIU!</div>`;
+    document.body.appendChild(ov);
+    // 彩纸碎片
+    const colors=["#dc143c","#e8b923","#fff","#ff1744","#3ddc84"];
+    for(let i=0;i<40;i++){
+      const c=document.createElement("div");
+      c.className="siu-confetti";
+      c.style.left=Math.random()*100+"vw";
+      c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.2+Math.random()*1.2)+"s";
+      c.style.animationDelay=(Math.random()*.3)+"s";
+      c.style.transform="rotate("+Math.random()*360+"deg)";
+      document.body.appendChild(c);
+      c.addEventListener("animationend",()=>c.remove(),{once:true});
+    }
+    // 2.4s 后淡出移除
+    setTimeout(()=>{
+      ov.classList.add("out");
+      ov.addEventListener("animationend",()=>{ ov.remove(); siuPlaying=false; },{once:true});
+    },2200);
+  }
 
   function stamp_seal(){
+    if(count>=MAX){
+      // 已封顶：若解锁了 SIU，重放庆祝；否则无动作
+      if(siuUnlocked) playSIU();
+      return;
+    }
     count++;
     // 1) 印章砸落
     const drop=document.createElement("div");
@@ -959,7 +1008,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     marks.appendChild(ink);
     // 4) 计数显示
     countEl.hidden=false;
-    countEl.textContent="封印次数 · "+count;
+    countEl.textContent="封印 · "+count+" / "+MAX;
     // 5) 解锁称号
     let newIdx=titleIdx;
     TITLES.forEach((t,i)=>{ if(count>=t.n) newIdx=i; });
@@ -972,8 +1021,14 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       titleEl.style.animation="";
       hint.textContent=t.line;
     }
-    // 6) 首次盖章后改提示
-    if(count===1) hint.textContent="再点几下，解锁隐藏称号 →";
+    // 6) 封顶触发 SIU
+    if(count===MAX){
+      siuUnlocked=true;
+      hint.textContent="七印封顶 · 再点签名重放 SIU 庆祝";
+      setTimeout(playSIU, 500);   // 等印章砸落动画收尾再庆祝
+    } else if(count===1){
+      hint.textContent="再点几下，集齐 7 印触发隐藏庆祝 →";
+    }
   }
 
   stamp.addEventListener("click",stamp_seal);
