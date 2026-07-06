@@ -861,6 +861,61 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   lo.observe(ledger);
 })();
 
+/* ========== 鼠标涟漪/光晕氛围层 ========== */
+(function(){
+  const aura=document.getElementById("fxAura");
+  if(!aura) return;
+  // 仅桌面端 + 非「减少动效」启用
+  const finePointer = window.matchMedia("(pointer:fine)").matches;
+  const hoverable = window.matchMedia("(hover:hover)").matches;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+  if(!finePointer || !hoverable || reduceMotion) return;
+
+  document.body.classList.add("fx-ready");
+  let tx=window.innerWidth/2, ty=window.innerHeight/2;   // 目标坐标
+  let cx=tx, cy=ty;                                       // 当前坐标（lerp 平滑）
+  let lastMove=performance.now();
+  let breathing=false;
+  const BASE_OPACITY=.18;
+
+  window.addEventListener("pointermove",e=>{
+    tx=e.clientX; ty=e.clientY;
+    lastMove=performance.now();
+    breathing=false;
+    aura.style.opacity=BASE_OPACITY;
+  },{passive:true});
+
+  // 点击/触摸：在落点生成扩散涟漪环
+  window.addEventListener("pointerdown",e=>{
+    const r=document.createElement("div");
+    r.className="fx-ripple";
+    r.style.left=e.clientX+"px";
+    r.style.top=e.clientY+"px";
+    document.body.appendChild(r);
+    r.addEventListener("animationend",()=>r.remove(),{once:true});
+  },{passive:true});
+
+  // 离开窗口淡出
+  document.addEventListener("mouseleave",()=>{ aura.style.opacity=0; });
+  document.addEventListener("mouseenter",()=>{ aura.style.opacity=BASE_OPACITY; });
+
+  // 主循环：lerp 跟随 + 静止呼吸
+  function loop(now){
+    // 指数平滑：每帧向目标靠近 ~18%
+    cx+=(tx-cx)*0.18;
+    cy+=(ty-cy)*0.18;
+    aura.style.transform=`translate(${cx}px,${cy}px)`;
+    // 静止超过 1.5s 进入呼吸态：opacity 做正弦起伏
+    if(!breathing && now-lastMove>1500){ breathing=true; }
+    if(breathing){
+      const phase=(now-lastMove-1500)/1000;       // 秒
+      aura.style.opacity=BASE_OPACITY + Math.sin(phase*1.6)*0.08;
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+
 /* ========== 初始渲染 ========== */
 renderCards();
 })();
