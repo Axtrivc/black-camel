@@ -543,6 +543,108 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   });
 })();
 
+/* ========== 罗黑程度测试 ========== */
+(function(){
+  const quiz=document.getElementById("quiz");
+  const body=document.getElementById("quizBody");
+  const progressFill=document.getElementById("quizProgressFill");
+  const progressText=document.getElementById("quizProgressText");
+  const resultBox=document.getElementById("quizResult");
+  if(!quiz||typeof quizData==="undefined") return;
+
+  // 题库：每题 4 选项，1 个正确答案（分值=该题分），答错 0 分
+  // 正确答案紧扣本馆数据，加深"黑历史"印象
+  let idx=0, score=0, picked={};
+
+  function render(){
+    const q=quizData[idx];
+    const total=quizData.length;
+    progressFill.style.width=((idx)/total*100)+"%";
+    progressText.textContent=`第 ${idx+1} / ${total} 题`;
+    body.innerHTML=`
+      <div class="quiz-q">${idx+1}. ${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((o,i)=>`
+          <button class="quiz-option" data-i="${i}">
+            <span class="quiz-opt-mark">${String.fromCharCode(65+i)}</span>
+            <span>${o}</span>
+          </button>`).join("")}
+      </div>
+      <div class="quiz-fb" id="quizFb" hidden></div>
+      <div class="quiz-nav">
+        <span style="font-family:var(--mono);font-size:12px;color:var(--text-dim)">答对得分，答错 0 分</span>
+        <button class="quiz-next" id="quizNext" disabled>下一题 →</button>
+      </div>`;
+    const next=body.querySelector("#quizNext");
+    const fb=body.querySelector("#quizFb");
+    body.querySelectorAll(".quiz-option").forEach(opt=>{
+      opt.addEventListener("click",()=>{
+        if(body.querySelector(".quiz-option.locked")) return; // 已锁定
+        const choice=parseInt(opt.dataset.i);
+        picked[idx]=choice;
+        // 锁定全部，标对错
+        body.querySelectorAll(".quiz-option").forEach((o,i)=>{
+          o.classList.add("locked");
+          if(i===q.a) o.classList.add("correct");
+          else if(i===choice) o.classList.add("wrong");
+        });
+        const ok=choice===q.a;
+        if(ok) score++;
+        fb.hidden=false;
+        fb.className="quiz-fb"+(ok?" correct-fb":"");
+        fb.innerHTML=`<strong>${ok?"✓ 答对了":"✗ 正确答案："+String.fromCharCode(65+q.a)}</strong><br>${q.fb}`;
+        next.disabled=false;
+        next.textContent= idx===total-1?"查看诊断结果 →":"下一题 →";
+      });
+    });
+    next.addEventListener("click",()=>{
+      if(idx<total-1){ idx++; render(); }
+      else showResult();
+    });
+  }
+
+  function showResult(){
+    progressFill.style.width="100%";
+    progressText.textContent=`诊断完成 · ${score}/${quizData.length}`;
+    body.hidden=true;
+    const pct=score/quizData.length;
+    let rank,verdict;
+    if(pct===1){ rank="骨灰级罗黑"; verdict="满分。你比本档案馆还了解他的黑历史，建议入职当馆长。每一题都精准命中——这不是巧合，这是仇恨的沉淀。"; }
+    else if(pct>=0.75){ rank="资深罗黑"; verdict=`${score}/${quizData.length}。你对他的底细门儿清，朋友圈里的"罗黑"担当非你莫属。再补几条典故就能毕业了。`; }
+    else if(pct>=0.5){ rank="黑粉见习"; verdict=`${score}/${quizData.length}。入了门，但还差点意思——建议把档案馆从前往后通读一遍，黑料储备会肉眼可见地充实。`; }
+    else{ rank="吃瓜路人"; verdict=`${score}/${quizData.length}。看着热闹，其实啥也没记住。多翻几页档案，下次就能在球友面前有理有据地"黑"了。`; }
+    document.getElementById("quizScore").textContent=score;
+    document.getElementById("quizRank").textContent=rank;
+    document.getElementById("quizVerdict").textContent=verdict;
+    resultBox.hidden=false;
+    resultBox.classList.add("show");
+    // 分数滚动动画
+    const scoreEl=document.getElementById("quizScore");
+    let n=0; const t0=performance.now();
+    (function tick(now){
+      const p=Math.min((now-t0)/900,1);
+      const eased=1-Math.pow(1-p,3);
+      scoreEl.textContent=Math.floor(eased*score);
+      if(p<1) requestAnimationFrame(tick);
+      else scoreEl.textContent=score;
+    })(performance.now());
+  }
+
+  document.getElementById("quizRestart").addEventListener("click",()=>{
+    idx=0; score=0; picked={};
+    resultBox.hidden=true; resultBox.classList.remove("show");
+    body.hidden=false;
+    render();
+  });
+
+  // 进入视口才启动（顺便加 scanning 扫描线氛围）
+  render();
+  const qo=new IntersectionObserver((ents)=>{
+    ents.forEach(en=>{ if(en.isIntersecting){ quiz.classList.add("scanning"); }});
+  },{threshold:0.3});
+  qo.observe(quiz);
+})();
+
 /* ========== 点球含金量检测仪 ========== */
 (function(){
   const scanner=document.getElementById("scanner");
