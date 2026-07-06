@@ -347,7 +347,7 @@ const events = [
     tags:["金球奖","延期投票","里贝里","四大皆空","布拉特","门德斯","丑闻"]
   },
   {
-    id:19, cat:"club", catLabel:"俱乐部恩怨", severity:5,
+    id:19, cat:"club", catLabel:"俱乐部与法律", severity:5,
     title:"皮尔斯·摩根采访炮轰曼联",
     date:"2022年11月16-17日",
     location:"英国 (TalkTV)",
@@ -367,7 +367,7 @@ const events = [
     tags:["皮尔斯摩根","炮轰曼联","滕哈格","鲁尼","解约","TalkTV","被背叛"]
   },
   {
-    id:20, cat:"club", catLabel:"俱乐部恩怨", severity:3,
+    id:20, cat:"club", catLabel:"俱乐部与法律", severity:3,
     title:"2022夏窗转会闹剧",
     date:"2022年7月 — 9月",
     location:"多俱乐部 (切尔西/拜仁/马竞/那不勒斯)",
@@ -386,7 +386,7 @@ const events = [
     tags:["转会闹剧","切尔西","拜仁","马竞","欧冠","被拒绝","门德斯"]
   },
   {
-    id:21, cat:"club", catLabel:"俱乐部恩怨", severity:4,
+    id:21, cat:"club", catLabel:"俱乐部与法律", severity:4,
     title:"废队友废教练 — 尤文与曼联的衰退",
     date:"2018 — 2022",
     location:"尤文图斯 / 曼联",
@@ -616,7 +616,7 @@ const events = [
     tags:["CR7","商业帝国","自恋品牌","酒店","内衣","香水","背弃祖姓","蹭热度","Aveiro"]
   },
   {
-    id:36, cat:"club", catLabel:"俱乐部恩怨", severity:4,
+    id:36, cat:"club", catLabel:"俱乐部与法律", severity:4,
     title:"沙漠骆驼 — 4年才拿1个沙特冠军",
     date:"2023年1月 — 2026年5月",
     location:"沙特利雅得",
@@ -752,7 +752,7 @@ const events = [
     tags:["梅罗对立","梅西","世界杯","酸葡萄","GOAT之争","大罗排名","B费","公关煽动","2022卡塔尔"]
   },
   {
-    id:45, cat:"club", catLabel:"俱乐部恩怨", severity:3,
+    id:45, cat:"club", catLabel:"俱乐部与法律", severity:3,
     title:"范尼冲突 — \“滚去找你爸爸哭去吧\”",
     date:"2005-2006 (曼联训练场)",
     location:"老特拉福德训练场",
@@ -973,7 +973,7 @@ const events = [
     tags:["眨眼门","2006世界杯","坑鲁尼","红牌","全英嘘声","每日镜报","背叛队友"]
   },
   {
-    id:57, cat:"club", catLabel:"俱乐部恩怨", severity:3,
+    id:57, cat:"club", catLabel:"俱乐部与法律", severity:3,
     title:"第一次离队风波 — 弗格森「卖鲁尼留他」的抉择",
     date:"2006年夏 · 曼联",
     location:"英格兰 曼彻斯特",
@@ -991,7 +991,7 @@ const events = [
     tags:["转会风波","弗格森","皇马","2006","留人","鲁尼芥蒂","更衣室"]
   },
   {
-    id:59, cat:"club", catLabel:"俱乐部恩怨", severity:3,
+    id:59, cat:"club", catLabel:"俱乐部与法律", severity:3,
     title:"欧冠「十六郎」时期 — 连续止步16强",
     date:"2010-2013 · 欧冠",
     location:"欧洲冠军联赛",
@@ -1028,7 +1028,7 @@ const events = [
     tags:["2014世界杯","带伤","膝盖","落泪","小组出局","金球","梅罗对比"]
   },
   {
-    id:61, cat:"club", catLabel:"俱乐部恩怨", severity:3,
+    id:61, cat:"club", catLabel:"俱乐部与法律", severity:3,
     title:"球衣号码恩怨 — 抢7号、与拉莫斯的「传承」之争",
     date:"2003 / 2009 / 2018 · 多家俱乐部",
     location:"曼联 / 皇马 / 尤文",
@@ -1046,7 +1046,7 @@ const events = [
     tags:["7号","CR7","曼联","皇马","尤文","劳尔","夸德拉多","号码传承","商业品牌"]
   },
   {
-    id:62, cat:"club", catLabel:"俱乐部恩怨", severity:3,
+    id:62, cat:"club", catLabel:"俱乐部与法律", severity:3,
     title:"沙特联赛点球占比 — 含金量争议",
     date:"2023-2026 · 利雅得胜利",
     location:"沙特阿拉伯 利雅得",

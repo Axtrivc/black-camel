@@ -1,4 +1,4 @@
-/* AUTO-UPDATE 2026-07-05: CR7 生涯746(俱乐部600+国家队146) 金球5 金靴4 | Messi 生涯693(俱乐部569+国家队124) 金球8 */
+/* 数据快照 2026-07: CR7 金球5 金靴4 | Messi 金球8 · 生涯进球数据持续更新，以 events/timeline 为准 */
 /*
  * extra-data.js — CA7 黑历史档案馆 创意模块数据层
  * 依赖：无（纯数据）。被 app.js 顺序加载后使用。
@@ -17,7 +17,7 @@ const pkData = [
     id:"redcard",
     label:"生涯红牌数",
     sub:"谁更暴力？",
-    cr7:{val:14,note:"曼联4 + 皇马6 + 尤文1 + 利雅得胜利1 + 国家队2"},
+    cr7:{val:14,note:"曼联4 + 皇马6 + 尤文1 + 利雅得胜利1 + 葡萄牙1 + 其他未确认1"},
     messi:{val:3,note:"含2005首秀43秒红牌"},
     loser:"cr7",
     tip:"14 : 3，C罗的红牌是梅西的近 5 倍"
@@ -102,7 +102,7 @@ const penaltyData = {
     {label:"单赛季射门垄断",value:"135 次",unit:"",note:"贝尔 50 + 本泽马 60 = 不及他一人",score:20},
     {label:"沙特点球占比",value:"35 球含点",unit:"",note:"2023/24 赛季大量来自点球",score:18}
   ],
-  totalScore:16,
+  totalScore:16,  // 综合含金量评分（独立设定，非 items.score 聚合；items.score 为各项参考分，保留备用）
   totalLabel:"综合含金量"
 };
 

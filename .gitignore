@@ -6,3 +6,9 @@ Thumbs.db
 .env
 .env.local
 *.local
+
+# 开发工具与中间产物，不计入部署
+build/
+scripts/
+docs/
+.workbuddy/

@@ -207,7 +207,7 @@ document.getElementById("severitySelect").addEventListener("change",(e)=>{
   renderCards();
 });
 
-/* 搜索：防抖 200ms */
+/* 搜索：防抖 200ms，结果区不在视口时自动滚动 */
 const searchInput = document.getElementById("searchInput");
 let searchTimer = null;
 searchInput.addEventListener("input",(e)=>{
@@ -216,6 +216,16 @@ searchInput.addEventListener("input",(e)=>{
   searchTimer = setTimeout(()=>{
     searchQuery = val;
     renderCards();
+    // 有查询词且档案库不在视口内时，平滑滚动到结果区
+    if(val){
+      const archive = document.getElementById("archive");
+      if(archive){
+        const rect = archive.getBoundingClientRect();
+        if(rect.top < 0 || rect.top > window.innerHeight){
+          archive.scrollIntoView({behavior:"smooth", block:"start"});
+        }
+      }
+    }
   },200);
 });
 
@@ -302,7 +312,7 @@ function resetQuoteTimer(){
 document.getElementById("quotePrev").addEventListener("click",()=>{showQuote(quoteIdx-1);resetQuoteTimer();});
 document.getElementById("quoteNext").addEventListener("click",()=>{showQuote(quoteIdx+1);resetQuoteTimer();});
 
-/* ========== Hero 轮播（38张嬷照，随机洗牌循环）========== */
+/* ========== Hero 轮播（37张嬷照，随机洗牌循环）========== */
 const MO_COUNT = 37;   // assets/images/hero-mo/mo-01.jpg ~ mo-37.jpg（原图，含水印）
 const heroGallery = document.getElementById("heroGallery");
 const heroCounter = document.getElementById("heroCounter");
@@ -470,8 +480,6 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   const tip=document.getElementById("pkTip");
   if(!sides||typeof pkData==="undefined") return;
   let curIdx=0;
-  // 渲染维度 tabs
-  tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${d.label}</button>`).join("");
   // 渲染维度 tabs
   tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${d.label}</button>`).join("");
   function render(){
