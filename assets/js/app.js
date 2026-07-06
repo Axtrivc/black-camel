@@ -68,7 +68,8 @@ function renderCards(){
   currentList.forEach((e,idx)=>{
     const card = document.createElement("div");
     card.className = `event-card cat-${e.cat}`;
-    card.style.animationDelay = (idx * 0.05) + "s";
+    // stagger 错峰入场：按行内 index 延迟，封顶 8 张避免长列表末位等太久
+    card.style.setProperty("--stagger", Math.min(idx % 8, 6) * 0.07 + "s");
     let dots = "";
     for(let i=0;i<5;i++){
       dots += `<span class="dot ${i<e.severity?'on':''}"></span>`;
@@ -480,25 +481,57 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   const tip=document.getElementById("pkTip");
   if(!sides||typeof pkData==="undefined") return;
   let curIdx=0;
+  // 记住两侧当前显示值，切换维度时从当前值滚到新值（而非从 0 起跳，体验更连贯）
+  let curCr7=0, curMessi=0;
+
+  // 数字翻牌：cubic ease，~700ms；el._pkRaf 存 raf id，快速连点 tab 时取消上一次避免堆叠
+  function animatePkVal(el,from,to){
+    if(el._pkRaf) cancelAnimationFrame(el._pkRaf);
+    const duration=700;
+    const t0=performance.now();
+    function tick(now){
+      const p=Math.min((now-t0)/duration,1);
+      const eased=1-Math.pow(1-p,3);
+      el.textContent=Math.floor(from+(to-from)*eased);
+      if(p<1) el._pkRaf=requestAnimationFrame(tick);
+      else { el.textContent=to; el._pkRaf=null; }
+    }
+    el._pkRaf=requestAnimationFrame(tick);
+  }
+
   // 渲染维度 tabs
   tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${d.label}</button>`).join("");
   function render(){
     const d=pkData[curIdx];
+    const fromCr7=curCr7, fromMessi=curMessi;
     // 渲染两侧：loser 方（黑点更重/被讽刺方）打上 loser 类高亮
     sides.innerHTML=`
       <div class="pk-side cr7 ${d.loser==='cr7'?'loser':''}">
         <div class="pk-name">C 罗</div>
         <div class="pk-subname">CRISTIANO · CA7</div>
-        <div class="pk-val">${d.cr7.val}</div>
+        <div class="pk-val">${fromCr7}</div>
         <div class="pk-note">${d.cr7.note}</div>
       </div>
       <div class="pk-side messi ${d.loser==='messi'?'loser':''}">
         <div class="pk-name">梅西</div>
         <div class="pk-subname">MESSI</div>
-        <div class="pk-val">${d.messi.val}</div>
+        <div class="pk-val">${fromMessi}</div>
         <div class="pk-note">${d.messi.note}</div>
       </div>`;
     tip.innerHTML=`<strong>${d.tip}</strong>`;
+    // 翻牌：从当前显示值滚到新维度目标值
+    const cr7El=sides.querySelector(".pk-side.cr7 .pk-val");
+    const messiEl=sides.querySelector(".pk-side.messi .pk-val");
+    // 触发弹性动画（强制 reflow 以便连续切换时 class 能重新触发）
+    [cr7El,messiEl].forEach(el=>{
+      el.classList.remove("counting");
+      void el.offsetWidth;
+      el.classList.add("counting");
+      el.addEventListener("animationend",()=>el.classList.remove("counting"),{once:true});
+    });
+    animatePkVal(cr7El,fromCr7,d.cr7.val);
+    animatePkVal(messiEl,fromMessi,d.messi.val);
+    curCr7=d.cr7.val; curMessi=d.messi.val;
   }
   render();
   tabs.addEventListener("click",e=>{

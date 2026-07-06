@@ -202,7 +202,10 @@ a{color:inherit;text-decoration:none}
     radial-gradient(ellipse at 75% 40%,rgba(220,20,60,.12),transparent 60%),
     radial-gradient(ellipse at 20% 80%,rgba(139,10,30,.08),transparent 50%);
   z-index:0;
+  animation:heroGlow 14s ease-in-out infinite;
 }
+/* 径向光晕呼吸：极克制，仅 opacity 起伏 */
+@keyframes heroGlow{0%,100%{opacity:1}50%{opacity:.7}}
 .hero-grid{
   position:absolute;inset:0;
   background-image:
@@ -210,6 +213,21 @@ a{color:inherit;text-decoration:none}
     linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
   background-size:60px 60px;
   z-index:0;
+  animation:heroGridDrift 60s linear infinite;
+}
+/* 网格缓慢漂移，制造"监控画面"的活感 */
+@keyframes heroGridDrift{from{background-position:0 0,0 0}to{background-position:60px 60px,60px 60px}}
+/* hero 横向扫描线（极淡，叠加在 hero-bg 上，不碰 background 属性以兼容 galactico 主题）*/
+.hero-bg::after{
+  content:"";position:absolute;left:0;right:0;top:0;height:120px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(220,20,60,.05),transparent);
+  animation:heroScan 9s ease-in-out infinite;opacity:0;
+}
+@keyframes heroScan{
+  0%{transform:translateY(-120px);opacity:0}
+  10%,90%{opacity:1}
+  50%{transform:translateY(60vh)}
+  100%{transform:translateY(60vh);opacity:0}
 }
 .hero-inner{
   position:relative;z-index:2;
@@ -457,7 +475,11 @@ a{color:inherit;text-decoration:none}
   border-radius:6px;
   overflow:hidden;
   cursor:pointer;
-  transition:all .3s cubic-bezier(.2,.8,.2,1);
+  transition:opacity .5s cubic-bezier(.2,.8,.2,1),
+             transform .5s cubic-bezier(.2,.8,.2,1),
+             background-color .3s,border-color .3s,box-shadow .3s;
+  /* stagger 仅延迟入场的 opacity/transform；hover 时下方规则把 delay 归零保证即时响应 */
+  transition-delay:var(--stagger,0s);
   position:relative;
   display:flex;
   flex-direction:column;
@@ -468,6 +490,7 @@ a{color:inherit;text-decoration:none}
   opacity:1;
   transform:translateY(0);
 }
+.event-card:hover{transition-delay:0s}
 .event-card:hover{
   border-color:var(--border-hot);
   background:var(--card-hover);
@@ -1441,9 +1464,13 @@ a{color:inherit;text-decoration:none}
   font-weight:900;
   line-height:1;
   margin-bottom:10px;
+  font-variant-numeric:tabular-nums; /* 翻牌时数字等宽，避免位数跳动 */
 }
 .pk-side.cr7 .pk-val{color:var(--crimson)}
 .pk-side.messi .pk-val{color:#7aa8ff}
+/* 翻牌弹性：切换维度时由 JS 短暂加 .counting 触发 */
+@keyframes pkValPop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+.pk-val.counting{animation:pkValPop .5s cubic-bezier(.2,.8,.2,1)}
 .pk-note{
   font-size:13px;
   color:var(--text-dim);
@@ -1893,3 +1920,15 @@ a{color:inherit;text-decoration:none}
 
 /* 主题切换按钮 hover 微浮（不重写 transition，沿用原 line 1317 的 all .25s，已涵盖 transform）*/
 .theme-btn:hover{transform:translateY(-1px)}
+
+/* ========== 无障碍：尊重「减少动效」系统偏好 ==========
+   关闭所有装饰性循环动画（ticker/scan/hero 呼吸漂移等），
+   保留必要的 hover/active 反馈与一次性入场过渡。*/
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+}
