@@ -552,13 +552,31 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   const resultBox=document.getElementById("quizResult");
   if(!quiz||typeof quizData==="undefined") return;
 
-  // 题库：每题 4 选项，1 个正确答案（分值=该题分），答错 0 分
-  // 正确答案紧扣本馆数据，加深"黑历史"印象
-  let idx=0, score=0, picked={};
+  // 每局题数：从 25 题大题库里随机抽取，保证每局题目不同
+  const QUIZ_LEN = Math.min(8, quizData.length);
+  // Fisher-Yates 洗牌（不修改原数组）
+  function shuffle(arr){
+    const a=arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+  // 生成本局题目：shuffle 题序取前 N 题，每题选项也 shuffle 并重算正确答案 index
+  function makeGame(){
+    return shuffle(quizData).slice(0,QUIZ_LEN).map(item=>{
+      const correctText=item.opts[item.a];
+      const opts=shuffle(item.opts);
+      return { q:item.q, opts, a:opts.indexOf(correctText), fb:item.fb };
+    });
+  }
+
+  let game=[], idx=0, score=0;
 
   function render(){
-    const q=quizData[idx];
-    const total=quizData.length;
+    const q=game[idx];
+    const total=game.length;
     progressFill.style.width=((idx)/total*100)+"%";
     progressText.textContent=`第 ${idx+1} / ${total} 题`;
     body.innerHTML=`
@@ -581,7 +599,6 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       opt.addEventListener("click",()=>{
         if(body.querySelector(".quiz-option.locked")) return; // 已锁定
         const choice=parseInt(opt.dataset.i);
-        picked[idx]=choice;
         // 锁定全部，标对错
         body.querySelectorAll(".quiz-option").forEach((o,i)=>{
           o.classList.add("locked");
@@ -604,16 +621,18 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   }
 
   function showResult(){
+    const total=game.length;
     progressFill.style.width="100%";
-    progressText.textContent=`诊断完成 · ${score}/${quizData.length}`;
+    progressText.textContent=`诊断完成 · ${score}/${total}`;
     body.hidden=true;
-    const pct=score/quizData.length;
+    const pct=score/total;
     let rank,verdict;
     if(pct===1){ rank="骨灰级罗黑"; verdict="满分。你比本档案馆还了解他的黑历史，建议入职当馆长。每一题都精准命中——这不是巧合，这是仇恨的沉淀。"; }
-    else if(pct>=0.75){ rank="资深罗黑"; verdict=`${score}/${quizData.length}。你对他的底细门儿清，朋友圈里的"罗黑"担当非你莫属。再补几条典故就能毕业了。`; }
-    else if(pct>=0.5){ rank="黑粉见习"; verdict=`${score}/${quizData.length}。入了门，但还差点意思——建议把档案馆从前往后通读一遍，黑料储备会肉眼可见地充实。`; }
-    else{ rank="吃瓜路人"; verdict=`${score}/${quizData.length}。看着热闹，其实啥也没记住。多翻几页档案，下次就能在球友面前有理有据地"黑"了。`; }
+    else if(pct>=0.75){ rank="资深罗黑"; verdict=`${score}/${total}。你对他的底细门儿清，朋友圈里的"罗黑"担当非你莫属。再补几条典故就能毕业了。`; }
+    else if(pct>=0.5){ rank="黑粉见习"; verdict=`${score}/${total}。入了门，但还差点意思——建议把档案馆从前往后通读一遍，黑料储备会肉眼可见地充实。`; }
+    else{ rank="吃瓜路人"; verdict=`${score}/${total}。看着热闹，其实啥也没记住。多翻几页档案，下次就能在球友面前有理有据地"黑"了。`; }
     document.getElementById("quizScore").textContent=score;
+    document.getElementById("quizScoreMax").textContent="/"+total;
     document.getElementById("quizRank").textContent=rank;
     document.getElementById("quizVerdict").textContent=verdict;
     resultBox.hidden=false;
@@ -630,15 +649,19 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     })(performance.now());
   }
 
-  document.getElementById("quizRestart").addEventListener("click",()=>{
-    idx=0; score=0; picked={};
+  // 开始新一局：重新抽题 + 重置状态
+  function startNewGame(){
+    game=makeGame(); idx=0; score=0;
     resultBox.hidden=true; resultBox.classList.remove("show");
     body.hidden=false;
     render();
-  });
+  }
 
-  // 进入视口才启动（顺便加 scanning 扫描线氛围）
-  render();
+  document.getElementById("quizRestart").addEventListener("click",startNewGame);
+
+  // 首局启动
+  startNewGame();
+  // 进入视口加 scanning 扫描线氛围
   const qo=new IntersectionObserver((ents)=>{
     ents.forEach(en=>{ if(en.isIntersecting){ quiz.classList.add("scanning"); }});
   },{threshold:0.3});
