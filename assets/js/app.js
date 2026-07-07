@@ -65,17 +65,31 @@ function renderCards(){
 
   document.getElementById("resultCount").textContent = `显示 ${currentList.length} 条记录`;
 
+  // 排序：头条/置顶（severity 5 且标记「头条」）最前，其次按 severity 降序、id 降序
+  const maxId = Math.max(...events.map(e=>e.id));
+  currentList.sort((a,b)=>{
+    const aTop = a.tags && a.tags.includes("头条") ? 1 : 0;
+    const bTop = b.tags && b.tags.includes("头条") ? 1 : 0;
+    if(aTop !== bTop) return bTop - aTop;
+    if(b.severity !== a.severity) return b.severity - a.severity;
+    return b.id - a.id;
+  });
+
   currentList.forEach((e,idx)=>{
     const card = document.createElement("div");
     card.className = `event-card cat-${e.cat}`;
+    if(e.tags && e.tags.includes("头条")) card.classList.add("card-pinned");
     // stagger 错峰入场：按行内 index 延迟，封顶 8 张避免长列表末位等太久
     card.style.setProperty("--stagger", Math.min(idx % 8, 6) * 0.07 + "s");
     let dots = "";
     for(let i=0;i<5;i++){
       dots += `<span class="dot ${i<e.severity?'on':''}"></span>`;
     }
+    const pinnedBadge = (e.tags && e.tags.includes("头条")) ? `<span class="card-badge-breaking">🔥 头条</span>` : "";
+    const newBadge = (e.id === maxId && !(e.tags && e.tags.includes("头条"))) ? `<span class="card-badge-new">NEW</span>` : "";
     card.innerHTML = `
       <div class="card-img">
+        ${pinnedBadge}${newBadge}
         <span class="card-cat" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}33;color:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}">${e.catLabel}</span>
         <div class="card-severity">${dots}</div>
         <img src="${e.img||''}" alt="${e.title}" loading="lazy" data-cat-label="${e.catLabel}">
@@ -120,6 +134,7 @@ function openModalByIdx(idx){
   overlay.classList.add("show");
   document.body.style.overflow = "hidden";
   document.querySelector(".modal").scrollTop = 0;
+  if(window.__badge) window.__badge("read", 1);
 }
 
 function renderModal(){
@@ -129,7 +144,9 @@ function renderModal(){
   for(let i=0;i<5;i++){
     dots += `<span class="dot ${i<e.severity?'on':''}"></span>`;
   }
-  const detailHtml = e.detail.map(p=>`<p>${p}</p>`).join("");
+  // detail 渲染：若段落本身已是块级标签（<p>/<figure>/<div> 等）则原样输出，否则包一层 <p>
+  const blockTag=/^\s*<(p|figure|div|blockquote|h[1-6]|ul|ol|table)\b/i;
+  const detailHtml = e.detail.map(p=> blockTag.test(p) ? p : `<p>${p}</p>`).join("");
   let quoteHtml = "";
   if(e.quote){
     quoteHtml = `<div class="modal-quote">"${e.quote.text}"<cite>— ${e.quote.author}</cite></div>`;
@@ -389,6 +406,17 @@ backToTop.addEventListener("click",()=>{
   window.scrollTo({top:0,behavior:"smooth"});
 });
 
+/* ========== 🚨 BREAKING 头条：点击展开第 63 号卷宗 ========== */
+document.getElementById("breakingCta")?.addEventListener("click",()=>{
+  // 切到「全部」筛选确保该事件在当前列表中
+  document.querySelectorAll(".filter-chip").forEach(c=>c.classList.toggle("active",c.dataset.cat==="all"));
+  currentList=events;
+  renderCards();  // 此后会按置顶/严重程度排序 currentList
+  // 在排序后的 currentList 中定位 id:63
+  const idx=currentList.findIndex(e=>e.id===63);
+  if(idx>=0) openModalByIdx(idx);
+});
+
 /* ========== 统计数字自动计算（从 events 聚合） ========== */
 // 1) filter chip 的计数
 const catCounts = events.reduce((acc,e)=>{
@@ -635,6 +663,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     document.getElementById("quizScoreMax").textContent="/"+total;
     document.getElementById("quizRank").textContent=rank;
     document.getElementById("quizVerdict").textContent=verdict;
+    if(window.__badge) window.__badge("quiz", {score, total, pct});
     resultBox.hidden=false;
     resultBox.classList.add("show");
     // 分数滚动动画
@@ -935,31 +964,73 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   ];
   let count=0, titleIdx=-1, siuUnlocked=false, siuPlaying=false;
 
-  /* —— SIU 全屏庆祝 —— */
+  /* —— SIU 全屏庆祝 ——
+     统一入口 window.__siuCelebration()：所有 SIU 触发点（底部封印 / 右下悬浮按钮）
+     都汇入此处。素材优先级：cr7 真人视频 (assets/videos/siu.mp4) > 图片 > 原创矢量。 */
   function playSIU(){
+    window.__siuCelebration();
+  }
+  // 探测视频是否可用（启动时异步）
+  let siuVideoOk=false;
+  (function probeVideo(){
+    const x=new XMLHttpRequest();
+    x.open("HEAD","assets/videos/siu.mp4",true);
+    x.onload=()=>{ siuVideoOk = x.status>=200 && x.status<300; };
+    x.send();
+  })();
+  window.__siuCelebration=function(){
     if(siuPlaying) return;
     siuPlaying=true;
     const ov=document.createElement("div");
     ov.className="siu-overlay";
-    ov.innerHTML=`
-      <div class="siu-figure" aria-hidden="true">
-        <svg viewBox="0 0 100 140" width="100" height="140">
-          <!-- 头 -->
-          <circle cx="50" cy="18" r="12" fill="#1a1a1a"/>
-          <!-- 躯干（张开双臂向后下举的 SIU 姿势）-->
-          <path d="M50 30 L50 80" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
-          <!-- 左臂向后下伸展 -->
-          <path d="M50 42 L20 78" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
-          <!-- 右臂向后下伸展 -->
-          <path d="M50 42 L80 78" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
-          <!-- 左腿张开 -->
-          <path d="M50 80 L28 130" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
-          <!-- 右腿张开 -->
-          <path d="M50 80 L72 130" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+    // 素材优先级：视频 > 图片 > 矢量。无「SIU!」文字，纯画面。
+    let figureHtml;
+    if(siuVideoOk){
+      // cr7 真人 SIU 视频：放一遍后随覆盖层一起渐变消失（不影响阅读）
+      figureHtml=`<div class="siu-figure siu-figure-video" aria-hidden="true">
+        <video src="assets/videos/siu.mp4" autoplay muted playsinline preload="auto"></video>
+      </div>`;
+    }else if(window.__siuImg){
+      figureHtml=`<div class="siu-figure siu-figure-img" aria-hidden="true">
+        <img src="${window.__siuImg}" alt="">
+      </div>`;
+    }else{
+      figureHtml=`<div class="siu-figure" aria-hidden="true">
+        <svg viewBox="0 0 120 160" width="120" height="160">
+          <circle cx="60" cy="22" r="13" fill="#1a1a1a"/>
+          <ellipse cx="60" cy="24" rx="3.5" ry="5" fill="#dc143c"/>
+          <path d="M60 35 L60 92" stroke="#1a1a1a" stroke-width="9" stroke-linecap="round"/>
+          <path d="M60 48 L22 30" stroke="#1a1a1a" stroke-width="7.5" stroke-linecap="round"/>
+          <path d="M60 48 L98 30" stroke="#1a1a1a" stroke-width="7.5" stroke-linecap="round"/>
+          <path d="M60 92 L30 150" stroke="#1a1a1a" stroke-width="9" stroke-linecap="round"/>
+          <path d="M60 92 L90 150" stroke="#1a1a1a" stroke-width="9" stroke-linecap="round"/>
         </svg>
-      </div>
-      <div class="siu-text">SIU!</div>`;
+      </div>`;
+    }
+    ov.innerHTML=figureHtml;
     document.body.appendChild(ov);
+    // 视频立即播放
+    const v=ov.querySelector("video");
+    // 开始淡出整个覆盖层（视频播完即渐变消失，不挡阅读）
+    const fadeOut=()=>{
+      if(ov.classList.contains("out")) return;
+      ov.classList.add("out");
+      ov.addEventListener("animationend",()=>{ ov.remove(); siuPlaying=false; },{once:true});
+      // 兜底：淡出动画 0.5s 后强制移除
+      setTimeout(()=>{ ov.remove(); siuPlaying=false; },600);
+    };
+    if(v){
+      v.play().catch(()=>{});
+      // 视频播完一遍即渐变消失
+      v.addEventListener("ended",fadeOut,{once:true});
+      // 兜底：视频可能不触发 ended（某些浏览器自动循环），2.5s 后强制淡出
+      setTimeout(fadeOut,2500);
+    }else{
+      // 无视频（图片/矢量兜底）：3s 后淡出
+      setTimeout(fadeOut,3000);
+    }
+    // 同步播放音效（与视频/画面配合；所有触发点统一发声）
+    if(typeof window.__siuSound==="function") window.__siuSound();
     // 彩纸碎片
     const colors=["#dc143c","#e8b923","#fff","#ff1744","#3ddc84"];
     for(let i=0;i<40;i++){
@@ -973,12 +1044,9 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       document.body.appendChild(c);
       c.addEventListener("animationend",()=>c.remove(),{once:true});
     }
-    // 2.4s 后淡出移除
-    setTimeout(()=>{
-      ov.classList.add("out");
-      ov.addEventListener("animationend",()=>{ ov.remove(); siuPlaying=false; },{once:true});
-    },2200);
-  }
+    // 兜底：无论动画如何，6s 后强制解锁，避免卡死无法再次触发
+    setTimeout(()=>{ siuPlaying=false; },6000);
+  };
 
   function stamp_seal(){
     if(count>=MAX){
@@ -1035,6 +1103,549 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   stamp.addEventListener("keydown",e=>{
     if(e.key==="Enter"||e.key===" "){ e.preventDefault(); stamp_seal(); }
   });
+})();
+
+/* ========== 黑料盲盒 / 今日通缉令 ========== */
+(function blindboxModule(){
+  const poster=document.getElementById("blindboxPoster");
+  const els={
+    no:document.getElementById("blindboxNo"),
+    cat:document.getElementById("blindboxCat"),
+    title:document.getElementById("blindboxTitle"),
+    date:document.getElementById("blindboxDate"),
+    loc:document.getElementById("blindboxLoc"),
+    sev:document.getElementById("blindboxSev"),
+    summary:document.getElementById("blindboxSummary"),
+  };
+  let current=null, lastId=null;
+
+  function pick(){
+    let pool=events;
+    if(lastId!==null && events.length>1){
+      pool=events.filter(e=>e.id!==lastId);
+    }
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  function sevLabel(s){
+    return s>=5?"极重":s===4?"严重":s===3?"较重":s===2?"一般":"轻微";
+  }
+
+  function render(ev){
+    current=ev;
+    els.no.textContent="№ "+String(ev.id).padStart(3,"0")+" / "+String(events.length).padStart(3,"0");
+    els.cat.textContent=ev.catLabel;
+    els.title.textContent=ev.title;
+    els.date.textContent="📅 "+(ev.date||"—");
+    els.loc.textContent="📍 "+(ev.location||"—");
+    let bars="";
+    for(let i=1;i<=5;i++){
+      bars+=`<span class="sev-bar${i<=ev.severity?" on":""}"></span>`;
+    }
+    els.sev.innerHTML=`严重程度 ${bars} <span>${sevLabel(ev.severity)}</span>`;
+    els.summary.textContent=ev.summary;
+  }
+
+  function shuffle(){
+    poster.classList.remove("flip");
+    void poster.offsetWidth;
+    poster.classList.add("flip");
+    render(pick());
+    lastId=current.id;
+  }
+
+  function download(){
+    if(!current) return;
+    const c=document.createElement("canvas");
+    const W=600,H=840;
+    c.width=W;c.height=H;
+    const x=c.getContext("2d");
+    // 背景渐变
+    const g=x.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,"#131316");g.addColorStop(1,"#0b0b0d");
+    x.fillStyle=g;x.fillRect(0,0,W,H);
+    // 边框
+    x.strokeStyle="#dc143c";x.lineWidth=2;
+    x.strokeRect(20,20,W-40,H-40);
+    // CLASSIFIED 印章
+    x.strokeStyle="#dc143c";x.lineWidth=2;
+    x.strokeRect(W-150,40,110,28);
+    x.fillStyle="#dc143c";x.font="600 14px 'Courier New',monospace";
+    x.textAlign="center";
+    x.fillText("CLASSIFIED",W-95,59);
+    // 水印
+    x.fillStyle="rgba(220,20,60,0.05)";x.font="900 200px Georgia,serif";
+    x.textAlign="center";
+    x.fillText("CA7",W/2,H-80);
+    // 编号
+    x.fillStyle="#dc143c";x.font="700 18px 'Courier New',monospace";
+    x.textAlign="left";
+    x.fillText("№ "+String(current.id).padStart(3,"0")+" / "+String(events.length).padStart(3,"0"),45,110);
+    // 分类
+    x.fillStyle="#7a7a82";x.font="12px 'Courier New',monospace";
+    x.fillText((current.catLabel||"").toUpperCase(),45,135);
+    x.strokeStyle="#2a2a30";x.beginPath();x.moveTo(45,148);x.lineTo(W-45,148);x.stroke();
+    // 标题（自动换行）
+    x.fillStyle="#f0f0f4";x.font="900 30px Georgia,serif";
+    wrapText(x,current.title,45,195,W-90,36);
+    // 日期/地点
+    x.fillStyle="#7a7a82";x.font="13px 'Courier New',monospace";
+    x.fillText("📅 "+(current.date||"—"),45,290);
+    x.fillText("📍 "+(current.location||"—"),45,312);
+    // 严重程度条
+    x.fillStyle="#7a7a82";x.font="11px 'Courier New',monospace";
+    x.fillText("严重程度",45,345);
+    for(let i=0;i<5;i++){
+      x.fillStyle=i<current.severity?"#dc143c":"#2a2a30";
+      x.fillRect(45+i*24,355,18,8);
+    }
+    x.fillStyle="#dc143c";
+    x.fillText(sevLabel(current.severity),45,382);
+    // 摘要
+    x.fillStyle="#d6d6db";x.font="15px Georgia,serif";
+    wrapText(x,current.summary,45,430,W-90,26);
+    // 底部
+    x.fillStyle="#7a7a82";x.font="10px 'Courier New',monospace";
+    x.textAlign="center";
+    x.fillText("THE AVEIRO FILES · 黑料盲盒 · 球迷文化创作，不代表任何官方立场",W/2,H-30);
+
+    const a=document.createElement("a");
+    a.download=`CA7-通缉令-${String(current.id).padStart(3,"0")}.png`;
+    a.href=c.toDataURL("image/png");
+    a.click();
+    if(window.__badge) window.__badge("blindbox");
+  }
+
+  function wrapText(ctx,text,x,y,maxW,lh){
+    const chars=text.split("");
+    let line="",cy=y;
+    for(const ch of chars){
+      const test=line+ch;
+      if(ctx.measureText(test).width>maxW && line){
+        ctx.fillText(line,x,cy);line=ch;cy+=lh;
+      } else line=test;
+    }
+    if(line) ctx.fillText(line,x,cy);
+  }
+
+  document.getElementById("blindboxShuffle").addEventListener("click",shuffle);
+  document.getElementById("blindboxDownload").addEventListener("click",download);
+  document.getElementById("blindboxOpen").addEventListener("click",()=>{
+    if(!current) return;
+    // 找到该事件在 currentList 中的位置（若被筛选则回退到全集）
+    let list=currentList.length?currentList:events;
+    let idx=list.findIndex(e=>e.id===current.id);
+    if(idx<0){ list=events; idx=list.findIndex(e=>e.id===current.id); }
+    if(idx>=0){ openModalByIdx(idx); }
+  });
+
+  shuffle();
+})();
+
+/* ========== 争议世界地图 ========== */
+(function worldmapModule(){
+  const svg=document.getElementById("worldmapSvg");
+  const tip=document.getElementById("worldmapTip");
+  const wrap=document.getElementById("worldmap");
+  if(!svg) return;
+
+  // 地区 → 坐标（viewBox 1000x500 上的近似经纬度映射）
+  const regions={
+    "英国":[470,150],"曼联":[462,148],"老特拉福德":[462,148],
+    "西班牙":[480,205],"马德里":[485,205],"诺坎普":[475,212],"巴塞罗那":[475,212],
+    "意大利":[520,195],"都灵":[518,188],"尤文":[518,188],
+    "葡萄牙":[455,205],"马德拉":[450,235],
+    "法国":[478,180],"巴黎":[485,175],
+    "德国":[505,160],
+    "塞尔维亚":[535,190],"布达佩斯":[540,185],"匈牙利":[540,185],
+    "美国":[230,210],"拉斯维加斯":[200,190],"加利福尼亚":[210,220],"加州":[210,220],
+    "巴西":[340,350],"阿根廷":[330,400],
+    "迪拜":[605,210],"阿联酋":[605,210],"沙特":[620,225],"利雅得":[625,225],
+    "卡塔尔":[628,218],
+    "南非":[545,410],
+    "韩国":[810,185],"日本":[840,180],"中国":[780,180],
+    "俄罗斯":[560,120],"莫斯科":[560,130],
+    "希腊":[530,195],
+    "爱尔兰":[445,145],
+    "澳大利亚":[820,380],
+  };
+
+  function coord(loc){
+    if(!loc) return null;
+    // 提取关键词逐个匹配
+    const keys=Object.keys(regions);
+    for(const k of keys){
+      if(loc.indexOf(k)>=0) return regions[k];
+    }
+    return null;
+  }
+
+  // 聚合：每个坐标点合并多条事件
+  const buckets={};
+  events.forEach(ev=>{
+    const c=coord(ev.location);
+    if(!c) return;
+    const key=c[0]+"_"+c[1];
+    if(!buckets[key]) buckets[key]={x:c[0],y:c[1],items:[]};
+    buckets[key].items.push(ev);
+  });
+
+  const sevColor={5:"#ff1744",4:"#dc143c",3:"#e8b923",2:"#7a7a82",1:"#7a7a82"};
+  const ns="http://www.w3.org/2000/svg";
+
+  Object.values(buckets).forEach(b=>{
+    // 取该点最严重的事件代表颜色
+    const topSev=b.items.reduce((m,e)=>Math.max(m,e.severity||2),2);
+    const color=sevColor[topSev]||sevColor[2];
+    const r=4+Math.min(b.items.length,5); // 点大小随数量
+
+    const g=document.createElementNS(ns,"g");
+    g.setAttribute("class","worldmap-pinned");
+    g.setAttribute("transform",`translate(${b.x},${b.y})`);
+
+    const halo=document.createElementNS(ns,"circle");
+    halo.setAttribute("class","halo");halo.setAttribute("r",r);
+    halo.setAttribute("fill",color);
+    g.appendChild(halo);
+
+    const dot=document.createElementNS(ns,"circle");
+    dot.setAttribute("class","dot");dot.setAttribute("r",r);
+    dot.setAttribute("fill",color);dot.setAttribute("color",color);
+    g.appendChild(dot);
+
+    // 标注数量（>1时）
+    if(b.items.length>1){
+      const t=document.createElementNS(ns,"text");
+      t.setAttribute("text-anchor","middle");
+      t.setAttribute("y",r+12);
+      t.setAttribute("fill","#7a7a82");
+      t.setAttribute("font-size","9");
+      t.setAttribute("font-family","'Courier New',monospace");
+      t.textContent=b.items.length;
+      g.appendChild(t);
+    }
+
+    g.addEventListener("mouseenter",(e)=>{
+      const ev=b.items[0];
+      tip.hidden=false;
+      tip.innerHTML=`<b>${ev.title}</b>`+
+        (b.items.length>1?`<small>＋${b.items.length-1} 起同地事件</small><br>`:"")+
+        `<small>${ev.date||""} · ${ev.location||""}</small><br>`+
+        `${ev.summary.slice(0,60)}…`;
+      moveTip(e);
+    });
+    g.addEventListener("mousemove",moveTip);
+    g.addEventListener("mouseleave",()=>tip.hidden=true);
+    g.addEventListener("click",()=>{
+      // 点击展开该地事件列表中的第一条
+      const ev=b.items[0];
+      let list=currentList.length?currentList:events;
+      let idx=list.findIndex(e=>e.id===ev.id);
+      if(idx<0){ list=events; idx=list.findIndex(e=>e.id===ev.id); }
+      if(idx>=0) openModalByIdx(idx);
+    });
+
+    svg.appendChild(g);
+  });
+
+  function moveTip(e){
+    const rect=wrap.getBoundingClientRect();
+    tip.style.left=(e.clientX-rect.left)+"px";
+    tip.style.top=(e.clientY-rect.top)+"px";
+  }
+})();
+
+/* ========== 人设崩塌编年史 ========== */
+(function personaModule(){
+  const wrap=document.getElementById("personaScroll");
+  if(!wrap) return;
+
+  const persona=events
+    .filter(e=>e.cat==="persona")
+    .sort((a,b)=>extractYear(a)-extractYear(b));
+
+  function extractYear(ev){
+    const m=String(ev.date||"").match(/(\d{4})/);
+    return m?parseInt(m[1],10):9999;
+  }
+
+  wrap.innerHTML=persona.map(ev=>{
+    const yr=String(ev.date||"").match(/(\d{4})/);
+    const year=yr?yr[1]:"—";
+    return `<div class="persona-item" data-id="${ev.id}">
+      <div class="persona-year">${year} · №${String(ev.id).padStart(3,"0")}</div>
+      <div class="persona-card">
+        <h4>${ev.title}</h4>
+        <p>${ev.summary}</p>
+        <span class="persona-tag">${ev.catLabel}</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  // 点击展开
+  wrap.querySelectorAll(".persona-card").forEach(card=>{
+    card.addEventListener("click",()=>{
+      const id=parseInt(card.parentElement.dataset.id,10);
+      let list=currentList.length?currentList:events;
+      let idx=list.findIndex(e=>e.id===id);
+      if(idx<0){ list=events; idx=list.findIndex(e=>e.id===id); }
+      if(idx>=0) openModalByIdx(idx);
+    });
+  });
+
+  // 入场动画：滚入视口时加 .in
+  const obs=new IntersectionObserver((ents)=>{
+    ents.forEach(en=>{
+      if(en.isIntersecting){ en.target.classList.add("in"); obs.unobserve(en.target); }
+    });
+  },{threshold:.15});
+  wrap.querySelectorAll(".persona-item").forEach(el=>obs.observe(el));
+})();
+
+/* ========== 成就 / 徽章系统 ========== */
+(function badgesModule(){
+  const grid=document.getElementById("badgesGrid");
+  const countEl=document.getElementById("badgesCount");
+  const fillEl=document.getElementById("badgesFill");
+  const toast=document.getElementById("badgeToast");
+  if(!grid) return;
+
+  const defs=[
+    {id:"firstlook", icon:"👁️", name:"初窥档案", desc:"打开第一份卷宗", test:st=>st.read>=1},
+    {id:"voracious", icon:"📚", name:"档案老饕", desc:"阅读 10 份卷宗", test:st=>st.read>=10},
+    {id:"completist", icon:"🗂️", name:"档案强迫症", desc:"阅读 25 份卷宗", test:st=>st.read>=25},
+    {id:"quizzer",   icon:"🎯", name:"罗黑见习", desc:"完成罗黑测试", test:st=>st.quizDone},
+    {id:"scholar",   icon:"🧠", name:"骨灰级罗黑", desc:"测试满分", test:st=>st.quizPct===1},
+    {id:"gacha",     icon:"🎰", name:"盲盒开箱", desc:"抽取并下载通缉令", test:st=>st.blindbox},
+    {id:"explorer",  icon:"🗺️", name:"环球追踪", desc:"查看争议地图任意标点", test:st=>st.mapClick},
+    {id:"narrative", icon:"📖", name:"编年通读", desc:"浏览人设编年史到底", test:st=>st.personaEnd},
+    {id:"ottoman",   icon:"OTTOMAN", name:"首席档案官", desc:"集齐以上八枚", test:st=>st._unlocked>=8},
+  ];
+
+  const state={read:0,quizDone:false,quizPct:0,blindbox:false,mapClick:false,personaEnd:false,_unlocked:0};
+  const unlocked=new Set();
+  // 持久化
+  try{
+    const saved=JSON.parse(localStorage.getItem("ca7_badges")||"null");
+    if(saved && Array.isArray(saved.unlocked)) saved.unlocked.forEach(id=>unlocked.add(id));
+  }catch(e){}
+
+  function render(){
+    grid.innerHTML=defs.map(d=>{
+      const on=unlocked.has(d.id);
+      return `<div class="badge ${on?"unlocked":""}" data-id="${d.id}">
+        <div class="badge-icon">${d.icon}</div>
+        <div class="badge-name">${d.name}</div>
+        <div class="badge-desc">${d.desc}</div>
+      </div>`;
+    }).join("");
+    updateProgress();
+  }
+
+  function updateProgress(){
+    const n=unlocked.size;
+    countEl.textContent=`${n} / ${defs.length}`;
+    fillEl.style.width=(n/defs.length*100)+"%";
+    state._unlocked=n;
+  }
+
+  function showToast(def){
+    toast.hidden=false;
+    document.getElementById("badgeToastIcon").textContent=def.icon;
+    document.getElementById("badgeToastTitle").textContent="解锁 · "+def.name;
+    document.getElementById("badgeToastDesc").textContent=def.desc;
+    toast.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t=setTimeout(()=>{
+      toast.classList.remove("show");
+      setTimeout(()=>toast.hidden=true,500);
+    },3200);
+  }
+
+  function check(){
+    let changed=false;
+    defs.forEach(d=>{
+      if(!unlocked.has(d.id) && d.test(state)){
+        unlocked.add(d.id);
+        changed=true;
+        showToast(d);
+      }
+    });
+    // ottoman 依赖当前已解锁数量，先同步 state._unlocked 再判
+    state._unlocked=unlocked.size;
+    const ott=defs.find(d=>d.id==="ottoman");
+    if(ott && !unlocked.has("ottoman") && ott.test(state)){
+      unlocked.add("ottoman");showToast(ott);changed=true;
+    }
+    updateProgress();
+    if(changed){
+      try{ localStorage.setItem("ca7_badges",JSON.stringify({unlocked:[...unlocked]})); }catch(e){}
+      render();
+    }
+  }
+
+  // 暴露触发器
+  window.__badge=(type,payload)=>{
+    if(type==="read"){ state.read+=payload; }
+    else if(type==="quiz"){
+      state.quizDone=true;
+      state.quizPct=payload.pct;
+    }
+    else if(type==="blindbox"){ state.blindbox=true; }
+    else if(type==="map"){ state.mapClick=true; }
+    else if(type==="persona"){ state.personaEnd=true; }
+    check();
+  };
+
+  // 监听地图点击（地图模块完成后挂载）
+  document.addEventListener("click",e=>{
+    if(e.target.closest(".worldmap-pinned")) window.__badge("map");
+  });
+
+  // 人设编年史滚到底触发
+  const ps=document.getElementById("personaScroll");
+  if(ps){
+    const obs=new IntersectionObserver((ents)=>{
+      ents.forEach(en=>{
+        if(en.isIntersecting && en.target===ps.lastElementChild){
+          window.__badge("persona");
+        }
+      });
+    },{threshold:.4});
+    if(ps.lastElementChild) obs.observe(ps.lastElementChild);
+  }
+
+  // 滚动到页底也作为 personaEnd 兜底
+  let scrollBottomFired=false;
+  window.addEventListener("scroll",()=>{
+    if(!scrollBottomFired && window.innerHeight+window.scrollY>=document.body.offsetHeight-200){
+      scrollBottomFired=true;
+      window.__badge("persona");
+    }
+  },{passive:true});
+
+  render();
+  // 初始化时如果已有解锁，重建 state 让链式成就正常
+  check();
+})();
+
+/* ========== 悬浮 SIU 音效按钮 ========== */
+(function siuFabModule(){
+  const fab=document.getElementById("siuFab");
+  if(!fab) return;
+
+  /* ============================================================
+   * SIU 资源加载器
+   * 优先使用用户自备的素材（放入 assets/ 即生效）：
+   *   - 音效：assets/siu.mp3  （或 .wav / .ogg / .m4a）
+   *   - 庆祝图：assets/images/siu.jpg  （或 .png / .webp）
+   * 若文件不存在，自动回退到 WebAudio 合成音 + 原创矢量 SIU 姿势。
+   * 注：原版录音/真人照片受版权保护，本站不内置，需用户自行合法取得后放入。
+   * ============================================================ */
+  // 候选文件名（按优先级，命中即停，减少 404 噪音）
+  const audioCandidates=["assets/siu.mp3","assets/siu.ogg","assets/siu.wav","assets/siu.m4a","assets/audio/siu.mp3"];
+  const imgCandidates=["assets/images/siu.jpg","assets/images/siu.png","assets/images/siu.webp","assets/images/siu-celebration.jpg"];
+  let audioUrl=null, imgUrl=null;
+
+  // 顺序探测：找到第一个存在的就停（避免并发刷 404）
+  function probeSequential(paths){
+    return paths.reduce((p,path)=>p.then(found=>found||new Promise(res=>{
+      const x=new XMLHttpRequest();
+      x.open("HEAD",path,true);
+      x.onload=()=>res(x.status>=200&&x.status<300?path:null);
+      x.onerror=()=>res(null);
+      x.send();
+    })),Promise.resolve(null));
+  }
+
+  probeSequential(audioCandidates).then(u=>{ if(u) audioUrl=u; });
+  probeSequential(imgCandidates).then(u=>{ if(u){ imgUrl=u; window.__siuImg=u; } });
+
+  // 懒加载的 <audio> 元素
+  let audioEl=null;
+  function getAudio(){
+    if(!audioUrl) return null;
+    if(!audioEl){
+      audioEl=new Audio(audioUrl);
+      audioEl.preload="auto";
+    }
+    return audioEl;
+  }
+
+  /* —— WebAudio 合成 SIU（兜底，更贴近真 SIU 的"Si—UUUU"）—— */
+  let ctx=null;
+  function ac(){
+    if(!ctx){
+      try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+    }
+    return ctx;
+  }
+  function synthSIU(){
+    const a=ac();
+    if(!a) return;
+    if(a.state==="suspended") a.resume();
+    const now=a.currentTime;
+    // 双振荡器叠出更厚的人声感
+    function voice(type,f0,f1,lfoRate,vol){
+      const osc=a.createOscillator(),g=a.createGain();
+      osc.type=type;
+      osc.frequency.setValueAtTime(f0,now);
+      osc.frequency.exponentialRampToValueAtTime(f1,now+0.18); // "Si" 上升
+      osc.frequency.setValueAtTime(f1,now+0.18);
+      // "UUUU" 颤音
+      const lfo=a.createOscillator(),lg=a.createGain();
+      lfo.frequency.value=lfoRate;lg.gain.value=f1*0.09;
+      lfo.connect(lg).connect(osc.frequency);
+      lfo.start(now+0.18);lfo.stop(now+1.3);
+      // 共鸣峰（让"U"更像元音）
+      const formant=a.createBiquadFilter();
+      formant.type="bandpass";formant.frequency.value=700;formant.Q.value=2;
+      g.gain.setValueAtTime(0.0001,now);
+      g.gain.exponentialRampToValueAtTime(vol,now+0.06);
+      g.gain.setValueAtTime(vol,now+1.0);
+      g.gain.exponentialRampToValueAtTime(0.0001,now+1.4);
+      osc.connect(formant).connect(g).connect(a.destination);
+      osc.start(now);osc.stop(now+1.45);
+    }
+    voice("sawtooth",240,540,16,0.18);   // 主声
+    voice("square",260,560,18,0.07);     // 叠加厚度
+    // 高频气声点缀
+    const buf=a.createBuffer(1,a.sampleRate*0.35,a.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+    const noise=a.createBufferSource();noise.buffer=buf;
+    const ng=a.createGain();ng.gain.value=0.06;
+    const hp=a.createBiquadFilter();hp.type="highpass";hp.frequency.value=4000;
+    noise.connect(hp).connect(ng).connect(a.destination);
+    noise.start(now+0.12);
+  }
+
+  function playSound(){
+    const el=getAudio();
+    if(el){
+      try{ el.currentTime=0; el.play(); }catch(e){ synthSIU(); }
+    } else {
+      synthSIU();
+    }
+  }
+  // 暴露全局：让封印等其他触发点也能播同一个音效
+  window.__siuSound=playSound;
+
+  /* —— 庆祝画面：视频优先（assets/videos/siu.mp4），其次图片，最后矢量 —— */
+  function fire(){
+    fab.classList.remove("playing");
+    void fab.offsetWidth;
+    fab.classList.add("playing");
+    // 通过统一入口触发全屏庆祝（音效+画面统一在此处理，所有触发点走这里）
+    if(typeof window.__siuCelebration==="function"){
+      window.__siuCelebration();
+    } else {
+      playSound(); // 兜底：若庆祝函数未就绪，至少出声
+    }
+    if(window.__badge) window.__badge("siu");
+  }
+
+  fab.addEventListener("click",fire);
 })();
 
 /* ========== 初始渲染 ========== */

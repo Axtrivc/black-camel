@@ -722,6 +722,24 @@ a{color:inherit;text-decoration:none}
   padding:6px 14px;border-radius:4px;font-weight:600;
 }
 .modal-body{padding:32px 40px 40px}
+/* 头条长报道：文中插图 */
+.modal-figure{
+  margin:28px -8px;border:1px solid var(--border);border-radius:6px;overflow:hidden;
+  background:var(--card);
+}
+.modal-figure img{display:block;width:100%;height:auto}
+.modal-figure figcaption{
+  padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--text-dim);
+  line-height:1.5;border-top:1px solid var(--border);background:var(--bg-2);
+}
+.modal-figure figcaption b{color:var(--crimson);font-weight:600}
+/* 头条长报道：小标题样式增强 */
+.modal-body p strong{color:var(--text-bright)}
+.modal-body .modal-lead{
+  font-size:17px;line-height:1.85;color:var(--text);
+  border-left:3px solid var(--crimson);padding-left:16px;margin:20px 0 28px;
+  background:var(--crimson-glow);padding:14px 16px;border-radius:0 4px 4px 0;
+}
 .modal-date{
   font-family:var(--mono);font-size:12px;
   color:var(--crimson);letter-spacing:1px;
@@ -1071,6 +1089,41 @@ a{color:inherit;text-decoration:none}
   position:absolute;bottom:18%;left:50%;margin-left:-50px;
   width:100px;height:140px;
   animation:siuJump .9s cubic-bezier(.3,1.2,.4,1) forwards;
+}
+/* 图片版庆祝：居中大图，带红光描边 */
+.siu-figure.siu-figure-img{
+  position:absolute;bottom:0;left:0;margin-left:0;
+  width:auto;height:auto;
+  display:flex;align-items:center;justify-content:center;
+  inset:0;
+}
+.siu-figure.siu-figure-img img{
+  max-width:min(70vw,420px);
+  max-height:70vh;
+  object-fit:contain;
+  border-radius:8px;
+  filter:drop-shadow(0 0 30px var(--crimson)) drop-shadow(0 12px 40px rgba(0,0,0,.6));
+  animation:siuJump .9s cubic-bezier(.3,1.2,.4,1) forwards;
+}
+/* 视频版庆祝：cr7 真人 SIU，居中放大，播一遍后随覆盖层渐变消失 */
+.siu-figure.siu-figure-video{
+  position:absolute;bottom:0;left:0;margin-left:0;
+  width:auto;height:auto;
+  display:flex;align-items:center;justify-content:center;
+  inset:0;
+}
+.siu-figure.siu-figure-video video{
+  max-width:min(94vw,760px);
+  max-height:88vh;
+  border-radius:12px;
+  object-fit:contain;
+  filter:drop-shadow(0 0 40px var(--crimson)) drop-shadow(0 12px 40px rgba(0,0,0,.6));
+  animation:siuVideoIn .5s cubic-bezier(.2,1.4,.4,1) forwards;
+}
+@keyframes siuVideoIn{
+  0%{transform:scale(.3) rotate(-12deg);opacity:0}
+  60%{transform:scale(1.08) rotate(3deg);opacity:1}
+  100%{transform:scale(1) rotate(0);opacity:1}
 }
 @keyframes siuJump{
   0%{transform:translateY(40px) scale(.6);opacity:0}
@@ -2182,6 +2235,89 @@ a{color:inherit;text-decoration:none}
 /* 主题切换按钮 hover 微浮（不重写 transition，沿用原 line 1317 的 all .25s，已涵盖 transform）*/
 .theme-btn:hover{transform:translateY(-1px)}
 
+/* ========== 卡片「头条/新增」角标 ========== */
+.card-pinned{
+  position:relative;
+  outline:2px solid var(--crimson);
+  outline-offset:-2px;
+}
+.card-badge-breaking{
+  position:absolute;top:10px;left:10px;z-index:3;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  color:#fff;background:var(--crimson);
+  padding:3px 9px;border-radius:3px;letter-spacing:1px;
+  box-shadow:0 2px 8px rgba(220,20,60,.5);
+  animation:badgeBlink 1.4s ease-in-out infinite;
+}
+.card-badge-new{
+  position:absolute;top:10px;left:10px;z-index:3;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  color:var(--crimson);background:#fff;
+  padding:2px 7px;border-radius:3px;letter-spacing:1px;
+}
+@keyframes badgeBlink{
+  0%,100%{opacity:1}
+  50%{opacity:.65}
+}
+
+/* ========== 🚨 BREAKING 头条横幅 ========== */
+.breaking-bar{
+  background:linear-gradient(90deg,var(--crimson-dim),var(--crimson),var(--crimson-dim));
+  border-bottom:1px solid rgba(0,0,0,.4);
+  overflow:hidden;
+  position:relative;
+  z-index:40;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+.breaking-bar::before{
+  content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent,transparent 18px,rgba(0,0,0,.08) 18px,rgba(0,0,0,.08) 36px);
+  pointer-events:none;
+}
+.breaking-inner{
+  display:flex;align-items:center;gap:16px;
+  padding:10px 16px;max-width:100%;
+  position:relative;
+}
+.breaking-tag{
+  flex-shrink:0;
+  font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:2px;
+  color:#fff;background:rgba(0,0,0,.4);
+  padding:4px 10px;border-radius:3px;
+  animation:breakingBlink 1.2s ease-in-out infinite;
+}
+@keyframes breakingBlink{
+  0%,100%{opacity:1}
+  50%{opacity:.55}
+}
+.breaking-ticker{
+  flex:1;overflow:hidden;white-space:nowrap;
+  display:flex;align-items:center;gap:24px;
+  font-family:var(--mono);font-size:13px;color:#fff;
+  min-width:0;
+}
+.breaking-ticker .breaking-item{flex-shrink:0}
+.breaking-ticker .breaking-sep{color:rgba(255,255,255,.5);flex-shrink:0}
+/* 跑马灯（移动端） */
+@media(max-width:768px){
+  .breaking-ticker{
+    animation:tickerScroll 28s linear infinite;
+  }
+  .breaking-cta{display:none}
+  @keyframes tickerScroll{
+    from{transform:translateX(0)}
+    to{transform:translateX(-50%)}
+  }
+}
+.breaking-cta{
+  flex-shrink:0;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  color:var(--crimson);background:#fff;
+  border:none;padding:6px 14px;border-radius:3px;cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+}
+.breaking-cta:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+
 /* ========== 无障碍：尊重「减少动效」系统偏好 ==========
    关闭所有装饰性循环动画（ticker/scan/hero 呼吸漂移等），
    保留必要的 hover/active 反馈与一次性入场过渡。*/
@@ -2192,4 +2328,236 @@ a{color:inherit;text-decoration:none}
     transition-duration:.001ms !important;
     scroll-behavior:auto !important;
   }
+}
+
+/* ========== 黑料盲盒 / 今日通缉令 ========== */
+.blindbox-section{border-top:1px solid var(--border)}
+.blindbox{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;gap:24px;
+  margin-top:30px;
+}
+.blindbox-poster{
+  position:relative;
+  width:min(440px,92vw);
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:32px 28px 28px;
+  overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  transition:transform .4s cubic-bezier(.2,.8,.2,1);
+}
+.blindbox-poster.flip{
+  animation:bbFlip .5s ease;
+}
+@keyframes bbFlip{
+  0%{transform:rotateY(0)}
+  50%{transform:rotateY(90deg) scale(.95)}
+  100%{transform:rotateY(0)}
+}
+.blindbox-stamp{
+  position:absolute;top:14px;right:14px;
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;
+  color:var(--crimson);border:1px solid var(--crimson);
+  padding:3px 8px;border-radius:3px;opacity:.7;
+}
+.blindbox-no{
+  font-family:var(--mono);font-size:13px;color:var(--crimson);
+  letter-spacing:2px;margin-bottom:6px;
+}
+.blindbox-cat{
+  display:inline-block;font-family:var(--mono);font-size:11px;
+  color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;
+  border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:14px;
+}
+.blindbox-title{
+  font-family:var(--serif);font-size:clamp(22px,4.5vw,30px);font-weight:900;
+  color:var(--text-bright);line-height:1.15;margin-bottom:12px;
+}
+.blindbox-date,.blindbox-loc{
+  font-family:var(--mono);font-size:12px;color:var(--text-dim);
+  margin-bottom:4px;
+}
+.blindbox-sev{
+  margin:14px 0;display:flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:11px;color:var(--text-dim);
+}
+.blindbox-sev .sev-bars{display:inline-flex;gap:3px}
+.blindbox-sev .sev-bar{width:14px;height:8px;background:var(--border);border-radius:1px}
+.blindbox-sev .sev-bar.on{background:var(--crimson)}
+.blindbox-summary{
+  font-size:14px;line-height:1.7;color:var(--text);
+  border-top:1px dashed var(--border);padding-top:14px;
+}
+.blindbox-watermark{
+  position:absolute;bottom:-30px;right:-10px;
+  font-family:var(--serif);font-size:140px;font-weight:900;
+  color:var(--crimson);opacity:.04;letter-spacing:-6px;pointer-events:none;
+}
+.blindbox-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+
+/* ========== 争议世界地图 ========== */
+.map-section{border-top:1px solid var(--border)}
+.worldmap{position:relative;margin-top:30px}
+.worldmap-svg{width:100%;height:auto;display:block}
+.worldmap-land path{transition:fill .3s}
+.worldmap-pinned{cursor:pointer}
+.worldmap-pinned circle.dot{
+  filter:drop-shadow(0 0 4px currentColor);
+  transform-origin:center;
+  animation:mapPulse 2.4s ease-in-out infinite;
+}
+.worldmap-pinned:hover circle.dot{animation:none;transform:scale(1.4)}
+@keyframes mapPulse{
+  0%,100%{transform:scale(1);opacity:.9}
+  50%{transform:scale(1.25);opacity:1}
+}
+.worldmap-pinned circle.halo{
+  opacity:0;transform-origin:center;
+}
+.worldmap-pinned:hover circle.halo{
+  opacity:.25;animation:mapHalo 1s ease-out;
+}
+@keyframes mapHalo{
+  from{transform:scale(1);opacity:.5}
+  to{transform:scale(3);opacity:0}
+}
+.worldmap-tooltip{
+  position:absolute;pointer-events:none;
+  background:var(--bg-2);border:1px solid var(--crimson);
+  border-radius:4px;padding:8px 12px;max-width:240px;
+  font-size:12px;color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,.6);
+  z-index:20;transform:translate(-50%,-115%);
+}
+.worldmap-tooltip b{color:var(--text-bright);display:block;margin-bottom:3px;font-family:var(--serif)}
+.worldmap-tooltip small{color:var(--text-dim);font-family:var(--mono);font-size:10px}
+.worldmap-legend{
+  display:flex;gap:18px;justify-content:center;flex-wrap:wrap;
+  margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--text-dim);
+}
+.worldmap-legend .dot{
+  display:inline-block;width:10px;height:10px;border-radius:50%;
+  margin-right:5px;vertical-align:middle;
+}
+.worldmap-legend .sev5{background:#ff1744}
+.worldmap-legend .sev4{background:#dc143c}
+.worldmap-legend .sev3{background:#e8b923}
+.worldmap-legend .sev2{background:#7a7a82}
+
+/* ========== 人设崩塌编年史 ========== */
+.persona-section{border-top:1px solid var(--border)}
+.persona-scroll{
+  position:relative;margin-top:30px;padding-left:40px;
+}
+.persona-scroll::before{
+  content:"";position:absolute;left:14px;top:0;bottom:0;width:2px;
+  background:linear-gradient(var(--crimson),transparent);
+}
+.persona-item{
+  position:relative;margin-bottom:36px;opacity:0;transform:translateX(20px);
+  transition:opacity .6s,transform .6s;
+}
+.persona-item.in{opacity:1;transform:none}
+.persona-item::before{
+  content:"";position:absolute;left:-33px;top:6px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--crimson);border:3px solid var(--bg);
+  box-shadow:0 0 0 1px var(--crimson);
+}
+.persona-year{
+  font-family:var(--mono);font-size:12px;color:var(--crimson);
+  letter-spacing:1px;margin-bottom:4px;
+}
+.persona-card{
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  padding:16px 18px;transition:border-color .25s,transform .25s;cursor:pointer;
+}
+.persona-card:hover{border-color:var(--crimson);transform:translateX(4px)}
+.persona-card h4{
+  font-family:var(--serif);font-size:18px;font-weight:900;
+  color:var(--text-bright);margin-bottom:6px;
+}
+.persona-card p{font-size:13px;line-height:1.65;color:var(--text-dim)}
+.persona-card .persona-tag{
+  display:inline-block;margin-top:8px;font-family:var(--mono);font-size:10px;
+  color:var(--crimson);border:1px solid var(--crimson);padding:1px 6px;border-radius:2px;
+  opacity:.8;
+}
+
+/* ========== 成就徽章 ========== */
+.badges-section{border-top:1px solid var(--border)}
+.badges-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:16px;margin-top:30px;
+}
+.badge{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:18px 12px;text-align:center;
+  transition:transform .25s,border-color .25s,opacity .4s;
+  opacity:.35;filter:grayscale(1);
+}
+.badge.unlocked{opacity:1;filter:none;border-color:var(--crimson)}
+.badge.unlocked:hover{transform:translateY(-4px) scale(1.03)}
+.badge-icon{
+  font-size:34px;margin-bottom:8px;line-height:1;
+  filter:drop-shadow(0 2px 6px var(--crimson-glow));
+}
+.badge.unlocked .badge-icon{animation:badgePop .5s ease}
+@keyframes badgePop{
+  0%{transform:scale(0)}
+  60%{transform:scale(1.3)}
+  100%{transform:scale(1)}
+}
+.badge-name{
+  font-family:var(--serif);font-size:13px;font-weight:900;
+  color:var(--text-bright);margin-bottom:3px;
+}
+.badge-desc{font-size:10px;color:var(--text-dim);line-height:1.4;font-family:var(--mono)}
+.badges-progress{
+  margin-top:28px;display:flex;align-items:center;gap:14px;
+  font-family:var(--mono);font-size:12px;color:var(--text-dim);
+}
+.badges-bar{flex:1;height:6px;background:var(--card);border-radius:3px;overflow:hidden}
+.badges-fill{height:100%;width:0;background:linear-gradient(90deg,var(--crimson-dim),var(--crimson));transition:width .6s ease}
+
+/* ========== 悬浮：SIU 音效按钮 ========== */
+.siu-fab{
+  position:fixed;right:20px;bottom:80px;z-index:60;
+  display:flex;align-items:center;gap:6px;
+  background:var(--crimson);color:#fff;border:none;
+  padding:10px 16px;border-radius:30px;cursor:pointer;
+  font-family:var(--serif);font-weight:900;font-size:14px;letter-spacing:1px;
+  box-shadow:0 6px 20px var(--crimson-glow),0 2px 8px rgba(0,0,0,.4);
+  transition:transform .2s,box-shadow .2s;
+}
+.siu-fab:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 10px 28px var(--crimson-glow)}
+.siu-fab:active{transform:scale(.95)}
+.siu-fab.playing{animation:siuFabShake .4s ease}
+@keyframes siuFabShake{
+  0%,100%{transform:rotate(0)}
+  25%{transform:rotate(-6deg) scale(1.08)}
+  75%{transform:rotate(6deg) scale(1.08)}
+}
+.siu-fab-glyph{font-size:16px}
+
+/* ========== 徽章解锁 Toast ========== */
+.badge-toast{
+  position:fixed;left:50%;top:24px;transform:translateX(-50%) translateY(-120%);
+  z-index:80;display:flex;align-items:center;gap:14px;
+  background:var(--bg-2);border:1px solid var(--crimson);border-radius:8px;
+  padding:14px 20px;min-width:260px;
+  box-shadow:0 12px 40px rgba(0,0,0,.6),0 0 0 1px var(--crimson-glow);
+  transition:transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.badge-toast.show{transform:translateX(-50%) translateY(0)}
+.badge-toast-icon{font-size:30px}
+.badge-toast-title{font-family:var(--serif);font-weight:900;color:var(--text-bright);font-size:15px}
+.badge-toast-desc{font-size:11px;color:var(--text-dim);font-family:var(--mono)}
+
+@media (max-width:600px){
+  .siu-fab{right:14px;bottom:70px;padding:9px 13px;font-size:13px}
+  .siu-fab-text{display:none}
+  .badges-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
 }
