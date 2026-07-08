@@ -12,3 +12,8 @@ build/
 scripts/
 docs/
 .workbuddy/
+
+# 图片下载/备份的临时目录，不计入部署
+event-images/
+event-images-archive/
+assets/images/report-backup/

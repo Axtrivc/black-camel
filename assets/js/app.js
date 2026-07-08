@@ -406,7 +406,24 @@ backToTop.addEventListener("click",()=>{
   window.scrollTo({top:0,behavior:"smooth"});
 });
 
-/* ========== 🚨 BREAKING 头条：点击展开第 63 号卷宗 ========== */
+/* ========== 🚨 BREAKING 头条跑马灯：自适应时长 + 点击展开 ========== */
+// 跑马灯滚动速度恒定（≈60px/秒），时长按内容实际宽度计算，
+// 避免「宽屏滚太快、窄屏滚太慢」。内容在 HTML 里已复制一份，
+// 取第一份宽度即可推算 -50% 循环所需时长。
+(function breakingTickerSetup(){
+  const ticker=document.getElementById("breakingTicker");
+  if(!ticker) return;
+  const setDur=()=>{
+    // 第一份内容宽度 ≈ scrollWidth / 2（含末尾 gap）
+    const halfW=Math.max(ticker.scrollWidth/2, 200);
+    const dur=Math.max(8, halfW/60);  // 60px/秒，下限 8s
+    ticker.style.setProperty("--breaking-dur", dur.toFixed(1)+"s");
+  };
+  // 字体/图片就绪后再测一次，避免初始宽度偏差
+  setDur();
+  window.addEventListener("load",setDur);
+  let rt; window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(setDur,200);});
+})();
 document.getElementById("breakingCta")?.addEventListener("click",()=>{
   // 切到「全部」筛选确保该事件在当前列表中
   document.querySelectorAll(".filter-chip").forEach(c=>c.classList.toggle("active",c.dataset.cat==="all"));
@@ -697,6 +714,122 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   qo.observe(quiz);
 })();
 
+/* ========== #7 黑料真假鉴别 ========== */
+(function truthOrFakeModule(){
+  const wrap=document.getElementById("tof");
+  if(!wrap||typeof truthOrFake==="undefined") return;
+  const ROUND_LEN=10;   // 每局 10 题（题库 24 条随机抽取）
+  const textEl=document.getElementById("tofText");
+  const actionsEl=document.getElementById("tofActions");
+  const revealEl=document.getElementById("tofReveal");
+  const nextBtn=document.getElementById("tofNext");
+  const cardEl=document.getElementById("tofCard");
+  const roundEl=document.getElementById("tofRound");
+  const scoreEl=document.getElementById("tofScore");
+  const streakEl=document.getElementById("tofStreak");
+  const resultBox=document.getElementById("tofResult");
+
+  // Fisher-Yates 洗牌
+  function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+  let game=[], idx=0, score=0, streak=0, maxStreak=0, realCorrect=0, realTotal=0, fakeCorrect=0, fakeTotal=0;
+
+  function startGame(){
+    game=shuffle(truthOrFake).slice(0,ROUND_LEN);
+    idx=0; score=0; streak=0; maxStreak=0; realCorrect=0; realTotal=0; fakeCorrect=0; fakeTotal=0;
+    resultBox.hidden=true;
+    cardEl.parentElement.style.display="";
+    cardEl.style.display="";
+    showQuestion();
+  }
+
+  function showQuestion(){
+    const item=game[idx];
+    roundEl.textContent=idx+1;
+    scoreEl.textContent=score;
+    streakEl.textContent=streak;
+    // 重置卡片状态
+    cardEl.classList.remove("correct","wrong","flip-out");
+    revealEl.hidden=true;
+    nextBtn.hidden=true;
+    [...actionsEl.children].forEach(b=>{b.disabled=false;b.classList.remove("picked-fake","picked-real");});
+    textEl.textContent=item.text;
+  }
+
+  function answer(picked){
+    const item=game[idx];
+    const correct = (picked===item.truth);
+    // 统计真假题数
+    if(item.truth){realTotal++; if(correct)realCorrect++;}
+    else{fakeTotal++; if(correct)fakeCorrect++;}
+    // 锁定按钮
+    [...actionsEl.children].forEach(b=>{
+      b.disabled=true;
+      if(b.dataset.ans===String(picked)) b.classList.add(picked===true?"picked-real":"picked-fake");
+    });
+    // 卡片高亮
+    cardEl.classList.add(correct?"correct":"wrong");
+    // 揭晓
+    const verdict = item.truth ? '<b>✓ 真语录</b>' : '<b>✗ 假语录（我编的）</b>';
+    revealEl.innerHTML=`${correct?'<b style="color:#3ddc84">答对了！</b>':'<b style="color:#ff1744">答错了！</b>'} ${verdict}<br>${item.reveal}<span class="src">出处：${item.source}</span>`;
+    revealEl.hidden=false;
+    nextBtn.hidden=false;
+    nextBtn.textContent = (idx===ROUND_LEN-1)?'查看诊断结果 →':'下一题 →';
+    // 计分 + 连击
+    if(correct){score++; streak++; maxStreak=Math.max(maxStreak,streak);}
+    else{streak=0;}
+    scoreEl.textContent=score;
+    streakEl.textContent=streak;
+  }
+
+  function showResult(){
+    cardEl.parentElement.style.display="none";
+    resultBox.hidden=false;
+    resultBox.classList.add("show");
+    const pct=score/ROUND_LEN;
+    let rank,verdict;
+    if(pct===1){rank="人间清醒";verdict=`${score}/${ROUND_LEN} 满分。你比 C罗 还了解他自己——不，你比他还懂他的傲慢。每一句荒诞，你都精准识破。`;}
+    else if(pct>=0.7){rank="反讽大师";verdict=`${score}/${ROUND_LEN}。你深谙「总裁体」的边界——真话和段子的区别，对你来说一眼可辨。`;}
+    else if(pct>=0.4){rank="吃瓜群众";verdict=`${score}/${ROUND_LEN}。被忽悠得不轻——这就是 C罗话术的可怕之处：真话比段子还像段子。`;}
+    else{rank="被Factos洗脑";verdict=`${score}/${ROUND_LEN}。你大概真的相信了「我是历史第一第二第三」。建议把档案馆从前往后通读一遍。`;}
+    document.getElementById("tofFinalScore").textContent=score;
+    document.getElementById("tofRank").textContent=rank;
+    document.getElementById("tofVerdict").textContent=verdict;
+    document.getElementById("tofStats").innerHTML=`真语录识破 ${realCorrect}/${realTotal} · 假语录识破 ${fakeCorrect}/${fakeTotal} · 最高连击 ${maxStreak}`;
+    if(window.__badge) window.__badge("quiz",{score,total:ROUND_LEN,pct});  // 复用 quiz 成就触发
+    // 分数滚动
+    const fs=document.getElementById("tofFinalScore");
+    let n=0;const t0=performance.now();
+    (function tick(now){const p=Math.min((now-t0)/900,1);const eased=1-Math.pow(1-p,3);fs.textContent=Math.floor(eased*score);if(p<1)requestAnimationFrame(tick);else fs.textContent=score;})(performance.now());
+  }
+
+  // 事件绑定
+  actionsEl.addEventListener("click",e=>{
+    const b=e.target.closest(".tof-btn");
+    if(!b||b.disabled) return;
+    answer(b.dataset.ans==="true");
+  });
+  nextBtn.addEventListener("click",()=>{
+    if(idx<ROUND_LEN-1){
+      idx++;
+      // 翻牌过渡
+      cardEl.classList.add("flip-out");
+      setTimeout(showQuestion,240);
+    } else {
+      showResult();
+    }
+  });
+  document.getElementById("tofRestart").addEventListener("click",startGame);
+
+  // 首局启动
+  startGame();
+  // 进入视口加扫描线氛围（复用 quiz 的 scanning 视觉）
+  const obs=new IntersectionObserver((ents)=>{
+    ents.forEach(en=>{ if(en.isIntersecting){ wrap.classList.add("scanning"); }});
+  },{threshold:0.3});
+  obs.observe(wrap);
+})();
+
 /* ========== 点球含金量检测仪 ========== */
 (function(){
   const scanner=document.getElementById("scanner");
@@ -966,11 +1099,35 @@ document.querySelectorAll(".viz-card").forEach(card=>{
 
   /* —— SIU 全屏庆祝 ——
      统一入口 window.__siuCelebration()：所有 SIU 触发点（底部封印 / 右下悬浮按钮）
-     都汇入此处。素材优先级：cr7 真人视频 (assets/videos/siu.mp4) > 图片 > 原创矢量。 */
+     都汇入此处。
+     视频选择规则：第一次播放固定的原版 siu.mp4；之后每次从用户提供的短视频池里随机抽一个。
+     音效始终是原版 SIU 音效（assets/siu.mp3）。 */
+  // 用户提供的短视频池（首次播放后才启用随机）
+  const SIU_CLIP_POOL=[
+    "assets/videos/cristiano-ronaldo-siuu.mp4",
+    "assets/videos/cristiano-ronaldo-ronaldo-angry.mp4",
+    "assets/videos/cristiano-ronaldo-cristiano-ronaldo-meme.mp4",
+    "assets/videos/ronaldo-al-nassr-ronaldo.mp4",
+    "assets/videos/ronaldo-al-nassr-alnassr.mp4",
+    "assets/videos/unsrscandidate-cristiano-ronaldo.mp4"
+  ];
+  let siuPlayCount=0;   // 第几次触发（0 = 首次，播原版 siu.mp4）
+  function pickSiuVideo(){
+    // 首次：固定原版 siu.mp4；之后：从池中随机抽（不与上次重复）
+    if(siuPlayCount===0){ siuPlayCount++; return "assets/videos/siu.mp4"; }
+    siuPlayCount++;
+    if(SIU_CLIP_POOL.length===0) return "assets/videos/siu.mp4";
+    if(SIU_CLIP_POOL.length===1) return SIU_CLIP_POOL[0];
+    let pick;
+    do { pick=SIU_CLIP_POOL[Math.floor(Math.random()*SIU_CLIP_POOL.length)]; }
+    while(pick===window.__lastSiuClip);
+    window.__lastSiuClip=pick;
+    return pick;
+  }
   function playSIU(){
     window.__siuCelebration();
   }
-  // 探测视频是否可用（启动时异步）
+  // 探测原版视频是否可用（启动时异步，仅用于决定是否走视频分支）
   let siuVideoOk=false;
   (function probeVideo(){
     const x=new XMLHttpRequest();
@@ -983,12 +1140,14 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     siuPlaying=true;
     const ov=document.createElement("div");
     ov.className="siu-overlay";
+    // 决定本次播哪个视频（首次=原版 siu.mp4，之后=池中随机）
+    const videoSrc=pickSiuVideo();
+    const videoAvailable = siuVideoOk || siuPlayCount>1;  // 首次靠探测结果；之后默认信任池内文件
     // 素材优先级：视频 > 图片 > 矢量。无「SIU!」文字，纯画面。
     let figureHtml;
-    if(siuVideoOk){
-      // cr7 真人 SIU 视频：放一遍后随覆盖层一起渐变消失（不影响阅读）
+    if(videoAvailable){
       figureHtml=`<div class="siu-figure siu-figure-video" aria-hidden="true">
-        <video src="assets/videos/siu.mp4" autoplay muted playsinline preload="auto"></video>
+        <video src="${videoSrc}" autoplay muted playsinline preload="auto"></video>
       </div>`;
     }else if(window.__siuImg){
       figureHtml=`<div class="siu-figure siu-figure-img" aria-hidden="true">
@@ -1023,8 +1182,15 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       v.play().catch(()=>{});
       // 视频播完一遍即渐变消失
       v.addEventListener("ended",fadeOut,{once:true});
-      // 兜底：视频可能不触发 ended（某些浏览器自动循环），2.5s 后强制淡出
-      setTimeout(fadeOut,2500);
+      // 兜底：视频可能不触发 ended（某些浏览器/格式），按视频实际时长 +0.5s 淡出；
+      //   时长未知时退回 3.5s。短池里的视频 1.7~6.4s 不等，不能写死 2.5s 否则会切掉长视频。
+      v.addEventListener("loadedmetadata",()=>{
+        const dur=v.duration;
+        if(isFinite(dur) && dur>0){ setTimeout(fadeOut, (dur+0.5)*1000); }
+        else { setTimeout(fadeOut,3500); }
+      },{once:true});
+      // 终极兜底：元数据迟迟不加载，7s 后必淡出
+      setTimeout(fadeOut,7000);
     }else{
       // 无视频（图片/矢量兜底）：3s 后淡出
       setTimeout(fadeOut,3000);
@@ -1242,12 +1408,16 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   shuffle();
 })();
 
-/* ========== 争议世界地图 ========== */
+/* ========== 争议世界地图 2.0（时间轴 + 生涯轨迹 + 热度图） ========== */
 (function worldmapModule(){
   const svg=document.getElementById("worldmapSvg");
   const tip=document.getElementById("worldmapTip");
   const wrap=document.getElementById("worldmap");
-  if(!svg) return;
+  const pinsLayer=document.getElementById("wmPinsLayer");
+  const trailLayer=document.getElementById("wmTrailLayer");
+  const heatLayer=document.getElementById("wmHeatLayer");
+  const readout=document.getElementById("wmReadout");
+  if(!svg||!pinsLayer) return;
 
   // 地区 → 坐标（viewBox 1000x500 上的近似经纬度映射）
   const regions={
@@ -1272,12 +1442,14 @@ document.querySelectorAll(".viz-card").forEach(card=>{
 
   function coord(loc){
     if(!loc) return null;
-    // 提取关键词逐个匹配
     const keys=Object.keys(regions);
-    for(const k of keys){
-      if(loc.indexOf(k)>=0) return regions[k];
-    }
+    for(const k of keys){ if(loc.indexOf(k)>=0) return regions[k]; }
     return null;
+  }
+  // 从事件 date 字符串里抓年份（取第一个 4 位数）
+  function yearOf(ev){
+    const m=String(ev.date||"").match(/(\d{4})/);
+    return m?parseInt(m[1],10):null;
   }
 
   // 聚合：每个坐标点合并多条事件
@@ -1293,38 +1465,75 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   const sevColor={5:"#ff1744",4:"#dc143c",3:"#e8b923",2:"#7a7a82",1:"#7a7a82"};
   const ns="http://www.w3.org/2000/svg";
 
-  Object.values(buckets).forEach(b=>{
-    // 取该点最严重的事件代表颜色
+  /* —— 解缠：欧洲几个国家坐标几乎重合，做一次轻量「排斥」 —— */
+  const VBW=1000, VBH=500;
+  const pins=Object.values(buckets).map(b=>{
     const topSev=b.items.reduce((m,e)=>Math.max(m,e.severity||2),2);
-    const color=sevColor[topSev]||sevColor[2];
-    const r=4+Math.min(b.items.length,5); // 点大小随数量
+    const r=4+Math.min(b.items.length,5);
+    return { ox:b.x, oy:b.y, x:b.x, y:b.y, r:r+6, items:b.items, topSev, g:null };
+  });
+  const PAD=14;
+  (function untangle(){
+    for(let iter=0; iter<200; iter++){
+      let moved=false;
+      for(let i=0;i<pins.length;i++){
+        for(let j=i+1;j<pins.length;j++){
+          const a=pins[i], b=pins[j];
+          let dx=b.x-a.x, dy=b.y-a.y;
+          let d=Math.hypot(dx,dy);
+          const minD=a.r+b.r;
+          if(d>=minD) continue;
+          if(d<0.01){ dx=Math.random()-0.5; dy=Math.random()-0.5; d=Math.hypot(dx,dy)||1; }
+          const push=(minD-d)/2 + 0.5;
+          const ux=dx/d, uy=dy/d;
+          a.x-=ux*push; a.y-=uy*push;
+          b.x+=ux*push; b.y+=uy*push;
+          moved=true;
+        }
+      }
+      pins.forEach(p=>{ p.x=Math.max(PAD, Math.min(VBW-PAD, p.x)); p.y=Math.max(PAD, Math.min(VBH-PAD, p.y)); });
+      if(!moved) break;
+    }
+  })();
 
+  /* —— 渲染标点（保存 g 引用，供时间轴筛选时显示/隐藏） —— */
+  pins.forEach(b=>{
+    const topSev=b.topSev;
+    const color=sevColor[topSev]||sevColor[3];
+    const r=4+Math.min(b.items.length,5);
     const g=document.createElementNS(ns,"g");
     g.setAttribute("class","worldmap-pinned");
     g.setAttribute("transform",`translate(${b.x},${b.y})`);
 
+    const shifted=Math.hypot(b.x-b.ox, b.y-b.oy) > r+2;
+    if(shifted){
+      const line=document.createElementNS(ns,"line");
+      line.setAttribute("class","worldmap-lead");
+      line.setAttribute("x1",b.ox-b.x); line.setAttribute("y1",b.oy-b.y);
+      line.setAttribute("x2",0); line.setAttribute("y2",0);
+      const seed=document.createElementNS(ns,"circle");
+      seed.setAttribute("class","worldmap-seed");
+      seed.setAttribute("cx",b.ox-b.x); seed.setAttribute("cy",b.oy-b.y);
+      seed.setAttribute("r",1.6);
+      g.insertBefore(line, g.firstChild);
+      g.insertBefore(seed, g.firstChild);
+    }
     const halo=document.createElementNS(ns,"circle");
     halo.setAttribute("class","halo");halo.setAttribute("r",r);
     halo.setAttribute("fill",color);
     g.appendChild(halo);
-
     const dot=document.createElementNS(ns,"circle");
     dot.setAttribute("class","dot");dot.setAttribute("r",r);
-    dot.setAttribute("fill",color);dot.setAttribute("color",color);
+    dot.setAttribute("fill",color);
     g.appendChild(dot);
-
-    // 标注数量（>1时）
     if(b.items.length>1){
       const t=document.createElementNS(ns,"text");
-      t.setAttribute("text-anchor","middle");
-      t.setAttribute("y",r+12);
-      t.setAttribute("fill","#7a7a82");
-      t.setAttribute("font-size","9");
+      t.setAttribute("text-anchor","middle");t.setAttribute("y",r+12);
+      t.setAttribute("fill","#7a7a82");t.setAttribute("font-size","9");
       t.setAttribute("font-family","'Courier New',monospace");
       t.textContent=b.items.length;
       g.appendChild(t);
     }
-
     g.addEventListener("mouseenter",(e)=>{
       const ev=b.items[0];
       tip.hidden=false;
@@ -1337,15 +1546,139 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     g.addEventListener("mousemove",moveTip);
     g.addEventListener("mouseleave",()=>tip.hidden=true);
     g.addEventListener("click",()=>{
-      // 点击展开该地事件列表中的第一条
       const ev=b.items[0];
       let list=currentList.length?currentList:events;
       let idx=list.findIndex(e=>e.id===ev.id);
       if(idx<0){ list=events; idx=list.findIndex(e=>e.id===ev.id); }
       if(idx>=0) openModalByIdx(idx);
     });
+    pinsLayer.appendChild(g);
+    b.g=g;
+  });
 
-    svg.appendChild(g);
+  /* —— #8-1 生涯轨迹：C罗效力过的球队按时间连线 —— */
+  // 球队 → 坐标 + 效力年份区间（公开资料）
+  const career=[
+    {name:"里斯本竞技",x:455,y:208,from:2002,to:2003},
+    {name:"曼联(一)",x:462,y:148,from:2003,to:2009},
+    {name:"皇马",x:485,y:205,from:2009,to:2018},
+    {name:"尤文图斯",x:518,y:188,from:2018,to:2021},
+    {name:"曼联(二)",x:462,y:148,from:2021,to:2022},
+    {name:"利雅得胜利",x:625,y:225,from:2023,to:2026},
+  ];
+  function renderTrail(){
+    trailLayer.innerHTML="";
+    // 连线 path
+    const d=career.map((c,i)=>(i===0?"M":"L")+c.x+" "+c.y).join(" ");
+    const path=document.createElementNS(ns,"path");
+    path.setAttribute("class","wm-trail-path");
+    path.setAttribute("d",d);
+    trailLayer.appendChild(path);
+    // 每站标记 + 标签
+    career.forEach(c=>{
+      const mk=document.createElementNS(ns,"circle");
+      mk.setAttribute("class","wm-club");
+      mk.setAttribute("cx",c.x);mk.setAttribute("cy",c.y);mk.setAttribute("r",4);
+      mk.setAttribute("data-from",c.from);mk.setAttribute("data-to",c.to);
+      trailLayer.appendChild(mk);
+      const lb=document.createElementNS(ns,"text");
+      lb.setAttribute("class","wm-club-label");
+      lb.setAttribute("x",c.x);lb.setAttribute("y",c.y-9);
+      lb.textContent=c.name;
+      trailLayer.appendChild(lb);
+    });
+  }
+  renderTrail();
+
+  /* —— #8-2 热度图：每个 bucket 一个柔光大圆，半径随事件数/严重度 —— */
+  function renderHeat(){
+    heatLayer.innerHTML="";
+    Object.values(buckets).forEach(b=>{
+      const sevSum=b.items.reduce((s,e)=>s+(e.severity||2),0);
+      const r=14+Math.min(sevSum,40);   // 热度半径
+      const c=document.createElementNS(ns,"circle");
+      c.setAttribute("cx",b.x);c.setAttribute("cy",b.y);c.setAttribute("r",r);
+      c.setAttribute("class","wm-heat-blob");
+      heatLayer.appendChild(c);
+    });
+  }
+  renderHeat();
+
+  /* —— #8-3 时间轴：双 range（起止年份）筛选标点 + 轨迹 + 热度 —— */
+  const yrStart=document.getElementById("wmYearStart");
+  const yrEnd=document.getElementById("wmYearEnd");
+  const playBtn=document.getElementById("wmPlay");
+  const ticks=document.getElementById("wmTicks");
+  // 年份刻度
+  for(let y=2003;y<=2026;y++){ const s=document.createElement("span"); ticks.appendChild(s); }
+
+  let yearA=2003, yearB=2026;
+
+  function applyFilter(){
+    // 保证 A<=B
+    let a=parseInt(yrStart.value), b=parseInt(yrEnd.value);
+    if(a>b){ [a,b]=[b,a]; }
+    yearA=a; yearB=b;
+    // 标点：该 bucket 里有任意事件落在 [a,b] 区间则显示
+    let shownCount=0;
+    pins.forEach(p=>{
+      const hit=p.items.some(ev=>{
+        const y=yearOf(ev); return y!==null && y>=a && y<=b;
+      });
+      p.g.style.opacity = hit ? "" : "0.12";
+      p.g.style.pointerEvents = hit ? "" : "none";
+      if(hit) shownCount++;
+    });
+    // 轨迹：年份区间与效力期有交集的站点高亮，其余淡化
+    trailLayer.querySelectorAll(".wm-club").forEach(mk=>{
+      const f=+mk.dataset.from, t=+mk.dataset.to;
+      const hit = (t>=a && f<=b);
+      mk.style.opacity = hit ? "1" : "0.2";
+    });
+    const path=trailLayer.querySelector(".wm-trail-path");
+    if(path) path.style.opacity = (b-a>=2) ? "1" : "0.3";
+    // 热度：整体随区间收紧而加强（视觉聚焦）
+    heatLayer.querySelectorAll(".wm-heat-blob").forEach(c=>{ c.style.opacity = (b-a<=6)?"0.25":"0.12"; });
+    // 读数
+    readout.textContent=`显示：${a} – ${b} · ${shownCount} 个地点`;
+  }
+  yrStart.addEventListener("input",applyFilter);
+  yrEnd.addEventListener("input",applyFilter);
+  applyFilter();
+
+  /* —— 播放：从 2003 自动扫到 2026 —— */
+  let playing=false, playRaf=null;
+  function play(){
+    if(playing){ stop(); return; }
+    playing=true;
+    playBtn.textContent="⏸";
+    playBtn.classList.add("playing");
+    let a=parseInt(yrStart.value), b=parseInt(yrEnd.value);
+    // 若已到顶，从头开始
+    if(b>=2026 && a>=2025){ a=2003; b=2003; }
+    const step=()=>{
+      if(b<2026){ b++; if(b>a+8) a=b-8; }   // 滚动一个 8 年窗口
+      else { a++; if(a>=b){ stop(); return; } }
+      yrStart.value=a; yrEnd.value=b;
+      applyFilter();
+      if(playing) playRaf=setTimeout(step,700);
+    };
+    step();
+  }
+  function stop(){
+    playing=false;
+    playBtn.textContent="▶";
+    playBtn.classList.remove("playing");
+    if(playRaf) clearTimeout(playRaf);
+  }
+  playBtn.addEventListener("click",play);
+
+  /* —— 图层开关 —— */
+  document.getElementById("wmTrail").addEventListener("change",e=>{
+    trailLayer.style.display = e.target.checked ? "" : "none";
+  });
+  document.getElementById("wmHeat").addEventListener("change",e=>{
+    heatLayer.hidden = !e.target.checked;
   });
 
   function moveTip(e){
@@ -1353,6 +1686,140 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     tip.style.left=(e.clientX-rect.left)+"px";
     tip.style.top=(e.clientY-rect.top)+"px";
   }
+})();
+
+/* ========== #9 罗黑赌场 ========== */
+(function casinoModule(){
+  const board=document.getElementById("casinoBoard");
+  const balEl=document.getElementById("casinoBalance");
+  const recEl=document.getElementById("casinoRecord");
+  const histEl=document.getElementById("casinoHistory");
+  const resetBtn=document.getElementById("casinoReset");
+  if(!board||typeof casinoBets==="undefined") return;
+
+  let balance=1000, wins=0, losses=0;
+  // 持久化
+  try{
+    const saved=JSON.parse(localStorage.getItem("ca7_casino")||"null");
+    if(saved){ balance=saved.balance; wins=saved.wins||0; losses=saved.losses||0; }
+  }catch(e){}
+  function save(){ try{localStorage.setItem("ca7_casino",JSON.stringify({balance,wins,losses}));}catch(e){} }
+
+  const states=new Array(casinoBets.length).fill(null); // 每题的已下注/已开奖状态
+
+  function render(){
+    balEl.textContent=balance;
+    recEl.innerHTML=`<span style="color:#3ddc84">${wins}胜</span> <span style="color:#ff1744">${losses}负</span>`;
+    resetBtn.hidden = balance<=0 ? false : true;
+    board.innerHTML=casinoBets.map((b,i)=>{
+      const st=states[i];
+      let resultHtml="";
+      if(st&&st.resolved){
+        const cls = st.won?"win":"lose";
+        const delta = st.won ? `+${st.payout}` : `-${st.stake}`;
+        const yourPickText = st.pick==="a"?b.a:b.b;
+        const verdictText = st.won ? "✓ 猜中" : "✗ 猜错";
+        resultHtml=`<div class="casino-result ${cls}">你押：<b>${yourPickText}</b> · 开奖：<b>${st.outcomeText}</b>（${verdictText}）· ${delta} Factos<small>${b.reveal}</small></div>`;
+      }
+      return `<div class="casino-card ${st&&st.resolved?'resolved':''}">
+        <div class="casino-q">${b.q}</div>
+        ${st&&st.resolved ? '' : `
+        <div class="casino-odds-row">
+          <button class="casino-pick ${st&&st.pick==='a'?'selected':''}" data-i="${i}" data-pick="a">${b.a}<small>赔率 ${b.odds}×</small></button>
+          <button class="casino-pick ${st&&st.pick==='b'?'selected':''}" data-i="${i}" data-pick="b">${b.b}<small>赔率 ${(1/(1-1/b.odds)).toFixed(2)}×</small></button>
+        </div>
+        <div class="casino-bet-row">
+          <div class="casino-stake">
+            下注:<input type="number" min="10" max="${balance}" value="${st?st.stake:50}" data-i="${i}">
+            <span class="chip" data-i="${i}" data-amt="50">50</span>
+            <span class="chip" data-i="${i}" data-amt="100">100</span>
+            <span class="chip" data-i="${i}" data-amt="500">500</span>
+            <span class="chip" data-i="${i}" data-amt="all">梭哈</span>
+          </div>
+          <button class="casino-place ${st&&st.pick?'':'disabled'}" data-i="${i}" ${st&&st.pick?'':'disabled'}>下注</button>
+        </div>`}
+        ${resultHtml}
+      </div>`;
+    }).join("");
+  }
+
+  function setPick(i,pick){
+    if(states[i]&&states[i].resolved) return;
+    states[i]=Object.assign(states[i]||{stake:50}, {pick});
+  }
+  function setStake(i,amt){
+    if(states[i]&&states[i].resolved) return;
+    if(!states[i]) states[i]={stake:50};
+    states[i].stake = amt==="all" ? balance : Math.max(10,Math.min(balance,parseInt(amt)||10));
+  }
+
+  function placeBet(i){
+    const bet=casinoBets[i];
+    const st=states[i];
+    if(!st||!st.pick){ flashHint("先选一个选项"); return; }
+    if(st.resolved) return;
+    const stake=Math.max(10,Math.min(balance, st.stake||50));
+    if(stake>balance){ flashHint("余额不足"); return; }
+    balance-=stake;
+    // 开奖：按 hist 概率决定 a 是否「发生」
+    const aHappened = Math.random() < bet.hist;
+    const userPickIsA = (st.pick==="a");
+    const won = (aHappened===userPickIsA);
+    const odds = userPickIsA ? bet.odds : (1/(1-1/bet.odds));
+    const payout = won ? Math.round(stake*odds) : 0;
+    if(won){ balance+=payout; wins++; } else { losses++; }
+    states[i]={resolved:true, won, stake, payout, outcomeText: aHappened?bet.a:bet.b, pick:st.pick};
+    addHistory(bet.q, st.pick==="a"?bet.a:bet.b, won, payout, stake);
+    save();
+    render();
+  }
+
+  function flashHint(msg){
+    const t=document.createElement("div");
+    t.textContent=msg;
+    t.style.cssText="position:fixed;left:50%;top:20%;transform:translateX(-50%);background:#ff1744;color:#fff;padding:10px 20px;border-radius:4px;font-family:var(--mono);font-size:13px;z-index:9999;animation:casinoFlash 1.6s forwards";
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),1600);
+  }
+  // 注入一次性 flash 动画样式
+  if(!document.getElementById("casinoFlashStyle")){
+    const s=document.createElement("style");
+    s.id="casinoFlashStyle";
+    s.textContent="@keyframes casinoFlash{0%{opacity:0;transform:translate(-50%,-10px)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translate(-50%,-20px)}}";
+    document.head.appendChild(s);
+  }
+
+  function addHistory(q,pickText,won,payout,stake){
+    const empty=histEl.querySelector(".casino-history-empty");
+    if(empty) empty.remove();
+    const row=document.createElement("div");
+    row.className="casino-history-row";
+    const qshort=q.slice(0,16)+(q.length>16?"…":"");
+    const res = won?`<span class="win">+${payout}</span>`:`<span class="lose">-${stake}</span>`;
+    row.innerHTML=`<span>${qshort} 押「${pickText}」</span>${res}`;
+    histEl.appendChild(row);
+    histEl.scrollTop=histEl.scrollHeight;
+  }
+
+  // 事件委托
+  board.addEventListener("click",e=>{
+    const t=e.target.closest("[data-i]");
+    if(!t) return;
+    const i=+t.dataset.i;
+    if(t.classList.contains("casino-pick")){ setPick(i,t.dataset.pick); render(); }
+    else if(t.classList.contains("chip")){ setStake(i,t.dataset.amt); render(); }
+    else if(t.classList.contains("casino-place")){ placeBet(i); }
+  });
+  board.addEventListener("input",e=>{
+    if(e.target.matches("input[type=number]")){ setStake(+e.target.dataset.i, e.target.value); }
+  });
+  resetBtn.addEventListener("click",()=>{
+    balance=1000; wins=0; losses=0; states.fill(null);
+    histEl.innerHTML='<div class="casino-history-title">// 投注记录</div><div class="casino-history-empty">还没有投注。下注后这里会显示开奖流水。</div>';
+    save(); render();
+  });
+
+  render();
 })();
 
 /* ========== 人设崩塌编年史 ========== */
@@ -1402,6 +1869,186 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   wrap.querySelectorAll(".persona-item").forEach(el=>obs.observe(el));
 })();
 
+/* ========== #10 罗黑弹幕墙 + 段子工厂 ========== */
+(function roastWallModule(){
+  const stage=document.getElementById("danmuStage");
+  const input=document.getElementById("danmuInput");
+  const colorSel=document.getElementById("danmuColor");
+  const sendBtn=document.getElementById("danmuSend");
+  const emptyHint=document.getElementById("danmuEmpty");
+  const clearBtn=document.getElementById("danmuClear");
+  const exportBtn=document.getElementById("danmuExport");
+  if(!stage) return;
+
+  // —— 内置预设弹幕（让墙一开始就有内容，氛围感）——
+  const PRESET_DANMU=[
+    "六届世界杯，零座奖杯",
+    "Factos! Factos! Factos!",
+    "SIUUUUU（空荡的球场里）",
+    "点球进了！含金量？",
+    "我就是历史第一第二第三",
+    "问心无愧.jpg",
+    "沙特4年1冠，沙漠骆驼",
+    "背弃祖姓，蹭大罗热度",
+    "摔手机、摔袖标、摔麦克风",
+    "The King leaves without his crown",
+    "再见阿伟罗",
+    "球玊=球王+一点（球）"
+  ];
+  const PRESET_COLORS=["#fff","#dc143c","#e8b923","#3ddc84"];
+
+  // localStorage：我的弹幕 + 我的段子投稿 + 段子点赞
+  let myDanmu=[];       // [{text,color,t}]
+  try{ myDanmu=JSON.parse(localStorage.getItem("ca7_danmu")||"[]"); }catch(e){ myDanmu=[]; }
+  function saveDanmu(){ try{localStorage.setItem("ca7_danmu",JSON.stringify(myDanmu));}catch(e){} }
+
+  // 弹幕飞行：随机轨道（行高）、速度、颜色
+  const TRACKS=6;
+  const trackUsed=new Array(TRACKS).fill(0);  // 记录每轨道下一次可用时间
+  function launchDanmu(text,color){
+    if(emptyHint) emptyHint.style.display="none";
+    const el=document.createElement("div");
+    el.className="danmu-item";
+    el.textContent=text;
+    el.style.color=color||"#fff";
+    // 选一条可用轨道（当前时间>=轨道释放时间）
+    const now=Date.now();
+    let track=0,best=Infinity;
+    for(let i=0;i<TRACKS;i++){ if(trackUsed[i]<=now && trackUsed[i]<best){ best=trackUsed[i]; track=i; } }
+    const topPct = 6 + track*(86/TRACKS);   // 6%~92% 分布
+    el.style.top=topPct+"%";
+    stage.appendChild(el);
+    // 速度按文字长度：长一点稍慢
+    const dur = 7 + Math.min(text.length*0.12, 5);   // 7~12s
+    el.style.animationDuration=dur+"s";
+    // 该轨道释放时间 = 当前 + 文字完全进入屏幕的时间（约 dur 的前 15%）
+    trackUsed[track] = now + dur*150;
+    el.addEventListener("animationend",()=>el.remove());
+  }
+
+  // 启动：先播预设弹幕（错峰），再播用户存的
+  function seedPreset(){
+    PRESET_DANMU.forEach((t,i)=>{
+      setTimeout(()=>launchDanmu(t,PRESET_COLORS[i%PRESET_COLORS.length]), i*700+400);
+    });
+  }
+  seedPreset();
+  // 循环：每 1.5s 从「预设+用户」池里随机再发一条，保持墙不空
+  setInterval(()=>{
+    if(document.hidden) return;
+    const pool=[...PRESET_DANMU.map((t,i)=>({text:t,color:PRESET_COLORS[i%PRESET_COLORS.length]})), ...myDanmu];
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    launchDanmu(pick.text,pick.color);
+  },1500);
+
+  // 发射按钮
+  function sendMine(){
+    const text=input.value.trim();
+    if(!text){ input.focus(); return; }
+    const color=colorSel.value;
+    launchDanmu(text,color);
+    myDanmu.unshift({text,color,t:Date.now()});
+    if(myDanmu.length>50) myDanmu=myDanmu.slice(0,50);
+    saveDanmu();
+    input.value="";
+    if(window.__badge) window.__badge("wall");
+  }
+  sendBtn.addEventListener("click",sendMine);
+  input.addEventListener("keydown",e=>{ if(e.key==="Enter") sendMine(); });
+
+  clearBtn.addEventListener("click",()=>{
+    myDanmu=[]; saveDanmu();
+    clearBtn.textContent="已清空";
+    setTimeout(()=>clearBtn.textContent="清空我的弹幕",1500);
+  });
+  exportBtn.addEventListener("click",()=>{
+    const all=myDanmu.map(d=>d.text).join("\n");
+    if(!all){ exportBtn.textContent="无内容可导出"; setTimeout(()=>exportBtn.textContent="导出我的创作",1500); return; }
+    const blob=new Blob([all],{type:"text/plain;charset=utf-8"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="我的罗黑弹幕.txt";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  /* —— 段子接龙工厂 —— */
+  const PROMPTS=[
+    "输球后，C 罗 第一件事是___",
+    "C 罗 打开 ins，第一张照片必须是___",
+    "梅西夺冠那天，C 罗 在___",
+    "C 罗 说「问心无愧」，翻译成人话是___",
+    "如果给 C 罗 的点球写个说明书，第一条是___",
+    "C 罗 退役那天，他会先___",
+    "沙特给了 C 罗 2亿，C 罗 给了沙特___",
+    "C 罗 照镜子时，镜子里的人是___"
+  ];
+  const promptEl=document.getElementById("punchlinePrompt");
+  const plInput=document.getElementById("punchlineInput");
+  const plSubmit=document.getElementById("punchlineSubmit");
+  const plList=document.getElementById("punchlineList");
+  const plShuffle=document.getElementById("punchlineShuffle");
+  let curPromptIdx=0;
+  // 段子库：每条 {fill, likes, mine} —— 按 prompt 分组存
+  let jokes={};
+  try{ jokes=JSON.parse(localStorage.getItem("ca7_jokes")||"{}"); }catch(e){ jokes={}; }
+  let likedSet=new Set();
+  try{ likedSet=new Set(JSON.parse(localStorage.getItem("ca7_jokes_liked")||"[]")); }catch(e){}
+  function saveJokes(){ try{localStorage.setItem("ca7_jokes",JSON.stringify(jokes));}catch(e){} }
+  function saveLiked(){ try{localStorage.setItem("ca7_jokes_liked",JSON.stringify([...likedSet]));}catch(e){} }
+
+  function showPrompt(){
+    curPromptIdx=Math.floor(Math.random()*PROMPTS.length);
+    const p=PROMPTS[curPromptIdx];
+    // 把 ___ 替换成可视的空位
+    promptEl.innerHTML=p.replace("___",'<span class="blank">______</span>');
+    renderJokes();
+  }
+  function renderJokes(){
+    const key=curPromptIdx;
+    const arr=(jokes[key]||[]).slice().sort((a,b)=>b.likes-a.likes).slice(0,12);
+    if(arr.length===0){
+      plList.innerHTML='<div class="punchline-empty">还没有人接这句。来当第一个。</div>';
+      return;
+    }
+    plList.innerHTML=arr.map((j,i)=>{
+      const id=j.t;
+      const liked=likedSet.has(id);
+      return `<div class="punchline-item">
+        <span class="pl-prompt">${PROMPTS[key].replace("___","")}<span class="pl-fill">${escapeHtml(j.fill)}</span></span>
+        <button class="pl-like ${liked?'liked':''}" data-id="${id}">👍 ${j.likes}</button>
+      </div>`;
+    }).join("");
+  }
+  function escapeHtml(s){return s.replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+  plShuffle.addEventListener("click",showPrompt);
+  plSubmit.addEventListener("click",()=>{
+    const fill=plInput.value.trim();
+    if(!fill){ plInput.focus(); return; }
+    const key=curPromptIdx;
+    if(!jokes[key]) jokes[key]=[];
+    const entry={fill, likes:0, mine:true, t:Date.now()+Math.random()};
+    jokes[key].unshift(entry);
+    saveJokes();
+    plInput.value="";
+    renderJokes();
+    if(window.__badge) window.__badge("wall");
+  });
+  plInput.addEventListener("keydown",e=>{ if(e.key==="Enter") plSubmit.click(); });
+  plList.addEventListener("click",e=>{
+    const b=e.target.closest(".pl-like");
+    if(!b) return;
+    const id=parseFloat(b.dataset.id);
+    const arr=jokes[curPromptIdx]||[];
+    const j=arr.find(x=>x.t===id);
+    if(!j) return;
+    if(likedSet.has(id)){ likedSet.delete(id); j.likes=Math.max(0,j.likes-1); }
+    else { likedSet.add(id); j.likes++; }
+    saveJokes(); saveLiked(); renderJokes();
+  });
+  showPrompt();
+})();
+
 /* ========== 成就 / 徽章系统 ========== */
 (function badgesModule(){
   const grid=document.getElementById("badgesGrid");
@@ -1419,10 +2066,11 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     {id:"gacha",     icon:"🎰", name:"盲盒开箱", desc:"抽取并下载通缉令", test:st=>st.blindbox},
     {id:"explorer",  icon:"🗺️", name:"环球追踪", desc:"查看争议地图任意标点", test:st=>st.mapClick},
     {id:"narrative", icon:"📖", name:"编年通读", desc:"浏览人设编年史到底", test:st=>st.personaEnd},
-    {id:"ottoman",   icon:"OTTOMAN", name:"首席档案官", desc:"集齐以上八枚", test:st=>st._unlocked>=8},
+    {id:"roaster",   icon:"🔥", name:"罗黑开火", desc:"弹幕墙发弹幕或段子接龙投稿", test:st=>st.wall},
+    {id:"ottoman",   icon:"OTTOMAN", name:"首席档案官", desc:"集齐以上九枚", test:st=>st._unlocked>=9},
   ];
 
-  const state={read:0,quizDone:false,quizPct:0,blindbox:false,mapClick:false,personaEnd:false,_unlocked:0};
+  const state={read:0,quizDone:false,quizPct:0,blindbox:false,mapClick:false,personaEnd:false,wall:false,_unlocked:0};
   const unlocked=new Set();
   // 持久化
   try{
@@ -1494,6 +2142,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     else if(type==="blindbox"){ state.blindbox=true; }
     else if(type==="map"){ state.mapClick=true; }
     else if(type==="persona"){ state.personaEnd=true; }
+    else if(type==="wall"){ state.wall=true; }
     check();
   };
 
@@ -1559,7 +2208,12 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   }
 
   probeSequential(audioCandidates).then(u=>{ if(u) audioUrl=u; });
-  probeSequential(imgCandidates).then(u=>{ if(u){ imgUrl=u; window.__siuImg=u; } });
+  // 图片仅在「视频不可用」时才探测——否则直接被视频优先级覆盖，
+  // 探了也是白探（4 张全缺时会刷出 4 条 404 控制台噪音）。
+  probeSequential(["assets/videos/siu.mp4"]).then(v=>{
+    if(v) return;   // 有视频，跳过图片探测
+    return probeSequential(imgCandidates);
+  }).then(u=>{ if(u){ imgUrl=u; window.__siuImg=u; } });
 
   // 懒加载的 <audio> 元素
   let audioEl=null;
