@@ -25,6 +25,19 @@ function handleImgError(img, catLabel){
   img.src = svgFallback(catLabel);
 }
 
+/* ========== WebP 双源图：<picture> + JPG 兜底 ==========
+ * 输入原 jpg/png 路径 + 属性对象，输出 <picture><source webp><img jpg></picture>
+ * 浏览器支持 webp 则走 webp（更小更快），否则自动退回 jpg。
+ * picture 内的 img 仍是普通 img，原有 onerror 事件委托、loading=lazy、
+ * data-* 属性全部保留生效，无需改下游逻辑。
+ */
+function pic(src, attrs){
+  if(!src) return "";
+  const webp = src.replace(/\.(jpe?g|png)$/i, ".webp");
+  const attrStr = attrs ? Object.entries(attrs).map(([k,v])=>` ${k}="${v}"`).join("") : "";
+  return `<picture><source type="image/webp" srcset="${webp}"><img src="${src}"${attrStr}></picture>`;
+}
+
 /* ========== 共享 IntersectionObserver ========== */
 // 全站淡入用同一个 observer，避免每个卡片 new 一个
 const revealObserver = new IntersectionObserver((entries)=>{
@@ -92,7 +105,7 @@ function renderCards(){
         ${pinnedBadge}${newBadge}
         <span class="card-cat" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}33;color:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}">${e.catLabel}</span>
         <div class="card-severity">${dots}</div>
-        <img src="${e.img||''}" alt="${e.title}" loading="lazy" data-cat-label="${e.catLabel}">
+        ${pic(e.img||'',{alt:e.title,loading:"lazy",decoding:"async","data-cat-label":e.catLabel})}
       </div>
       <div class="card-body">
         <div class="card-date">${e.date}</div>
@@ -154,7 +167,7 @@ function renderModal(){
   modalContent.innerHTML = `
     <div class="modal-hero">
       <span class="modal-cat-badge" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'};color:#fff">${e.catLabel}</span>
-      <img src="${e.img||''}" alt="${e.title}" data-cat-label="${e.catLabel}">
+      ${pic(e.img||'',{alt:e.title,decoding:"async","data-cat-label":e.catLabel})}
     </div>
     <div class="modal-body">
       <div class="modal-date">${e.date}</div>
@@ -350,7 +363,7 @@ const heroSlides = [];
 moOrder.forEach((n,idx)=>{
   const slide=document.createElement("div");
   slide.className="hero-slide"+(idx===0?" active":"");
-  slide.innerHTML=`<img src="assets/images/hero-mo/mo-${String(n).padStart(2,"0")}.jpg" alt="CR7 嬷照 ${n}" loading="${idx<3?'eager':'lazy'}">`;
+  slide.innerHTML=pic(`assets/images/hero-mo/mo-${String(n).padStart(2,"0")}.jpg`,{alt:`CR7 嬷照 ${n}`,loading:idx<3?"eager":"lazy",decoding:"async"});
   heroGallery.appendChild(slide);
   heroSlides.push(slide);
 });
@@ -905,8 +918,14 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   const ctx=canvas.getContext("2d");
   let curPhoto=memePhotos[0];
   let img=new Image(); img.crossOrigin="anonymous";
-  // 缩略图
-  thumbs.innerHTML=memePhotos.map((p,i)=>`<div class="meme-thumb ${i===0?'active':''}" data-src="${p}" style="background-image:url('${p}')"></div>`).join("");
+  // 缩略图：用 webp（体积约为 jpg 一半），canvas 绘图同样支持 webp 解码
+  const toWebp=p=>p.replace(/\.(jpe?g|png)$/i,".webp");
+  // 缩略图懒加载：滚到表情生成器附近才批量生成，避免首屏全量预加载 45+ 张
+  function buildThumbs(){
+    if(thumbs.dataset.built) return;
+    thumbs.dataset.built="1";
+    thumbs.innerHTML=memePhotos.map((p,i)=>`<div class="meme-thumb ${i===0?'active':''}" data-src="${p}" data-webp="${toWebp(p)}" style="background-image:url('${toWebp(p)}')"></div>`).join("");
+  }
   // 预设
   presetsEl.innerHTML=memePresets.map((p,i)=>`<span class="meme-preset" data-i="${i}">${p.top.slice(0,8)}…</span>`).join("");
   function draw(){
@@ -959,12 +978,21 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     if(line) lines.push(line);
     return lines.slice(0,3);
   }
-  img.onload=draw; img.src=curPhoto;
+  // canvas 首图用 webp（canvas 原生支持解码 webp，体积更小）
+  img.onload=draw; img.src=toWebp(curPhoto);
+  // 表情生成器滚入视口时再构建缩略图（避免首屏预加载 45+ 张底图）
+  const memeSection = canvas.closest("section") || canvas.parentElement;
+  if("IntersectionObserver" in window && memeSection){
+    const ob=new IntersectionObserver((es)=>{ es.forEach(en=>{ if(en.isIntersecting){ buildThumbs(); ob.disconnect(); } }); },{rootMargin:"200px"});
+    ob.observe(memeSection);
+  } else {
+    buildThumbs();   // 无 IO 支持时直接构建
+  }
   thumbs.addEventListener("click",e=>{
     const t=e.target.closest(".meme-thumb"); if(!t) return;
     curPhoto=t.dataset.src;
     thumbs.querySelectorAll(".meme-thumb").forEach(x=>x.classList.toggle("active",x===t));
-    img=new Image(); img.onload=draw; img.src=curPhoto;
+    img=new Image(); img.onload=draw; img.src=t.dataset.webp || toWebp(curPhoto);
   });
   top.addEventListener("input",draw);
   bot.addEventListener("input",draw);
