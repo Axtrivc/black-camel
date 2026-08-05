@@ -26,38 +26,9 @@
 <!-- 鼠标光晕氛围层（JS 检测桌面端启用）-->
 <div class="fx-aura" id="fxAura" aria-hidden="true"></div>
 
-<!-- 跑马灯 -->
+<!-- 跑马灯（内容由 app.js 从 i18nDict.ticker.items 渲染，复制一份实现无缝循环）-->
 <div class="ticker">
-  <div class="ticker-track">
-    <span>本名 Cristiano dos Santos Aveiro — "Ronaldo"只是中间名</span>
-    <span>背弃祖姓 · 改用蹭热度的"Ronaldo" · 真缩写是 CA7</span>
-    <span>绰号进化：小小罗→花罗→水罗→罗三票→沙漠骆驼→总裁→球玊→阿伟罗→骡子</span>
-    <span>12任女友完整名单 · 从嫩模到柜姐 · 希尔顿卡戴珊榜上有名</span>
-    <span>14张红牌 · 职业生涯暴力史</span>
-    <span>1880万欧元 · 西班牙逃税罚款</span>
-    <span>40亿美元 · 可口可乐市值蒸发</span>
-    <span>37.5万美元 · 拉斯维加斯封口费</span>
-    <span>12任女友 · 5个孩子3个妈</span>
-    <span>摔手机 · 扔麦克风 · 摔袖标 · 不雅动作</span>
-    <span>炮轰曼联 · 转会闹剧 · 被切尔西拜仁拒绝</span>
-    <span>罗三脚 · 刀削面 · 吕七优人 · 总裁找裁判 · 任意球念咒</span>
-    <span>"世界杯不是我的梦想" · "我是历史第一第二第三"</span>
-    <span>沙漠骆驼 · 4年1冠 · 2亿年薪逃避欧洲</span>
-    <span>本名 Cristiano dos Santos Aveiro — "Ronaldo"只是中间名</span>
-    <span>背弃祖姓 · 改用蹭热度的"Ronaldo" · 真缩写是 CA7</span>
-    <span>绰号进化：小小罗→花罗→水罗→罗三票→沙漠骆驼→总裁→球玊→阿伟罗→骡子</span>
-    <span>12任女友完整名单 · 从嫩模到柜姐 · 希尔顿卡戴珊榜上有名</span>
-    <span>14张红牌 · 职业生涯暴力史</span>
-    <span>1880万欧元 · 西班牙逃税罚款</span>
-    <span>40亿美元 · 可口可乐市值蒸发</span>
-    <span>37.5万美元 · 拉斯维加斯封口费</span>
-    <span>12任女友 · 5个孩子3个妈</span>
-    <span>摔手机 · 扔麦克风 · 摔袖标 · 不雅动作</span>
-    <span>炮轰曼联 · 转会闹剧 · 被切尔西拜仁拒绝</span>
-    <span>罗三脚 · 刀削面 · 吕七优人 · 总裁找裁判 · 任意球念咒</span>
-    <span>"世界杯不是我的梦想" · "我是历史第一第二第三"</span>
-    <span>沙漠骆驼 · 4年1冠 · 2亿年薪逃避欧洲</span>
-  </div>
+  <div class="ticker-track" id="tickerTrack"></div>
 </div>
 
 <!-- 导航 -->
@@ -65,20 +36,25 @@
   <div class="nav-inner">
     <div class="nav-logo">THE <span class="red">AVEIRO</span> FILES</div>
     <div class="nav-links" id="navLinks">
-      <a href="#archive">档案库</a>
-      <a href="#timeline">时间线</a>
-      <a href="#data">数据</a>
-      <a href="#quotes">语录</a>
-      <a href="#tof">真假</a>
-      <a href="#worldmap">地图</a>
-      <a href="#casino">赌场</a>
-      <a href="#wall">开火</a>
+      <a href="#archive" data-i18n="nav.archive">档案库</a>
+      <a href="#timeline" data-i18n="nav.timeline">时间线</a>
+      <a href="#data" data-i18n="nav.data">数据</a>
+      <a href="#quotes" data-i18n="nav.quotes">语录</a>
+      <a href="#tof" data-i18n="nav.tof">真假</a>
+      <a href="#worldmap" data-i18n="nav.worldmap">地图</a>
+      <a href="#casino" data-i18n="nav.casino">赌场</a>
+      <a href="#wall" data-i18n="nav.wall">开火</a>
     </div>
-    <input type="text" class="nav-search" placeholder="搜索事件..." id="searchInput">
+    <input type="text" class="nav-search" placeholder="搜索事件..." id="searchInput" data-i18n="nav.search">
     <div class="theme-switcher" id="themeSwitcher">
-      <button class="theme-btn active" data-theme="xiaoxiaoluo"><span class="theme-dot"></span>小小罗</button>
-      <button class="theme-btn" data-theme="camel"><span class="theme-dot"></span>沙漠骆驼</button>
-      <button class="theme-btn" data-theme="galactico"><span class="theme-dot"></span>菌鞭罗</button>
+      <button class="theme-btn active" data-theme="xiaoxiaoluo"><span class="theme-dot"></span><span data-i18n="theme.xiaoxiaoluo">小小罗</span></button>
+      <button class="theme-btn" data-theme="camel"><span class="theme-dot"></span><span data-i18n="theme.camel">沙漠骆驼</span></button>
+      <button class="theme-btn" data-theme="galactico"><span class="theme-dot"></span><span data-i18n="theme.galactico">菌鞭罗</span></button>
+    </div>
+    <div class="lang-switcher">
+      <button id="langToggleBtn" class="lang-btn" aria-label="Toggle Language">
+        <span class="lang-label">🌐 EN / 中</span>
+      </button>
     </div>
     <button class="nav-toggle" id="navToggle" aria-label="菜单">
       <span></span><span></span><span></span>
@@ -86,30 +62,12 @@
   </div>
 </nav>
 
-<!-- 🚨 BREAKING 头条横幅 -->
+<!-- 🚨 BREAKING 头条横幅（内容由 app.js 从 i18nDict.breaking.items 渲染）-->
 <div class="breaking-bar" id="breakingBar" role="banner">
   <div class="breaking-inner">
-    <span class="breaking-tag">🚨 BREAKING</span>
-    <span class="breaking-ticker" id="breakingTicker">
-      <span class="breaking-item">【头条】六届世界杯0冠 — 西班牙第91分钟补时绝杀，41岁CA7泪别最后一舞</span>
-      <span class="breaking-sep">◆</span>
-      <span class="breaking-item">梅里诺91'绝杀 · 葡萄牙0-1西班牙 · 1/8决赛出局</span>
-      <span class="breaking-sep">◆</span>
-      <span class="breaking-item">「我已倾尽所有，问心无愧地离开。」—— CA7，泪洒混采区</span>
-      <span class="breaking-sep">◆</span>
-      <span class="breaking-item">六届 · 九场淘汰赛 · 仅一球 · 零冠军</span>
-      <span class="breaking-sep">◆</span>
-      <!-- 复制一份，配合 translateX(-50%) 实现无缝循环 -->
-      <span class="breaking-item" aria-hidden="true">【头条】六届世界杯0冠 — 西班牙第91分钟补时绝杀，41岁CA7泪别最后一舞</span>
-      <span class="breaking-sep" aria-hidden="true">◆</span>
-      <span class="breaking-item" aria-hidden="true">梅里诺91'绝杀 · 葡萄牙0-1西班牙 · 1/8决赛出局</span>
-      <span class="breaking-sep" aria-hidden="true">◆</span>
-      <span class="breaking-item" aria-hidden="true">「我已倾尽所有，问心无愧地离开。」—— CA7，泪洒混采区</span>
-      <span class="breaking-sep" aria-hidden="true">◆</span>
-      <span class="breaking-item" aria-hidden="true">六届 · 九场淘汰赛 · 仅一球 · 零冠军</span>
-      <span class="breaking-sep" aria-hidden="true">◆</span>
-    </span>
-    <button class="breaking-cta" id="breakingCta">查看完整卷宗 →</button>
+    <span class="breaking-tag" data-i18n="breaking.tag">🚨 BREAKING</span>
+    <span class="breaking-ticker" id="breakingTicker"></span>
+    <button class="breaking-cta" id="breakingCta" data-i18n="breaking.cta">查看完整卷宗 →</button>
   </div>
 </div>
 
@@ -119,31 +77,26 @@
   <div class="hero-grid"></div>
   <div class="hero-inner">
     <div class="hero-left">
-      <div class="hero-tag">机密档案 · CONFIDENTIAL</div>
-      <h1>CA7<br><span class="strike">黑历史</span>档案馆</h1>
-      <div class="hero-sub">The Aveiro Files — 一部关于争议的全记录</div>
-      <p class="hero-desc">
+      <div class="hero-tag" data-i18n="hero.tag">机密档案 · CONFIDENTIAL</div>
+      <h1 data-i18n="hero.title">CA7<br><span class="strike">黑历史</span>档案馆</h1>
+      <div class="hero-sub" data-i18n="hero.sub">The Aveiro Files — 一部关于争议的全记录</div>
+      <p class="hero-desc" data-i18n="hero.desc">
         他自称"<strong>CR7</strong>"，但全名其实是<strong>Cristiano Ronaldo dos Santos Aveiro</strong>——
         "<strong>Aveiro</strong>"才是他的家族姓氏，"Ronaldo"不过是中间名。
-        为了出名，他背弃祖姓、选择了蹭热度的"Ronaldo"。
-        真正的缩写应该是 <strong style="color:var(--crimson)">CA7</strong>。
-        本档案馆系统收录其职业生涯中最具争议的<strong>61起事件</strong>，
-        横跨人设、暴力、失态、俱乐部与国家队五大类别。
-        所有内容均基于公开新闻报道整理。
       </p>
       <div class="hero-cta">
-        <button class="btn btn-primary" data-scroll="#archive">进入档案库</button>
-        <button class="btn btn-ghost" data-scroll="#timeline">查看时间线</button>
+        <button class="btn btn-primary" data-scroll="#archive" data-i18n="hero.btnArchive">进入档案库</button>
+        <button class="btn btn-ghost" data-scroll="#timeline" data-i18n="hero.btnTimeline">查看时间线</button>
       </div>
     </div>
     <div class="hero-visual">
       <div class="hero-gallery">
-        <div class="hero-gallery-tag">嬷照档案 · UNFLATTERING PHOTOS</div>
+        <div class="hero-gallery-tag" data-i18n="hero.galleryTag">嬷照档案 · UNFLATTERING PHOTOS</div>
         <div class="hero-gallery-track" id="heroGallery">
           <!-- 37张嬷照由 app.js 动态注入，随机循环播放 -->
         </div>
         <div class="hero-gallery-nav"><span class="hero-counter" id="heroCounter">1 / 37</span></div>
-        <div class="hero-stamp">
+        <div class="hero-stamp" data-i18n="hero.stamp">
           <span>60</span>
           CASES<br>ON FILE
         </div>
@@ -152,12 +105,12 @@
   </div>
   <div class="hero-stats">
     <div class="hero-stats-inner">
-      <div class="hstat"><div class="hstat-num" data-target="14">0</div><div class="hstat-label">红牌</div></div>
-      <div class="hstat"><div class="hstat-num" data-target="1880" data-suffix="万">0</div><div class="hstat-label">逃税罚款 (€)</div></div>
-      <div class="hstat"><div class="hstat-num" data-target="40" data-suffix="亿">0</div><div class="hstat-label">可乐市值蒸发 ($)</div></div>
-      <div class="hstat"><div class="hstat-num" data-target="61">0</div><div class="hstat-label">收录事件</div></div>
-      <div class="hstat"><div class="hstat-num" data-target="5">0</div><div class="hstat-label">争议分类</div></div>
-      <div class="hstat"><div class="hstat-num" data-target="12">0</div><div class="hstat-label">历任女友</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="14">0</div><div class="hstat-label" data-i18n="hero.statRed">红牌</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="1880" data-suffix="万">0</div><div class="hstat-label" data-i18n="hero.statTax">逃税罚款 (€)</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="40" data-suffix="亿">0</div><div class="hstat-label" data-i18n="hero.statCoke">可乐市值蒸发 ($)</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="61">0</div><div class="hstat-label" data-i18n="hero.statEvents">收录事件</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="5">0</div><div class="hstat-label" data-i18n="hero.statCats">争议分类</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="12">0</div><div class="hstat-label" data-i18n="hero.statGirls">历任女友</div></div>
     </div>
   </div>
 </section>
@@ -166,45 +119,42 @@
 <section class="section" id="archive">
   <div class="section-header">
     <div>
-      <div class="section-label">// 档案库 · ARCHIVE</div>
-      <div class="section-title">争议事件全记录</div>
+      <div class="section-label" data-i18n="archive.label">// 档案库 · ARCHIVE</div>
+      <div class="section-title" data-i18n="archive.title">争议事件全记录</div>
     </div>
-    <div class="section-desc">点击任意档案卡片查看完整卷宗，可按分类或严重程度筛选。</div>
+    <div class="section-desc" data-i18n="archive.desc">点击任意档案卡片查看完整卷宗，可按分类或严重程度筛选。</div>
   </div>
 
   <!-- 名字辟谣条 -->
   <div class="name-expose">
     <div class="name-expose-icon">CA7</div>
     <div class="name-expose-body">
-      <div class="name-expose-label">// 名字真相 · THE NAME TRUTH</div>
-      <div class="name-expose-title">
+      <div class="name-expose-label" data-i18n="nameExpose.label">// 名字真相 · THE NAME TRUTH</div>
+      <div class="name-expose-title" data-i18n="nameExpose.title">
         全名：Cristiano Ronaldo dos Santos <span class="real">Aveiro</span>
       </div>
-      <div class="name-expose-desc">
-        按葡萄牙命名惯例，最后的"<strong style="color:#9b59b6">Aveiro</strong>"才是家族姓氏（父姓），"dos Santos"是母姓，
-        而"Ronaldo"只是他母亲崇拜里根而起的<strong>中间名</strong>——一个和家族毫无关系的名字。
-        他却抛弃祖姓、自称 <span class="crossed">CR7</span>，硬蹭当时已红透足坛的巴西"大罗"罗纳尔多 (Ronaldo) 的热度。
-        若忠于血脉，他该叫 <strong style="color:#9b59b6">CA7 — Cristiano Aveiro</strong>。
+      <div class="name-expose-desc" data-i18n="nameExpose.desc">
+        按葡萄牙命名惯例，最后的"<strong style="color:#9b59b6">Aveiro</strong>"才是家族姓氏（父姓）...
       </div>
     </div>
   </div>
 
   <div class="filter-bar" id="filterBar">
-    <div class="filter-chip active" data-cat="all">全部 <span class="count" id="count-all">61</span></div>
-    <div class="filter-chip" data-cat="persona">人设争议 <span class="count" id="count-persona">15</span></div>
-    <div class="filter-chip" data-cat="violence">场内暴力 <span class="count" id="count-violence">9</span></div>
-    <div class="filter-chip" data-cat="offpitch">场外失态 <span class="count" id="count-offpitch">12</span></div>
-    <div class="filter-chip" data-cat="club">俱乐部与法律 <span class="count" id="count-club">14</span></div>
-    <div class="filter-chip" data-cat="national">国家队争议 <span class="count" id="count-national">11</span></div>
+    <div class="filter-chip active" data-cat="all"><span data-i18n="filter.all">全部</span> <span class="count" id="count-all">61</span></div>
+    <div class="filter-chip" data-cat="persona"><span data-i18n="filter.persona">人设争议</span> <span class="count" id="count-persona">15</span></div>
+    <div class="filter-chip" data-cat="violence"><span data-i18n="filter.violence">场内暴力</span> <span class="count" id="count-violence">9</span></div>
+    <div class="filter-chip" data-cat="offpitch"><span data-i18n="filter.offpitch">场外失态</span> <span class="count" id="count-offpitch">12</span></div>
+    <div class="filter-chip" data-cat="club"><span data-i18n="filter.club">俱乐部与法律</span> <span class="count" id="count-club">14</span></div>
+    <div class="filter-chip" data-cat="national"><span data-i18n="filter.national">国家队争议</span> <span class="count" id="count-national">11</span></div>
   </div>
 
   <div class="severity-filter">
-    <span>严重程度筛选：</span>
+    <span data-i18n="severity.label">严重程度筛选：</span>
     <select id="severitySelect">
-      <option value="0">全部级别</option>
-      <option value="3">3星及以上</option>
-      <option value="4">4星及以上</option>
-      <option value="5">仅5星 (最严重)</option>
+      <option value="0" data-i18n="severity.all">全部级别</option>
+      <option value="3" data-i18n="severity.3">3星及以上</option>
+      <option value="4" data-i18n="severity.4">4星及以上</option>
+      <option value="5" data-i18n="severity.5">仅5星 (最严重)</option>
     </select>
     <span id="resultCount" style="margin-left:auto;color:var(--text-dim)">显示全部 61 条记录</span>
   </div>
@@ -217,13 +167,13 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 终极对决 · MESSI vs CA7</div>
-        <div class="section-title">梅罗 PK 大战</div>
+        <div class="section-label" data-i18n="pk.label">// 终极对决 · MESSI vs CA7</div>
+        <div class="section-title" data-i18n="pk.title">梅罗 PK 大战</div>
       </div>
-      <div class="section-desc">切换维度，看谁"赢"了。数字不撒谎。</div>
+      <div class="section-desc" data-i18n="pk.desc">切换维度，看谁"赢"了。数字不撒谎。</div>
     </div>
     <div class="pk-arena">
-      <div class="pk-vs">VS</div>
+      <div class="pk-vs" data-i18n="pk.vs">VS</div>
       <div class="pk-sides" id="pkSides">
         <!-- JS 渲染 -->
       </div>
@@ -240,13 +190,13 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 黑科技检测 · AUTHENTICITY SCANNER</div>
-        <div class="section-title">点球含金量检测仪</div>
+        <div class="section-label" data-i18n="scanner.label">// 黑科技检测 · AUTHENTICITY SCANNER</div>
+        <div class="section-title" data-i18n="scanner.title">点球含金量检测仪</div>
       </div>
-      <div class="section-desc">扫描"注水"成分，自动评估含金量。</div>
+      <div class="section-desc" data-i18n="scanner.desc">扫描"注水"成分，自动评估含金量。</div>
     </div>
     <div class="scanner" id="scanner">
-      <div class="scanner-status"><span class="blink"></span>SYSTEM READY · 点击开始检测</div>
+      <div class="scanner-status"><span class="blink"></span><span data-i18n="scanner.statusReady">SYSTEM READY · 点击开始检测</span></div>
       <div class="scanner-grid" id="scanGrid">
         <!-- JS 渲染检测项 -->
       </div>
@@ -258,10 +208,10 @@
           </svg>
           <div class="gauge-num">
             <div class="n" id="gaugeNum">--</div>
-            <div class="l">综合含金量</div>
+            <div class="l" data-i18n="scanner.gaugeLabel">综合含金量</div>
           </div>
         </div>
-        <div class="gauge-verdict" id="gaugeVerdict">等待检测...</div>
+        <div class="gauge-verdict" id="gaugeVerdict" data-i18n="scanner.verdict.wait">等待检测...</div>
       </div>
     </div>
   </div>
@@ -272,31 +222,31 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 嬷照工厂 · MEME GENERATOR</div>
-        <div class="section-title">CA7 表情生成器</div>
+        <div class="section-label" data-i18n="meme.label">// 嬷照工厂 · MEME GENERATOR</div>
+        <div class="section-title" data-i18n="meme.title">CA7 表情生成器</div>
       </div>
-      <div class="section-desc">选图、填字、下载。一键造梗。</div>
+      <div class="section-desc" data-i18n="meme.desc">选图、填字、下载。一键造梗。</div>
     </div>
     <div class="meme-studio">
       <div class="meme-canvas-wrap">
         <canvas id="memeCanvas" width="600" height="600"></canvas>
-        <button class="meme-download" id="memeDownload">↓ 下载表情</button>
+        <button class="meme-download" id="memeDownload" data-i18n="meme.download">↓ 下载表情</button>
       </div>
       <div class="meme-controls">
         <div class="meme-field">
-          <label>选择嬷照</label>
+          <label data-i18n="meme.select">选择嬷照</label>
           <div class="meme-thumbs" id="memeThumbs"></div>
         </div>
         <div class="meme-field">
-          <label>顶部文字</label>
-          <input type="text" id="memeTop" maxlength="24" placeholder="CA7...">
+          <label data-i18n="meme.top">顶部文字</label>
+          <input type="text" id="memeTop" maxlength="24" placeholder="CA7..." data-i18n="meme.topPlaceholder">
         </div>
         <div class="meme-field">
-          <label>底部文字</label>
-          <input type="text" id="memeBottom" maxlength="24" placeholder="siuuuu">
+          <label data-i18n="meme.bottom">底部文字</label>
+          <input type="text" id="memeBottom" maxlength="24" placeholder="siuuuu" data-i18n="meme.bottomPlaceholder">
         </div>
         <div class="meme-field">
-          <label>一键套用预设金句</label>
+          <label data-i18n="meme.presets">一键套用预设金句</label>
           <div class="meme-presets-list" id="memePresets"></div>
         </div>
       </div>
@@ -309,10 +259,10 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 财务流水 · MONEY TRAIL</div>
-        <div class="section-title">罪恶账本烧钱榜</div>
+        <div class="section-label" data-i18n="ledger.label">// 财务流水 · MONEY TRAIL</div>
+        <div class="section-title" data-i18n="ledger.title">罪恶账本烧钱榜</div>
       </div>
-      <div class="section-desc">每一笔，都是争议的标价。</div>
+      <div class="section-desc" data-i18n="ledger.desc">每一笔，都是争议的标价。</div>
     </div>
     <div class="ledger" id="ledger">
       <!-- JS 渲染 -->
@@ -324,37 +274,13 @@
 <section class="section" id="data">
   <div class="section-header">
     <div>
-      <div class="section-label">// 数据透视 · DATA</div>
-      <div class="section-title">数字里的黑历史</div>
+      <div class="section-label" data-i18n="data.label">// 数据透视 · DATA</div>
+      <div class="section-title" data-i18n="data.title">数字里的黑历史</div>
     </div>
-    <div class="section-desc">用数据丈量争议的规模。</div>
+    <div class="section-desc" data-i18n="data.desc">用数据丈量争议的规模。</div>
   </div>
-  <div class="data-viz">
-    <div class="viz-card">
-      <div class="viz-title">红牌分布 (按俱乐部)</div>
-      <div class="bar-row"><div class="bar-label">曼联 (两段)</div><div class="bar-track"><div class="bar-fill" data-w="35%"></div><div class="bar-val">4</div></div></div>
-      <div class="bar-row"><div class="bar-label">皇家马德里</div><div class="bar-track"><div class="bar-fill" data-w="55%"></div><div class="bar-val">6</div></div></div>
-      <div class="bar-row"><div class="bar-label">尤文图斯</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
-      <div class="bar-row"><div class="bar-label">利雅得胜利</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
-      <div class="bar-row"><div class="bar-label">葡萄牙队</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
-      <div class="bar-row"><div class="bar-label">其他/未确认</div><div class="bar-track"><div class="bar-fill" data-w="9%"></div><div class="bar-val">1</div></div></div>
-    </div>
-    <div class="viz-card">
-      <div class="viz-title">争议分类占比</div>
-      <div class="bar-row"><div class="bar-label">人设争议</div><div class="bar-track"><div class="bar-fill" data-w="27%"></div><div class="bar-val">15</div></div></div>
-      <div class="bar-row"><div class="bar-label">场内暴力</div><div class="bar-track"><div class="bar-fill" data-w="16%"></div><div class="bar-val">9</div></div></div>
-      <div class="bar-row"><div class="bar-label">场外失态</div><div class="bar-track"><div class="bar-fill" data-w="20%"></div><div class="bar-val">11</div></div></div>
-      <div class="bar-row"><div class="bar-label">俱乐部与法律</div><div class="bar-track"><div class="bar-fill" data-w="21%"></div><div class="bar-val">12</div></div></div>
-      <div class="bar-row"><div class="bar-label">国家队争议</div><div class="bar-track"><div class="bar-fill" data-w="16%"></div><div class="bar-val">9</div></div></div>
-    </div>
-    <div class="viz-card">
-      <div class="viz-title">私生活数据</div>
-      <div class="bar-row"><div class="bar-label">历任女友</div><div class="bar-track"><div class="bar-fill" data-w="80%"></div><div class="bar-val">12</div></div></div>
-      <div class="bar-row"><div class="bar-label">子女数量</div><div class="bar-track"><div class="bar-fill" data-w="33%"></div><div class="bar-val">5</div></div></div>
-      <div class="bar-row"><div class="bar-label">孩子生母数</div><div class="bar-track"><div class="bar-fill" data-w="20%"></div><div class="bar-val">3</div></div></div>
-      <div class="bar-row"><div class="bar-label">生母身份公开</div><div class="bar-track"><div class="bar-fill" data-w="40%"></div><div class="bar-val">2/5</div></div></div>
-      <div class="bar-row"><div class="bar-label">迷你罗生母</div><div class="bar-track"><div class="bar-fill" data-w="5%"></div><div class="bar-val">成谜</div></div></div>
-    </div>
+  <div class="data-viz" id="dataViz">
+    <!-- JS 从 data.js 渲染（含双语 label）-->
   </div>
 </section>
 
@@ -363,136 +289,36 @@
   <div class="section" style="padding-top:50px;padding-bottom:50px">
     <div class="section-header">
       <div>
-        <div class="section-label">// 编年史 · CHRONOLOGY</div>
-        <div class="section-title">争议时间线</div>
+        <div class="section-label" data-i18n="tl.label">// 编年史 · CHRONOLOGY</div>
+        <div class="section-title" data-i18n="tl.title">争议时间线</div>
       </div>
-      <div class="section-desc">从出道到2026，二十余年争议编年。</div>
+      <div class="section-desc" data-i18n="tl.desc">从出道到2026，二十余年争议编年。</div>
     </div>
     <div class="timeline" id="timelineTrack"></div>
   </div>
 </section>
 
-<!-- 绰号进化史 -->
+<!-- 绰号进化史（卡片由 app.js 从 nicknamesData 渲染）-->
 <section class="nickname-section">
   <div class="section" style="padding-top:0;padding-bottom:0">
     <div class="section-header">
       <div>
-        <div class="section-label">// 绰号进化史 · NICKNAME EVOLUTION</div>
-        <div class="section-title">九个绰号 一部黑历史</div>
+        <div class="section-label" data-i18n="nick.label">// 绰号进化史 · NICKNAME EVOLUTION</div>
+        <div class="section-title" data-i18n="nick.title">九个绰号 一部黑历史</div>
       </div>
-      <div class="section-desc">从"小小罗"到"总裁"，每个绰号都是一段争议的注脚。</div>
+      <div class="section-desc" data-i18n="nick.desc">从"小小罗"到"总裁"，每个绰号都是一段争议的注脚。</div>
     </div>
-    <div class="nickname-grid">
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">01</span>
-        <picture><source type="image/webp" srcset="assets/images/nick/nick-new-1.webp"><img src="assets/images/nick/nick-new-1.jpg" alt="小小罗" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">小小罗</div>
-        <div class="nick-period">2003-2006 · 曼联出道期</div>
-        <div class="nick-desc">出道时巴西"大罗"罗纳尔多、"小罗"罗纳尔迪尼奥已封神，初来曼联的他按长幼被叫"小小罗"。方便面发型、踩单车花活、一碰就倒——这个称呼带着"小弟"的轻视，直到他在曼联踢出金球级表现才慢慢摘掉。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">02</span>
-        <picture><source type="image/webp" srcset="assets/images/nick/nick-new-2.webp"><img src="assets/images/nick/nick-new-2.jpg" alt="花罗" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">花罗</div>
-        <div class="nick-period">2004-2007 · 花哨期</div>
-        <div class="nick-desc">沉迷盘带爱秀花活，一场踩十几个单车却贻误战机，被英格兰媒体讽刺为SHOWBOAT（华而不实）。范尼、阿兰·史密斯都因他"只花不传"在训练场爆发冲突。场外五颜六色奇葩着装更坐实"花"名。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">03</span>
-        <picture><source type="image/webp" srcset="assets/images/nick/nick-new-3.webp"><img src="assets/images/nick/nick-new-3.jpg" alt="水罗" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">水罗 / 跳水王</div>
-        <div class="nick-period">2005-2007 · 假摔期</div>
-        <div class="nick-desc">2006世界杯对法国禁区假摔、足总杯对米堡假摔被英媒狂批"跳水"。弗格森2007年还嘴硬说漏嘴："罗纳尔多已经不假摔了。"——等于变相承认此前确实假摔。"水罗""跳水王"由此传开。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">04</span>
-        <picture><source type="image/webp" srcset="assets/images/report/r-18.webp"><img src="assets/images/report/r-18.jpg" alt="罗三票" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">罗三票 / 票哥</div>
-        <div class="nick-period">2011-2014 · 调侃期</div>
-        <div class="nick-desc">2011年欧足联最佳球员评选，梅西蝉联，C罗竟只获<strong>3票</strong>。球迷戏称"罗三票"，自嘲的粉丝则叫"票哥"。2014年他拿第三座金球后，黑粉又把"罗三票"升级为"罗三球"——怎么都要带个"三"。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">05</span>
-        <picture><source type="image/webp" srcset="assets/images/nick/nick-new-5.webp"><img src="assets/images/nick/nick-new-5.jpg" alt="沙漠骆驼" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">沙漠骆驼</div>
-        <div class="nick-period">2023至今 · 沙特淘金期</div>
-        <div class="nick-desc">2023年C罗以2亿欧元年薪远走沙特利雅得胜利，被嘲讽"去沙漠养老"。结果一待就是4年，期间<strong>4年才拿到1个联赛冠军</strong>，与梅西加盟迈阿密1个月即夺冠形成惨烈对比。"沙漠骆驼"既是地域调侃，也是对其"驮着数据走不出沙漠"的讽刺。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">06</span>
-        <picture><source type="image/webp" srcset="assets/images/report/r-17.webp"><img src="assets/images/report/r-17.jpg" alt="总裁" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">总裁</div>
-        <div class="nick-period">2014至今 · 巅峰期</div>
-        <div class="nick-desc">最早是<strong>黑称</strong>——"<em>总</em>是靠<em>裁</em>判"，讽刺他进球靠裁判照顾、点球多。但C罗霸道形象、CR7商业帝国、多金多情的做派，反而让"总裁"黑出感情，被粉丝当作褒义供奉，成了他最响亮的标签。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">07</span>
-        <picture><source type="image/webp" srcset="assets/images/nick/nick-new-7.webp"><img src="assets/images/nick/nick-new-7.jpg" alt="球玊" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">球玊 / 典韦</div>
-        <div class="nick-period">2015至今 · 自封球王期</div>
-        <div class="nick-desc">"球玊"把"球王"的"王"换成形近的"玊"（sù）——玊比王多一"点"，既讽其多一"点"（点球），发音又酷似C罗招牌庆祝动作"siu"，一语双关。"典韦"则谐音"点伟"，暗讽爱罚点球的"阿伟罗"。两个黑称都是罗黑圈的拆字顶流。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">08</span>
-        <picture><source type="image/webp" srcset="assets/images/report/r-29.webp"><img src="assets/images/report/r-29.jpg" alt="阿伟罗" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">阿伟罗</div>
-        <div class="nick-period">长期 · 谐音戏称</div>
-        <div class="nick-desc">取C罗全名"阿韦罗（Aveiro）"的"伟"，配上"阿"字戏谑化，读起来像"阿伟罗"——既谐音父姓Aveiro，又暗讽其关键战隐身时的"伟岸缺席"。是中文圈对C罗最戏谑的简称之一，常与"球玊""典韦"组合出现。</div>
-      </div>
-    </div>
-    <div class="nick-card">
-      <div class="nick-card-img">
-        <span class="nick-num">09</span>
-        <picture><source type="image/webp" srcset="assets/images/nick/nick-new-9.webp"><img src="assets/images/nick/nick-new-9.jpg" alt="骡子" loading="lazy" decoding="async"></picture>
-      </div>
-      <div class="nick-body">
-        <div class="nick-name">骡子</div>
-        <div class="nick-period">长期 · 谐音黑称</div>
-        <div class="nick-desc">"罗"的谐音黑称，罗黑圈子传播极广。"骡子"既暗讽其"驮着数据走不远"（淘汰赛隐身），也带明显的侮辱色彩。常与"点罗""球玉"组合出现，构成中文互联网对C罗最密集的黑称矩阵。</div>
-      </div>
-    </div>
-    </div>
+    <div class="nickname-grid" id="nicknameGrid"></div>
   </div>
 </section>
 
 <!-- 引用墙 -->
 <section class="quote-wall" id="quotes">
-  <div class="quote-text" id="quoteText">"把阿伟罗这个父姓给彻底扔了，除了蹭热度并且想要掩盖事实以外，实在是没觉得有什么别的可能。"</div>
-  <div class="quote-author" id="quoteAuthor">— 知乎足球评论，论背弃祖姓</div>
+  <div class="quote-text" id="quoteText"></div>
+  <div class="quote-author" id="quoteAuthor"></div>
   <div class="quote-controls">
-    <button class="quote-btn" id="quotePrev" aria-label="上一条">◀</button>
-    <button class="quote-btn" id="quoteNext" aria-label="下一条">▶</button>
+    <button class="quote-btn" id="quotePrev" aria-label="Prev">◀</button>
+    <button class="quote-btn" id="quoteNext" aria-label="Next">▶</button>
   </div>
 </section>
 
@@ -501,15 +327,15 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 终极诊断 · HATER INDEX</div>
-        <div class="section-title">罗黑程度测试</div>
+        <div class="section-label" data-i18n="quiz.label">// 终极诊断 · HATER INDEX</div>
+        <div class="section-title" data-i18n="quiz.title">罗黑程度测试</div>
       </div>
-      <div class="section-desc">8 道题，测你到底有多"黑"这位阿伟罗。数据全部来自本档案馆，答得越准分越高。</div>
+      <div class="section-desc" data-i18n="quiz.desc">8 道题，测你到底有多"黑"这位阿伟罗。数据全部来自本档案馆，答得越准分越高。</div>
     </div>
     <div class="quiz" id="quiz">
       <div class="quiz-progress" id="quizProgress">
         <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill"></div></div>
-        <div class="quiz-progress-text" id="quizProgressText">第 1 / 8 题</div>
+        <div class="quiz-progress-text" id="quizProgressText"></div>
       </div>
       <div class="quiz-body" id="quizBody">
         <!-- JS 渲染题目 -->
@@ -520,7 +346,7 @@
           <div class="quiz-rank" id="quizRank">—</div>
         </div>
         <div class="quiz-verdict" id="quizVerdict"></div>
-        <button class="btn btn-primary" id="quizRestart">重新测试</button>
+        <button class="btn btn-primary" id="quizRestart" data-i18n="quiz.restart">重新测试</button>
       </div>
     </div>
   </div>
@@ -531,27 +357,27 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 谎言鉴定 · FACT OR FICTION</div>
-        <div class="section-title">这是 C罗 说的，还是我编的？</div>
+        <div class="section-label" data-i18n="tof.label">// 谎言鉴定 · FACT OR FICTION</div>
+        <div class="section-title" data-i18n="tof.title">这是 C罗 说的，还是我编的？</div>
       </div>
-      <div class="section-desc">一半是 C罗 真语录，一半是比真话还离谱的段子。你猜得对吗？讽刺的是——他的真话往往比假话更夸张。</div>
+      <div class="section-desc" data-i18n="tof.desc">一半是 C罗 真语录，一半是比真话还离谱的段子。你猜得对吗？讽刺的是——他的真话往往比假话更夸张。</div>
     </div>
     <div class="tof" id="tof">
       <div class="tof-hud">
-        <div class="tof-stat"><span class="tof-stat-n" id="tofRound">1</span><small>/10</small><span class="tof-stat-l">第几题</span></div>
-        <div class="tof-stat"><span class="tof-stat-n" id="tofScore">0</span><span class="tof-stat-l">答对</span></div>
-        <div class="tof-stat"><span class="tof-stat-n" id="tofStreak">0</span><span class="tof-stat-l">连击</span></div>
+        <div class="tof-stat"><span class="tof-stat-n" id="tofRound">1</span><small>/10</small><span class="tof-stat-l" data-i18n="tof.round">第几题</span></div>
+        <div class="tof-stat"><span class="tof-stat-n" id="tofScore">0</span><span class="tof-stat-l" data-i18n="tof.score">答对</span></div>
+        <div class="tof-stat"><span class="tof-stat-n" id="tofStreak">0</span><span class="tof-stat-l" data-i18n="tof.streak">连击</span></div>
       </div>
       <div class="tof-card-wrap">
         <div class="tof-card" id="tofCard">
           <div class="tof-quote-mark">"</div>
-          <div class="tof-text" id="tofText">加载中…</div>
+          <div class="tof-text" id="tofText"></div>
           <div class="tof-actions" id="tofActions">
-            <button class="tof-btn tof-btn-fake" data-ans="false">✗ 我编的</button>
-            <button class="tof-btn tof-btn-real" data-ans="true">✓ 他真说过</button>
+            <button class="tof-btn tof-btn-fake" data-ans="false" data-i18n="tof.btnFake">✗ 我编的</button>
+            <button class="tof-btn tof-btn-real" data-ans="true" data-i18n="tof.btnReal">✓ 他真说过</button>
           </div>
           <div class="tof-reveal" id="tofReveal" hidden></div>
-          <button class="tof-next" id="tofNext" hidden>下一题 →</button>
+          <button class="tof-next" id="tofNext" hidden data-i18n="tof.next">下一题 →</button>
         </div>
       </div>
       <div class="tof-result" id="tofResult" hidden>
@@ -559,7 +385,7 @@
         <div class="tof-result-rank" id="tofRank">—</div>
         <div class="tof-result-verdict" id="tofVerdict"></div>
         <div class="tof-result-stats" id="tofStats"></div>
-        <button class="btn btn-primary" id="tofRestart">再来一局</button>
+        <button class="btn btn-primary" id="tofRestart" data-i18n="tof.restart">再来一局</button>
       </div>
     </div>
   </div>
@@ -570,14 +396,14 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 每日通缉 · CASE OF THE DAY</div>
-        <div class="section-title">黑料盲盒</div>
+        <div class="section-label" data-i18n="blindbox.label">// 每日通缉 · CASE OF THE DAY</div>
+        <div class="section-title" data-i18n="blindbox.title">黑料盲盒</div>
       </div>
-      <div class="section-desc">从 61 卷宗里随机抽取一份，看看今天 CA7 又因为什么被立案。换一张，再来一单。</div>
+      <div class="section-desc" data-i18n="blindbox.desc">从 61 卷宗里随机抽取一份，看看今天 CA7 又因为什么被立案。换一张，再来一单。</div>
     </div>
     <div class="blindbox" id="blindbox">
       <div class="blindbox-poster" id="blindboxPoster">
-        <div class="blindbox-stamp">CLASSIFIED</div>
+        <div class="blindbox-stamp" data-i18n="blindbox.stamp">CLASSIFIED</div>
         <div class="blindbox-no" id="blindboxNo">№ —</div>
         <div class="blindbox-cat" id="blindboxCat"></div>
         <div class="blindbox-title" id="blindboxTitle"></div>
@@ -588,9 +414,9 @@
         <div class="blindbox-watermark">CA7</div>
       </div>
       <div class="blindbox-actions">
-        <button class="btn btn-primary" id="blindboxShuffle">⟳ 换一单</button>
-        <button class="btn btn-ghost" id="blindboxDownload">↓ 下载通缉令</button>
-        <button class="btn btn-ghost" id="blindboxOpen">展开完整卷宗 →</button>
+        <button class="btn btn-primary" id="blindboxShuffle" data-i18n="blindbox.shuffle">⟳ 换一单</button>
+        <button class="btn btn-ghost" id="blindboxDownload" data-i18n="blindbox.download">↓ 下载通缉令</button>
+        <button class="btn btn-ghost" id="blindboxOpen" data-i18n="blindbox.open">展开完整卷宗 →</button>
       </div>
     </div>
   </div>
@@ -601,17 +427,17 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 时空档案 · INCIDENT MAP 2.0</div>
-        <div class="section-title">争议世界地图</div>
+        <div class="section-label" data-i18n="map.label">// 时空档案 · INCIDENT MAP 2.0</div>
+        <div class="section-title" data-i18n="map.title">争议世界地图</div>
       </div>
-      <div class="section-desc">拖动时间轴看争议如何蔓延，开启「生涯轨迹」追 C罗 效力过的每支球队，开启「热度图」看哪里是高发地。</div>
+      <div class="section-desc" data-i18n="map.desc">拖动时间轴看争议如何蔓延，开启「生涯轨迹」追 C罗 效力过的每支球队，开启「热度图」看哪里是高发地。</div>
     </div>
     <div class="worldmap" id="worldmap">
       <!-- 顶部控制条：图层开关 -->
       <div class="worldmap-controls">
-        <label class="wm-toggle"><input type="checkbox" id="wmTrail" checked> <span>生涯轨迹</span></label>
-        <label class="wm-toggle"><input type="checkbox" id="wmHeat"> <span>热度图</span></label>
-        <span class="wm-readout" id="wmReadout">显示：2003 – 2026 · 全部 60 起</span>
+        <label class="wm-toggle"><input type="checkbox" id="wmTrail" checked> <span data-i18n="map.trail">生涯轨迹</span></label>
+        <label class="wm-toggle"><input type="checkbox" id="wmHeat"> <span data-i18n="map.heat">热度图</span></label>
+        <span class="wm-readout" id="wmReadout"></span>
       </div>
       <svg class="worldmap-svg" id="worldmapSvg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" aria-label="争议事件世界分布图">
         <!-- 简化世界轮廓（背景）-->
@@ -633,7 +459,7 @@
       <div class="worldmap-tooltip" id="worldmapTip" hidden></div>
       <!-- 时间轴 -->
       <div class="wm-timeline">
-        <button class="wm-play" id="wmPlay" aria-label="播放时间轴">▶</button>
+        <button class="wm-play" id="wmPlay" aria-label="Play" data-i18n="map.play">▶</button>
         <div class="wm-tl-track">
           <div class="wm-tl-range">
             <input type="range" id="wmYearStart" min="2003" max="2026" value="2003">
@@ -644,11 +470,11 @@
         <div class="wm-tl-labels"><span>2003</span><span>2026</span></div>
       </div>
       <div class="worldmap-legend">
-        <span><i class="dot sev5"></i> 极重</span>
-        <span><i class="dot sev4"></i> 严重</span>
-        <span><i class="dot sev3"></i> 较重</span>
+        <span><i class="dot sev5"></i> <span data-i18n="map.legendSev5">极重</span></span>
+        <span><i class="dot sev4"></i> <span data-i18n="map.legendSev4">严重</span></span>
+        <span><i class="dot sev3"></i> <span data-i18n="map.legendSev3">较重</span></span>
         <span class="wm-legend-sep">|</span>
-        <span><i class="dot wm-dot-trail"></i> 效力球队</span>
+        <span><i class="dot wm-dot-trail"></i> <span data-i18n="map.legendClub">效力球队</span></span>
       </div>
     </div>
   </div>
@@ -659,21 +485,21 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 虚拟盘口 · CA7 BETTING ODDS</div>
-        <div class="section-title">罗黑赌场</div>
+        <div class="section-label" data-i18n="casino.label">// 虚拟盘口 · CA7 BETTING ODDS</div>
+        <div class="section-title" data-i18n="casino.title">罗黑赌场</div>
       </div>
-      <div class="section-desc">用虚拟「Factos 币」对 C罗 的「行为卡」下注。开奖按他历史行为的真实概率随机模拟——不是预测某场未来比赛，而是赌「他又会怎样」。讽刺的是，押他「输不起」几乎稳赚。纯属娱乐，无真实货币。</div>
+      <div class="section-desc" data-i18n="casino.desc">用虚拟「Factos 币」对 C罗 的「行为卡」下注。开奖按他历史行为的真实概率随机模拟——不是预测某场未来比赛，而是赌「他又会怎样」。讽刺的是，押他「输不起」几乎稳赚。纯属娱乐，无真实货币。</div>
     </div>
     <div class="casino" id="casino">
       <div class="casino-wallet">
-        <div class="casino-balance">💰 余额：<span id="casinoBalance">1000</span> <small>Factos</small></div>
-        <div class="casino-record">战绩：<span id="casinoRecord">0胜 0负</span></div>
-        <button class="casino-reset" id="casinoReset" hidden>重置余额</button>
+        <div class="casino-balance"><span data-i18n="casino.balance">💰 余额：</span><span id="casinoBalance">1000</span> <small>Factos</small></div>
+        <div class="casino-record"><span data-i18n="casino.record">战绩：</span><span id="casinoRecord">0胜 0负</span></div>
+        <button class="casino-reset" id="casinoReset" hidden data-i18n="casino.reset">重置余额</button>
       </div>
       <div class="casino-board" id="casinoBoard"><!-- JS 渲染盘口 --></div>
       <div class="casino-history" id="casinoHistory">
-        <div class="casino-history-title">// 投注记录</div>
-        <div class="casino-history-empty">还没有投注。下注后这里会显示开奖流水。</div>
+        <div class="casino-history-title" data-i18n="casino.history">// 投注记录</div>
+        <div class="casino-history-empty" data-i18n="casino.historyEmpty">还没有投注。下注后这里会显示开奖流水。</div>
       </div>
     </div>
   </div>
@@ -684,10 +510,10 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 人设叙事 · PERSONA UNRAVELED</div>
-        <div class="section-title">人设崩塌编年史</div>
+        <div class="section-label" data-i18n="persona.label">// 人设叙事 · PERSONA UNRAVELED</div>
+        <div class="section-title" data-i18n="persona.title">人设崩塌编年史</div>
       </div>
-      <div class="section-desc">从「自律标杆」到「自我颁奖」——十五起人设类争议，串成一条向下坠落的长卷。</div>
+      <div class="section-desc" data-i18n="persona.desc">从「自律标杆」到「自我颁奖」——十五起人设类争议，串成一条向下坠落的长卷。</div>
     </div>
     <div class="persona-scroll" id="personaScroll">
       <!-- JS 渲染 -->
@@ -700,47 +526,47 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 罗黑集结 · ROAST WALL</div>
-        <div class="section-title">弹幕墙 & 段子工厂</div>
+        <div class="section-label" data-i18n="wall.label">// 罗黑集结 · ROAST WALL</div>
+        <div class="section-title" data-i18n="wall.title">弹幕墙 & 段子工厂</div>
       </div>
-      <div class="section-desc">吐个槽？填个梗？你的吐槽会化作弹幕飞过黑历史墙，段子还能点赞上榜。数据存在本地，导出分享。</div>
+      <div class="section-desc" data-i18n="wall.desc">吐个槽？填个梗？你的吐槽会化作弹幕飞过黑历史墙，段子还能点赞上榜。数据存在本地，导出分享。</div>
     </div>
     <div class="wall" id="wall">
       <!-- 弹幕发射器 -->
       <div class="wall-input-bar">
-        <input type="text" id="danmuInput" maxlength="40" placeholder="发一条弹幕吐槽 C罗…（最多40字）">
+        <input type="text" id="danmuInput" maxlength="40" placeholder="发一条弹幕吐槽 C罗…（最多40字）" data-i18n="wall.inputPlaceholder">
         <select id="danmuColor">
-          <option value="#fff">白</option>
-          <option value="#dc143c">红</option>
-          <option value="#e8b923">金</option>
-          <option value="#3ddc84">绿</option>
-          <option value="#4fc3f7">蓝</option>
+          <option value="#fff" data-i18n="wall.color">白</option>
+          <option value="#dc143c" data-i18n="wall.color">红</option>
+          <option value="#e8b923" data-i18n="wall.color">金</option>
+          <option value="#3ddc84" data-i18n="wall.color">绿</option>
+          <option value="#4fc3f7" data-i18n="wall.color">蓝</option>
         </select>
-        <button class="danmu-send" id="danmuSend">发射 →</button>
+        <button class="danmu-send" id="danmuSend" data-i18n="wall.send">发射 →</button>
       </div>
       <!-- 弹幕展示区 -->
       <div class="danmu-stage" id="danmuStage">
-        <div class="danmu-empty" id="danmuEmpty">弹幕墙空空如也。来当第一个开火的人。</div>
+        <div class="danmu-empty" id="danmuEmpty" data-i18n="wall.empty">弹幕墙空空如也。来当第一个开火的人。</div>
       </div>
 
       <!-- 段子工厂：半句接龙 -->
       <div class="punchline">
         <div class="punchline-head">
-          <div class="punchline-title">// 段子接龙 · 把下半句交给你</div>
-          <button class="punchline-shuffle" id="punchlineShuffle">换一题 ⟳</button>
+          <div class="punchline-title" data-i18n="wall.jokeTitle">// 段子接龙 · 把下半句交给你</div>
+          <button class="punchline-shuffle" id="punchlineShuffle" data-i18n="wall.shuffle">换一题 ⟳</button>
         </div>
-        <div class="punchline-prompt" id="punchlinePrompt">加载中…</div>
+        <div class="punchline-prompt" id="punchlinePrompt"></div>
         <div class="punchline-input-row">
-          <input type="text" id="punchlineInput" maxlength="30" placeholder="接下半句…（最多30字）">
-          <button class="punchline-submit" id="punchlineSubmit">投稿</button>
+          <input type="text" id="punchlineInput" maxlength="30" placeholder="接下半句…（最多30字）" data-i18n="wall.jokePlaceholder">
+          <button class="punchline-submit" id="punchlineSubmit" data-i18n="wall.submit">投稿</button>
         </div>
         <div class="punchline-list" id="punchlineList"><!-- JS 渲染热榜 --></div>
       </div>
 
       <div class="wall-tools">
-        <button class="wall-tool-btn" id="danmuClear">清空我的弹幕</button>
-        <button class="wall-tool-btn" id="danmuExport">导出我的创作</button>
-        <span class="wall-note">* 数据仅存于你的浏览器（localStorage），不上传服务器。</span>
+        <button class="wall-tool-btn" id="danmuClear" data-i18n="wall.clear">清空我的弹幕</button>
+        <button class="wall-tool-btn" id="danmuExport" data-i18n="wall.export">导出我的创作</button>
+        <span class="wall-note" data-i18n="wall.note">* 数据仅存于你的浏览器（localStorage），不上传服务器。</span>
       </div>
     </div>
   </div>
@@ -751,10 +577,10 @@
   <div class="innov-section">
     <div class="section-header">
       <div>
-        <div class="section-label">// 档案官考核 · ACHIEVEMENTS</div>
-        <div class="section-title">成就徽章</div>
+        <div class="section-label" data-i18n="badges.label">// 档案官考核 · ACHIEVEMENTS</div>
+        <div class="section-title" data-i18n="badges.title">成就徽章</div>
       </div>
-      <div class="section-desc">逛档案库、查时间线、答测试、发弹幕……解锁十枚徽章，集齐召唤档案官认证。</div>
+      <div class="section-desc" data-i18n="badges.desc">逛档案库、查时间线、答测试、发弹幕……解锁十枚徽章，集齐召唤档案官认证。</div>
     </div>
     <div class="badges-grid" id="badgesGrid">
       <!-- JS 渲染 -->
@@ -782,13 +608,11 @@
 
 <!-- Footer -->
 <footer class="footer">
-  <div class="footer-logo">THE <span class="red">AVEIRO</span> FILES</div>
-  <p class="footer-text">
-    本网站为球迷文化创作，所有事件均基于公开新闻报道整理，不代表任何官方立场。<br>
-    克里斯蒂亚诺·罗纳尔多（本名 Cristiano Ronaldo dos Santos Aveiro）是世界足坛最伟大的球员之一，
-    本站仅记录其职业生涯中的争议事件，包括其背弃祖姓选择"Ronaldo"作为称呼的身份争议。
+  <div class="footer-logo" data-i18n="footer.logo">THE <span class="red">AVEIRO</span> FILES</div>
+  <p class="footer-text" data-i18n="footer.text">
+    本网站为球迷文化创作，所有事件均基于公开新闻报道整理，不代表任何官方立场。
   </p>
-  <div class="footer-disclaimer">
+  <div class="footer-disclaimer" data-i18n="footer.sources">
     DATA SOURCES: AP / ESPN / CNN / BBC / SKY SPORTS / 腾讯体育 / 知乎 · CONTENT FOR ENTERTAINMENT PURPOSES ONLY
   </div>
 
@@ -799,7 +623,7 @@
         <span class="seal-glyph">ɐ</span>
         <span class="seal-name">ℒℯℯ</span>
       </div>
-      <div class="seal-hint" id="sealHint">点击签名 · 集齐 7 印触发隐藏庆祝</div>
+      <div class="seal-hint" id="sealHint" data-i18n="footer.sealHint">点击签名 · 集齐 7 印触发隐藏庆祝</div>
       <div class="seal-count" id="sealCount" hidden></div>
       <div class="seal-title" id="sealTitle" hidden></div>
     </div>
@@ -811,16 +635,16 @@
 <!-- 模态框 -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal" id="modal">
-    <button class="modal-close" id="modalClose" aria-label="关闭">&times;</button>
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
     <div id="modalContent"></div>
-    <button class="modal-nav modal-nav-prev" id="modalPrev" aria-label="上一档案">‹</button>
-    <button class="modal-nav modal-nav-next" id="modalNext" aria-label="下一档案">›</button>
+    <button class="modal-nav modal-nav-prev" id="modalPrev" aria-label="Prev">‹</button>
+    <button class="modal-nav modal-nav-next" id="modalNext" aria-label="Next">›</button>
     <div class="modal-counter" id="modalCounter"></div>
   </div>
 </div>
 
 <!-- 返回顶部 -->
-<button class="back-to-top" id="backToTop" aria-label="返回顶部">↑</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
 
 <script src="assets/js/data.js"></script>
 <script src="assets/js/extra-data.js"></script>

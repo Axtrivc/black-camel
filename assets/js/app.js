@@ -14,6 +14,121 @@
 (function () {
 "use strict";
 
+/* ============================================================
+ * i18n 双语核心机制
+ * - currentLang: 'en' | 'zh'，默认 'en'，localStorage('ca7-lang') 记忆
+ * - tt(obj, field): 按 currentLang 读取 obj.field / obj.fieldEn，无备选降级
+ * - setLanguage(lang): 写入缓存 + 改 <html lang> + 应用静态 i18n + 派发 'ca7:lang-change'
+ * - applyStaticI18n(): 遍历 [data-i18n] 节点，innerHTML 渲染（白名单防 XSS）
+ * - 有状态模块监听 'ca7:lang-change' 时仅更新文本，不重置状态
+ * ============================================================ */
+let currentLang = (function(){
+  try { return localStorage.getItem("ca7-lang") || "en"; } catch(e) { return "en"; }
+})();
+// 降级读取：en 优先取 fieldEn（无则回退原字段）；zh 取原字段
+function tt(obj, field){
+  if(!obj) return "";
+  if(currentLang === "en"){
+    const en = obj[field+"En"];
+    return (en !== undefined && en !== "") ? en : obj[field];
+  }
+  return obj[field];
+}
+// 字典读取辅助（带 key 默认值）
+function t(key, fallback){
+  const dict = (typeof i18nDict !== "undefined") ? (i18nDict[currentLang] || i18nDict.en) : null;
+  if(dict && dict[key] !== undefined) return dict[key];
+  return fallback !== undefined ? fallback : key;
+}
+
+/* 安全 HTML 白名单：只允许 <strong> <em> <br> <span class="..."> 这几个标签
+   其余一律转义。字典文案由开发者维护，但仍防注入。 */
+function sanitizeI18nHtml(s){
+  if(typeof s !== "string") return "";
+  // 白名单：允许的标签 + 允许的属性（style/class）。其余一律转义。
+  // 策略：用 token 化的方式遍历，遇到 < ... > 判断是否为合法白名单标签。
+  const ALLOWED_TAGS = ["strong","em","b","i","br","span"];
+  const ALLOWED_ATTRS = ["style","class"];   // 仅这两个属性
+  // 安全属性值：style/class 只允许字母、数字、: ; . # ( ) - 空格 等 CSS 安全字符，禁止 url()/expression()/javascript:
+  const SAFE_ATTR_VAL = /^([a-zA-Z0-9\s:;.\-#(),%'"]+)$/;
+
+  // 整体转义所有 & < >，保证 baseline 安全
+  let esc = s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  // 把已转义的标签 token 还原（若在白名单内）
+  // 匹配 &lt;tag attr...&gt; 或 &lt;/tag&gt; 或 &lt;br/&gt;
+  esc = esc.replace(/&lt;(\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[a-zA-Z-]+=&quot;[^&]*&quot;|\s+[a-zA-Z-]+="[^"]*")*)\s*(\/?)&gt;/g,
+    (full, slash, tag, attrs, selfclose)=>{
+      tag = tag.toLowerCase();
+      if(ALLOWED_TAGS.indexOf(tag) === -1) return full;   // 非白名单标签：保持转义
+      // 解析属性，只保留白名单属性且值安全
+      let safeAttrs = "";
+      if(attrs){
+        const attrRe = /\s+([a-zA-Z-]+)=(&quot;([^&]*)&quot;|"([^"]*)")/g;
+        let am;
+        while((am = attrRe.exec(attrs)) !== null){
+          const attrName = am[1].toLowerCase();
+          const attrVal = am[3] !== undefined ? am[3] : am[5];   // 取两种引号格式之一
+          if(ALLOWED_ATTRS.indexOf(attrName) !== -1 && SAFE_ATTR_VAL.test(attrVal)){
+            safeAttrs += ` ${attrName}="${attrVal}"`;
+          }
+        }
+      }
+      // 重建标签（保留原引号风格）
+      const lt = "<", gt = ">";
+      if(slash) return lt+"/"+tag+gt;             // 闭合标签不带属性
+      return lt+tag+safeAttrs+(selfclose?"/":"")+gt;
+    }
+  );
+  return esc;
+}
+
+function applyStaticI18n(){
+  const dict = (typeof i18nDict !== "undefined") ? (i18nDict[currentLang] || i18nDict.en) : null;
+  if(!dict) return;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.getAttribute("data-i18n");
+    const v = dict[key];
+    if(v === undefined) return;
+    // INPUT/TEXTAREA: 走 placeholder
+    if(el.tagName === "INPUT" || el.tagName === "TEXTAREA"){
+      if(el.type === "text" || el.type === "search" || el.tagName === "TEXTAREA"){
+        el.placeholder = v;
+      }
+      return;
+    }
+    // OPTION: 纯文本
+    if(el.tagName === "OPTION"){ el.textContent = v; return; }
+    // 含 HTML 标签则 innerHTML（白名单已清洗），否则 textContent
+    if(/[<>]/.test(v)){
+      el.innerHTML = sanitizeI18nHtml(v);
+    } else {
+      el.textContent = v;
+    }
+  });
+}
+
+function updateLangBtn(){
+  const lbl = document.querySelector("#langToggleBtn .lang-label");
+  if(!lbl) return;
+  // 始终显示双语提示，当前语言高亮在前
+  lbl.innerHTML = '<span class="lang-globe">🌐</span>' +
+    (currentLang === "en" ? "EN / 中" : "中 / EN");
+}
+
+function setLanguage(lang){
+  currentLang = (lang === "zh") ? "zh" : "en";
+  try { localStorage.setItem("ca7-lang", currentLang); } catch(e){}
+  document.documentElement.lang = (currentLang === "zh") ? "zh-CN" : "en";
+  applyStaticI18n();
+  updateLangBtn();
+  // 派发事件：各闭包模块自治重渲染（有状态模块仅更新文本）
+  document.dispatchEvent(new CustomEvent("ca7:lang-change", { detail:{ lang: currentLang } }));
+}
+
+// 暴露给 app.js 内其他模块引用（同 IIFE 作用域，直接用即可，无需 window）。
+// 但 data.js 中无 i18n 逻辑；extra-data.js 同。仅 app.js 内闭包使用 tt/t。
+
 /* ========== SVG 占位图 (图片加载失败时) ========== */
 function svgFallback(text){
   return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect width='400' height='250' fill='%2318181c'/%3E%3Crect width='400' height='250' fill='url(%23g)' opacity='0.1'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23dc143c'/%3E%3Cstop offset='1' stop-color='%238b0a1e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ctext x='50%25' y='50%25' font-family='monospace' font-size='14' fill='%237a7a82' text-anchor='middle' dy='.3em'%3E"+encodeURIComponent(text)+"%3C/text%3E%3C/svg%3E";
@@ -76,7 +191,7 @@ function renderCards(){
     return true;
   });
 
-  document.getElementById("resultCount").textContent = `显示 ${currentList.length} 条记录`;
+  document.getElementById("resultCount").textContent = `${t("resultCount.prefix","显示")} ${currentList.length} ${t("resultCount.suffix","条记录")}`;
 
   // 排序：头条/置顶（severity 5 且标记「头条」）最前，其次按 severity 降序、id 降序
   const maxId = Math.max(...events.map(e=>e.id));
@@ -98,22 +213,23 @@ function renderCards(){
     for(let i=0;i<5;i++){
       dots += `<span class="dot ${i<e.severity?'on':''}"></span>`;
     }
-    const pinnedBadge = (e.tags && e.tags.includes("头条")) ? `<span class="card-badge-breaking">🔥 头条</span>` : "";
-    const newBadge = (e.id === maxId && !(e.tags && e.tags.includes("头条"))) ? `<span class="card-badge-new">NEW</span>` : "";
+    const catLabel = catConfig[e.cat] ? tt(catConfig[e.cat],"label") : (e.catLabel||"");
+    const pinnedBadge = (e.tags && e.tags.includes("头条")) ? `<span class="card-badge-breaking">${t("card.badgeBreaking","🔥 头条")}</span>` : "";
+    const newBadge = (e.id === maxId && !(e.tags && e.tags.includes("头条"))) ? `<span class="card-badge-new">${t("card.badgeNew","NEW")}</span>` : "";
     card.innerHTML = `
       <div class="card-img">
         ${pinnedBadge}${newBadge}
-        <span class="card-cat" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}33;color:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}">${e.catLabel}</span>
+        <span class="card-cat" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}33;color:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}">${catLabel}</span>
         <div class="card-severity">${dots}</div>
-        ${pic(e.img||'',{alt:e.title,loading:"lazy",decoding:"async","data-cat-label":e.catLabel})}
+        ${pic(e.img||'',{alt:tt(e,"title"),loading:"lazy",decoding:"async","data-cat-label":catLabel})}
       </div>
       <div class="card-body">
-        <div class="card-date">${e.date}</div>
-        <div class="card-title">${e.title}</div>
-        <div class="card-summary">${e.summary}</div>
+        <div class="card-date">${tt(e,"date")}</div>
+        <div class="card-title">${tt(e,"title")}</div>
+        <div class="card-summary">${tt(e,"summary")}</div>
         <div class="card-footer">
-          <div class="card-tags">${e.tags.slice(0,3).map(t=>`<span class="card-tag">${t}</span>`).join("")}</div>
-          <div class="card-read">查看卷宗 →</div>
+          <div class="card-tags">${e.tags.slice(0,3).map(tk=>`<span class="card-tag">${tk}</span>`).join("")}</div>
+          <div class="card-read">${t("card.read","查看卷宗 →")}</div>
         </div>
       </div>
     `;
@@ -123,7 +239,7 @@ function renderCards(){
   });
 
   if(currentList.length === 0){
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-dim);font-family:var(--mono)">未找到匹配记录</div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-dim);font-family:var(--mono)">${t("card.empty","未找到匹配记录")}</div>`;
   }
 }
 
@@ -157,29 +273,32 @@ function renderModal(){
   for(let i=0;i<5;i++){
     dots += `<span class="dot ${i<e.severity?'on':''}"></span>`;
   }
-  // detail 渲染：若段落本身已是块级标签（<p>/<figure>/<div> 等）则原样输出，否则包一层 <p>
+  // detail：detailEn 存在则用，否则回退 detail（中文）；en 模式下无 detailEn 时加"长文待译"提示
   const blockTag=/^\s*<(p|figure|div|blockquote|h[1-6]|ul|ol|table)\b/i;
-  const detailHtml = e.detail.map(p=> blockTag.test(p) ? p : `<p>${p}</p>`).join("");
+  const detailSrc = (currentLang==="en" && e.detailEn) ? e.detailEn : e.detail;
+  const detailHtml = detailSrc.map(p=> blockTag.test(p) ? p : `<p>${p}</p>`).join("");
+  const detailNotice = (currentLang==="en" && !e.detailEn) ? `<p style="font-family:var(--mono);font-size:11px;color:var(--text-dim);border-top:1px dashed var(--border);padding-top:10px;margin-top:8px">${t("modal.detailNotice")}</p>` : "";
+  const catLabel = catConfig[e.cat] ? tt(catConfig[e.cat],"label") : (e.catLabel||"");
   let quoteHtml = "";
   if(e.quote){
-    quoteHtml = `<div class="modal-quote">"${e.quote.text}"<cite>— ${e.quote.author}</cite></div>`;
+    quoteHtml = `<div class="modal-quote">"${tt(e.quote,"text")}"<cite>— ${tt(e.quote,"author")}</cite></div>`;
   }
   modalContent.innerHTML = `
     <div class="modal-hero">
-      <span class="modal-cat-badge" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'};color:#fff">${e.catLabel}</span>
-      ${pic(e.img||'',{alt:e.title,decoding:"async","data-cat-label":e.catLabel})}
+      <span class="modal-cat-badge" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'};color:#fff">${catLabel}</span>
+      ${pic(e.img||'',{alt:tt(e,"title"),decoding:"async","data-cat-label":catLabel})}
     </div>
     <div class="modal-body">
-      <div class="modal-date">${e.date}</div>
-      <div class="modal-title">${e.title}</div>
+      <div class="modal-date">${tt(e,"date")}</div>
+      <div class="modal-title">${tt(e,"title")}</div>
       <div class="modal-meta">
-        <div class="modal-meta-item"><span class="label">地点</span><span class="val">${e.location}</span></div>
-        <div class="modal-meta-item"><span class="label">分类</span><span class="val">${e.catLabel}</span></div>
-        <div class="modal-meta-item"><span class="label">严重程度</span><span class="val modal-severity-bar">${dots}</span></div>
+        <div class="modal-meta-item"><span class="label">${t("modal.loc","地点")}</span><span class="val">${tt(e,"location")}</span></div>
+        <div class="modal-meta-item"><span class="label">${t("modal.cat","分类")}</span><span class="val">${catLabel}</span></div>
+        <div class="modal-meta-item"><span class="label">${t("modal.sev","严重程度")}</span><span class="val modal-severity-bar">${dots}</span></div>
       </div>
-      <div class="modal-detail">${detailHtml}</div>
+      <div class="modal-detail">${detailHtml}${detailNotice}</div>
       ${quoteHtml}
-      <div class="modal-tags">${e.tags.map(t=>`<span class="modal-tag">${t}</span>`).join("")}</div>
+      <div class="modal-tags">${e.tags.map(tk=>`<span class="modal-tag">${tk}</span>`).join("")}</div>
     </div>
   `;
   modalCounter.textContent = `${modalIdx+1} / ${currentList.length}`;
@@ -260,24 +379,65 @@ searchInput.addEventListener("input",(e)=>{
   },200);
 });
 
-/* ========== 时间线渲染 ========== */
+/* ========== 时间线渲染（封装以便语言切换重渲染） ========== */
 const tlContainer = document.getElementById("timelineTrack");
-timelineData.forEach(item=>{
-  const div = document.createElement("div");
-  div.className = "tl-item";
-  div.innerHTML = `
-    <div class="tl-year">${item.year}</div>
-    <div class="tl-title">${item.title}</div>
-    <div class="tl-desc">${item.desc}</div>
-  `;
-  tlContainer.appendChild(div);
+function initTimeline(){
+  if(!tlContainer || typeof timelineData === "undefined") return;
+  tlContainer.innerHTML = "";
+  timelineData.forEach(item=>{
+    const div = document.createElement("div");
+    div.className = "tl-item";
+    div.innerHTML = `
+      <div class="tl-year">${item.year}</div>
+      <div class="tl-title">${tt(item,"title")}</div>
+      <div class="tl-desc">${tt(item,"desc")}</div>
+    `;
+    tlContainer.appendChild(div);
+    revealObserver.observe(div);
+  });
+}
+initTimeline();
+document.addEventListener("ca7:lang-change", initTimeline);
+// 语言切换：重渲染档案库卡片（title/summary/date/catLabel 跟随语言）
+document.addEventListener("ca7:lang-change", renderCards);
+// 若模态框打开，同步刷新模态内容
+document.addEventListener("ca7:lang-change", ()=>{
+  if(overlay.classList.contains("show")) renderModal();
 });
-document.querySelectorAll(".tl-item").forEach(item=>revealObserver.observe(item));
 
-/* ========== 数字计数动画 ========== */
+/* ========== 数字计数动画 + 单位本地化 ==========
+ * data-suffix 存的是"中文单位 key"（万/亿），按 currentLang 映射英文表达。
+ * 中文：1880万 / 40亿
+ * 英文：18.8M（1880万欧元 = €18.8M）/ 4B（40亿美元 = $4B）
+ * 用 OVERRIDE 表对特定 target 值给出英文规范写法，其余按 M/B 通用规则。
+ */
+const SUFFIX_I18N = { "万":{en:"M",zh:"万"}, "亿":{en:"B",zh:"亿"} };
+// 特定数值的英文规范写法（target → 英文显示字符串）。优先级最高。
+const OVERRIDE_EN = {
+  "1880": "18.8M",   // 1880万欧元 → €18.8M
+  "40":   "4B"       // 40亿美元 → $4B
+};
+function localizedStatText(el){
+  const target = parseInt(el.dataset.target);
+  const rawSuffix = el.dataset.suffix || "";
+  const lang = (typeof currentLang !== "undefined") ? currentLang : "en";
+  if(lang === "en" && OVERRIDE_EN[String(target)]) return OVERRIDE_EN[String(target)];
+  if(lang === "en" && SUFFIX_I18N[rawSuffix]){
+    // 通用回退：万→M，亿→B（数值不变，如 12万→12M，仅作兜底）
+    return target + SUFFIX_I18N[rawSuffix].en;
+  }
+  return target + (rawSuffix || "");
+}
 function animateNumber(el){
   const target = parseInt(el.dataset.target);
-  const suffix = el.dataset.suffix || "";
+  const rawSuffix = el.dataset.suffix || "";
+  const lang = (typeof currentLang !== "undefined") ? currentLang : "en";
+  // 英文模式 + 有 override：直接显示目标字符串，不做计数动画（避免中间态混乱）
+  if(lang === "en" && OVERRIDE_EN[String(target)]){
+    el.textContent = OVERRIDE_EN[String(target)];
+    return;
+  }
+  const suffix = (lang === "en" && SUFFIX_I18N[rawSuffix]) ? SUFFIX_I18N[rawSuffix].en : rawSuffix;
   const duration = 1800;
   const start = performance.now();
   function update(now){
@@ -299,6 +459,13 @@ const numObserver = new IntersectionObserver((entries)=>{
   });
 },{threshold:0.5});
 document.querySelectorAll(".hstat-num").forEach(el=>numObserver.observe(el));
+// 语言切换后，已渲染的统计数字单位也要刷新（万→M / 亿→B / 1880→18.8M）
+document.addEventListener("ca7:lang-change",()=>{
+  document.querySelectorAll(".hstat-num").forEach(el=>{
+    if(isNaN(parseInt(el.dataset.target))) return;
+    el.textContent = localizedStatText(el);
+  });
+});
 
 /* ========== 数据条形图动画 ========== */
 const barObserver = new IntersectionObserver((entries)=>{
@@ -323,8 +490,8 @@ function showQuote(idx){
   quoteTextEl.style.opacity = "0";
   quoteAuthorEl.style.opacity = "0";
   setTimeout(()=>{
-    quoteTextEl.textContent = '"' + quotes[quoteIdx].text + '"';
-    quoteAuthorEl.textContent = "— " + quotes[quoteIdx].author;
+    quoteTextEl.textContent = '"' + tt(quotes[quoteIdx],"text") + '"';
+    quoteAuthorEl.textContent = "— " + tt(quotes[quoteIdx],"author");
     quoteTextEl.style.transition = "opacity .5s";
     quoteAuthorEl.style.transition = "opacity .5s";
     quoteTextEl.style.opacity = "1";
@@ -419,6 +586,28 @@ backToTop.addEventListener("click",()=>{
   window.scrollTo({top:0,behavior:"smooth"});
 });
 
+/* ========== 顶部跑马灯 + BREAKING 头条：从 i18nDict 渲染 ========== */
+function renderTicker(){
+  const track = document.getElementById("tickerTrack");
+  if(!track) return;
+  const items = t("ticker.items", []);
+  if(!Array.isArray(items) || items.length === 0) return;
+  // 复制一份实现无缝循环
+  const html = items.map(s=>`<span>${s}</span>`).join("") + items.map(s=>`<span>${s}</span>`).join("");
+  track.innerHTML = html;
+}
+function renderBreaking(){
+  const el = document.getElementById("breakingTicker");
+  if(!el) return;
+  const items = t("breaking.items", []);
+  if(!Array.isArray(items) || items.length === 0) return;
+  // 两份内容，配合 translateX(-50%) 无缝循环
+  const one = items.map(s=>`<span class="breaking-item">${s}</span><span class="breaking-sep">◆</span>`).join("");
+  el.innerHTML = one + one.replace(/class="breaking-item"/g,'class="breaking-item" aria-hidden="true"').replace(/class="breaking-sep"/g,'class="breaking-sep" aria-hidden="true"');
+}
+renderTicker();
+renderBreaking();
+
 /* ========== 🚨 BREAKING 头条跑马灯：自适应时长 + 点击展开 ========== */
 // 跑马灯滚动速度恒定（≈60px/秒），时长按内容实际宽度计算，
 // 避免「宽屏滚太快、窄屏滚太慢」。内容在 HTML 里已复制一份，
@@ -436,6 +625,12 @@ backToTop.addEventListener("click",()=>{
   setDur();
   window.addEventListener("load",setDur);
   let rt; window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(setDur,200);});
+  // 语言切换后重填内容 + 重算时长
+  document.addEventListener("ca7:lang-change",()=>{
+    renderTicker();
+    renderBreaking();
+    setTimeout(setDur, 50);
+  });
 })();
 document.getElementById("breakingCta")?.addEventListener("click",()=>{
   // 切到「全部」筛选确保该事件在当前列表中
@@ -462,26 +657,54 @@ Object.keys(catCounts).forEach(cat=>{
 // 2) Hero 统计里「收录事件」「争议分类」由数据驱动（红牌/逃税/可乐/女友为固定事实，保留）
 const hstats = document.querySelectorAll(".hstat-num");
 hstats.forEach(el=>{
-  const label = el.parentElement.querySelector(".hstat-label").textContent.trim();
-  if(label === "收录事件") el.dataset.target = events.length;
-  else if(label === "争议分类") el.dataset.target = Object.keys(catConfig).length;
+  const labelEl = el.parentElement.querySelector(".hstat-label");
+  const key = labelEl ? labelEl.getAttribute("data-i18n") : "";
+  if(key === "hero.statEvents") el.dataset.target = events.length;
+  else if(key === "hero.statCats") el.dataset.target = Object.keys(catConfig).length;
 });
 
-// 3) 「争议分类占比」条形图按 events 重新计算
-const totalEvents = events.length;
-document.querySelectorAll(".viz-card").forEach(card=>{
-  const titleEl = card.querySelector(".viz-title");
-  if(!titleEl || titleEl.textContent.indexOf("争议分类占比") === -1) return;
-  // 重建：用 catConfig 的顺序 + catCounts 数据
-  const rows = Object.keys(catConfig).map(cat=>{
-    const cnt = catCounts[cat] || 0;
-    const pct = totalEvents ? Math.round(cnt/totalEvents*100) : 0;
-    return `<div class="bar-row"><div class="bar-label">${catConfig[cat].label}</div><div class="bar-track"><div class="bar-fill" data-w="${pct}%"></div><div class="bar-val">${cnt}</div></div></div>`;
+// 3) 数据可视化：三张图全部由 dataVizData（在 data.js 定义）驱动渲染，支持双语 label
+function initDataViz(){
+  const wrap = document.getElementById("dataViz");
+  if(!wrap || typeof dataVizData === "undefined") return;
+  wrap.innerHTML = dataVizData.map(card=>{
+    const rows = card.rows.map(r=>{
+      const label = typeof r.labelKey === "string" ? t(r.labelKey, r.label) : (r.label||"");
+      const val = tt(r,"val");
+      return `<div class="bar-row"><div class="bar-label">${label}</div><div class="bar-track"><div class="bar-fill" data-w="${r.w}"></div><div class="bar-val">${val}</div></div></div>`;
+    }).join("");
+    return `<div class="viz-card"><div class="viz-title">${t(card.titleKey, card.title)}</div>${rows}</div>`;
   }).join("");
-  card.innerHTML = `<div class="viz-title">争议分类占比</div>${rows}`;
   // 重新挂观察者（新 DOM）
-  card.querySelectorAll(".bar-row").forEach(row=>barObserver.observe(row));
-});
+  wrap.querySelectorAll(".bar-row").forEach(row=>barObserver.observe(row));
+}
+initDataViz();
+document.addEventListener("ca7:lang-change", initDataViz);
+
+/* ========== 绰号进化史：从 nicknamesData 数据渲染（支持双语） ========== */
+function initNicknames(){
+  const grid = document.getElementById("nicknameGrid");
+  if(!grid || typeof nicknamesData === "undefined") return;
+  grid.innerHTML = nicknamesData.map(n=>{
+    const num = String(n.num).padStart(2,"0");
+    const name = tt(n,"name");
+    const period = tt(n,"period");
+    const desc = tt(n,"desc");
+    return `<div class="nick-card">
+      <div class="nick-card-img">
+        <span class="nick-num">${num}</span>
+        <picture><source type="image/webp" srcset="${n.imgWebp}"><img src="${n.img}" alt="${name}" loading="lazy" decoding="async"></picture>
+      </div>
+      <div class="nick-body">
+        <div class="nick-name">${name}</div>
+        <div class="nick-period">${period}</div>
+        <div class="nick-desc">${desc}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+initNicknames();
+document.addEventListener("ca7:lang-change", initNicknames);
 
 /* ============================================================
  * 创新模块逻辑（主题切换 / 梅罗PK / 检测仪 / 表情生成器 / 烧钱榜）
@@ -513,18 +736,23 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     applyTheme(btn.dataset.theme);
     syncActive(btn.dataset.theme);
   });
-  // 移动端：把主题切换器移进汉堡菜单展开层，避免导航栏挤压溢出
+  // 移动端：把主题切换器 + 语言切换器移进汉堡菜单展开层，避免导航栏挤压溢出
   const mq=window.matchMedia("(max-width:900px)");
   const navInner=document.querySelector(".nav-inner");
   const navToggle=document.getElementById("navToggle");
+  const langSwitcher=document.querySelector(".lang-switcher");
   function relocateSwitcher(){
     if(mq.matches){
       // 窄屏：移进汉堡菜单层
       if(!navLinks.contains(switcher)) navLinks.appendChild(switcher);
+      if(langSwitcher && !navLinks.contains(langSwitcher)) navLinks.appendChild(langSwitcher);
     }else{
       // 宽屏：放回 nav-inner（汉堡按钮之前）
       if(navInner && !navInner.contains(switcher) && navToggle){
         navInner.insertBefore(switcher,navToggle);
+      }
+      if(navInner && langSwitcher && !navInner.contains(langSwitcher) && navToggle){
+        navInner.insertBefore(langSwitcher,navToggle);
       }
     }
   }
@@ -558,25 +786,28 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   }
 
   // 渲染维度 tabs
-  tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${d.label}</button>`).join("");
+  function renderTabs(){
+    tabs.innerHTML=pkData.map((d,i)=>`<button class="pk-tab ${i===0?'active':''}" data-idx="${i}">${tt(d,"label")}</button>`).join("");
+  }
+  renderTabs();
   function render(){
     const d=pkData[curIdx];
     const fromCr7=curCr7, fromMessi=curMessi;
     // 渲染两侧：loser 方（黑点更重/被讽刺方）打上 loser 类高亮
     sides.innerHTML=`
       <div class="pk-side cr7 ${d.loser==='cr7'?'loser':''}">
-        <div class="pk-name">C 罗</div>
-        <div class="pk-subname">CRISTIANO · CA7</div>
+        <div class="pk-name">${i18nDict[currentLang]["pk.cr7Name"]}</div>
+        <div class="pk-subname">${i18nDict[currentLang]["pk.cr7Sub"]}</div>
         <div class="pk-val">${fromCr7}</div>
-        <div class="pk-note">${d.cr7.note}</div>
+        <div class="pk-note">${tt(d.cr7,"note")}</div>
       </div>
       <div class="pk-side messi ${d.loser==='messi'?'loser':''}">
-        <div class="pk-name">梅西</div>
-        <div class="pk-subname">MESSI</div>
+        <div class="pk-name">${i18nDict[currentLang]["pk.messiName"]}</div>
+        <div class="pk-subname">${i18nDict[currentLang]["pk.messiSub"]}</div>
         <div class="pk-val">${fromMessi}</div>
-        <div class="pk-note">${d.messi.note}</div>
+        <div class="pk-note">${tt(d.messi,"note")}</div>
       </div>`;
-    tip.innerHTML=`<strong>${d.tip}</strong>`;
+    tip.innerHTML=`<strong>${tt(d,"tip")}</strong>`;
     // 翻牌：从当前显示值滚到新维度目标值
     const cr7El=sides.querySelector(".pk-side.cr7 .pk-val");
     const messiEl=sides.querySelector(".pk-side.messi .pk-val");
@@ -593,10 +824,17 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   }
   render();
   tabs.addEventListener("click",e=>{
-    const t=e.target.closest(".pk-tab");
-    if(!t) return;
-    curIdx=parseInt(t.dataset.idx);
-    tabs.querySelectorAll(".pk-tab").forEach(x=>x.classList.toggle("active",x===t));
+    const tab=e.target.closest(".pk-tab");
+    if(!tab) return;
+    curIdx=parseInt(tab.dataset.idx);
+    tabs.querySelectorAll(".pk-tab").forEach(x=>x.classList.toggle("active",x===tab));
+    render();
+  });
+  // 语言切换：重渲染 tabs + 当前维度（数值保持当前显示值，不平移）
+  document.addEventListener("ca7:lang-change",()=>{
+    renderTabs();
+    // 重新激活当前 idx 的 tab
+    tabs.querySelectorAll(".pk-tab").forEach((x,i)=>x.classList.toggle("active",i===curIdx));
     render();
   });
 })();
@@ -624,9 +862,10 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   // 生成本局题目：shuffle 题序取前 N 题，每题选项也 shuffle 并重算正确答案 index
   function makeGame(){
     return shuffle(quizData).slice(0,QUIZ_LEN).map(item=>{
-      const correctText=item.opts[item.a];
+      const correctOpt=item.opts[item.a];
       const opts=shuffle(item.opts);
-      return { q:item.q, opts, a:opts.indexOf(correctText), fb:item.fb };
+      // 复制全部字段（含 qEn/fbEn），选项保留对象结构 {v,vEn}
+      return { q:item.q, qEn:item.qEn, opts, a:opts.indexOf(correctOpt), fb:item.fb, fbEn:item.fbEn };
     });
   }
 
@@ -636,20 +875,23 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     const q=game[idx];
     const total=game.length;
     progressFill.style.width=((idx)/total*100)+"%";
-    progressText.textContent=`第 ${idx+1} / ${total} 题`;
+    progressText.textContent=`${t("quiz.progress","第")} ${idx+1} / ${total}`;
     body.innerHTML=`
-      <div class="quiz-q">${idx+1}. ${q.q}</div>
+      <div class="quiz-q">${idx+1}. ${tt(q,"q")}</div>
       <div class="quiz-options">
-        ${q.opts.map((o,i)=>`
+        ${q.opts.map((o,i)=>{
+          const txt = (typeof o === "string") ? o : tt(o,"v");
+          return `
           <button class="quiz-option" data-i="${i}">
             <span class="quiz-opt-mark">${String.fromCharCode(65+i)}</span>
-            <span>${o}</span>
-          </button>`).join("")}
+            <span>${txt}</span>
+          </button>`;
+        }).join("")}
       </div>
       <div class="quiz-fb" id="quizFb" hidden></div>
       <div class="quiz-nav">
-        <span style="font-family:var(--mono);font-size:12px;color:var(--text-dim)">答对得分，答错 0 分</span>
-        <button class="quiz-next" id="quizNext" disabled>下一题 →</button>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--text-dim)">${t("quiz.feedback","答对得分，答错 0 分")}</span>
+        <button class="quiz-next" id="quizNext" disabled>${t("quiz.next","下一题 →")}</button>
       </div>`;
     const next=body.querySelector("#quizNext");
     const fb=body.querySelector("#quizFb");
@@ -667,9 +909,10 @@ document.querySelectorAll(".viz-card").forEach(card=>{
         if(ok) score++;
         fb.hidden=false;
         fb.className="quiz-fb"+(ok?" correct-fb":"");
-        fb.innerHTML=`<strong>${ok?"✓ 答对了":"✗ 正确答案："+String.fromCharCode(65+q.a)}</strong><br>${q.fb}`;
+        const correctStr = ok ? t("tof.correct","✓ 答对了") : ("✗ "+t("quiz.feedback","答对得分，答错 0 分").split(",")[0]+" "+String.fromCharCode(65+q.a));
+        fb.innerHTML=`<strong>${ok?t("tof.correct","✓ 答对了"):"✗ "+String.fromCharCode(65+q.a)}</strong><br>${tt(q,"fb")}`;
         next.disabled=false;
-        next.textContent= idx===total-1?"查看诊断结果 →":"下一题 →";
+        next.textContent= idx===total-1?t("quiz.result","查看诊断结果 →"):t("quiz.next","下一题 →");
       });
     });
     next.addEventListener("click",()=>{
@@ -681,14 +924,14 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   function showResult(){
     const total=game.length;
     progressFill.style.width="100%";
-    progressText.textContent=`诊断完成 · ${score}/${total}`;
+    progressText.textContent=`${t("quiz.diagnosis","诊断完成")} · ${score}/${total}`;
     body.hidden=true;
     const pct=score/total;
     let rank,verdict;
-    if(pct===1){ rank="骨灰级罗黑"; verdict="满分。你比本档案馆还了解他的黑历史，建议入职当馆长。每一题都精准命中——这不是巧合，这是仇恨的沉淀。"; }
-    else if(pct>=0.75){ rank="资深罗黑"; verdict=`${score}/${total}。你对他的底细门儿清，朋友圈里的"罗黑"担当非你莫属。再补几条典故就能毕业了。`; }
-    else if(pct>=0.5){ rank="黑粉见习"; verdict=`${score}/${total}。入了门，但还差点意思——建议把档案馆从前往后通读一遍，黑料储备会肉眼可见地充实。`; }
-    else{ rank="吃瓜路人"; verdict=`${score}/${total}。看着热闹，其实啥也没记住。多翻几页档案，下次就能在球友面前有理有据地"黑"了。`; }
+    if(pct===1){ rank=t("quiz.rankPerfect"); verdict=t("quiz.verdictPerfect"); }
+    else if(pct>=0.75){ rank=t("quiz.rankHigh"); verdict=`${score}/${total}. ${t("quiz.verdictHigh")}`; }
+    else if(pct>=0.5){ rank=t("quiz.rankMid"); verdict=`${score}/${total}. ${t("quiz.verdictMid")}`; }
+    else{ rank=t("quiz.rankLow"); verdict=`${score}/${total}. ${t("quiz.verdictLow")}`; }
     document.getElementById("quizScore").textContent=score;
     document.getElementById("quizScoreMax").textContent="/"+total;
     document.getElementById("quizRank").textContent=rank;
@@ -707,6 +950,23 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       else scoreEl.textContent=score;
     })(performance.now());
   }
+  // 语言切换：保留 idx/score/answer 状态，仅重渲染当前题面或结果页文案
+  document.addEventListener("ca7:lang-change",()=>{
+    if(!resultBox.hidden){
+      // 已在结果页：更新 rank/verdict 文本
+      const total=game.length, pct=score/total;
+      let rank,verdict;
+      if(pct===1){ rank=t("quiz.rankPerfect"); verdict=t("quiz.verdictPerfect"); }
+      else if(pct>=0.75){ rank=t("quiz.rankHigh"); verdict=`${score}/${total}. ${t("quiz.verdictHigh")}`; }
+      else if(pct>=0.5){ rank=t("quiz.rankMid"); verdict=`${score}/${total}. ${t("quiz.verdictMid")}`; }
+      else{ rank=t("quiz.rankLow"); verdict=`${score}/${total}. ${t("quiz.verdictLow")}`; }
+      document.getElementById("quizRank").textContent=rank;
+      document.getElementById("quizVerdict").textContent=verdict;
+    } else if(!body.hidden && game[idx]){
+      // 答题中：仅重渲染当前题（保留 score/idx；已锁定状态会丢失，但题目内容更新）
+      render();
+    }
+  });
 
   // 开始新一局：重新抽题 + 重置状态
   function startNewGame(){
@@ -766,7 +1026,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     revealEl.hidden=true;
     nextBtn.hidden=true;
     [...actionsEl.children].forEach(b=>{b.disabled=false;b.classList.remove("picked-fake","picked-real");});
-    textEl.textContent=item.text;
+    textEl.textContent=tt(item,"text");
   }
 
   function answer(picked){
@@ -783,11 +1043,11 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     // 卡片高亮
     cardEl.classList.add(correct?"correct":"wrong");
     // 揭晓
-    const verdict = item.truth ? '<b>✓ 真语录</b>' : '<b>✗ 假语录（我编的）</b>';
-    revealEl.innerHTML=`${correct?'<b style="color:#3ddc84">答对了！</b>':'<b style="color:#ff1744">答错了！</b>'} ${verdict}<br>${item.reveal}<span class="src">出处：${item.source}</span>`;
+    const verdict = item.truth ? t("tof.realVerdict") : t("tof.fakeVerdict");
+    revealEl.innerHTML=`${correct?`<b style="color:#3ddc84">${t("tof.correct")}</b>`:`<b style="color:#ff1744">${t("tof.wrong")}</b>`} ${verdict}<br>${tt(item,"reveal")}<span class="src">${t("tof.source")}${tt(item,"source")}</span>`;
     revealEl.hidden=false;
     nextBtn.hidden=false;
-    nextBtn.textContent = (idx===ROUND_LEN-1)?'查看诊断结果 →':'下一题 →';
+    nextBtn.textContent = (idx===ROUND_LEN-1)?t("tof.result"):t("tof.next");
     // 计分 + 连击
     if(correct){score++; streak++; maxStreak=Math.max(maxStreak,streak);}
     else{streak=0;}
@@ -801,20 +1061,43 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     resultBox.classList.add("show");
     const pct=score/ROUND_LEN;
     let rank,verdict;
-    if(pct===1){rank="人间清醒";verdict=`${score}/${ROUND_LEN} 满分。你比 C罗 还了解他自己——不，你比他还懂他的傲慢。每一句荒诞，你都精准识破。`;}
-    else if(pct>=0.7){rank="反讽大师";verdict=`${score}/${ROUND_LEN}。你深谙「总裁体」的边界——真话和段子的区别，对你来说一眼可辨。`;}
-    else if(pct>=0.4){rank="吃瓜群众";verdict=`${score}/${ROUND_LEN}。被忽悠得不轻——这就是 C罗话术的可怕之处：真话比段子还像段子。`;}
-    else{rank="被Factos洗脑";verdict=`${score}/${ROUND_LEN}。你大概真的相信了「我是历史第一第二第三」。建议把档案馆从前往后通读一遍。`;}
+    if(pct===1){rank=t("tof.rankPerfect");verdict=`${score}/${ROUND_LEN} ${t("tof.verdictPerfect","")}`;}
+    else if(pct>=0.7){rank=t("tof.rankHigh");verdict=`${score}/${ROUND_LEN}. ${t("tof.verdictHigh","")}`;}
+    else if(pct>=0.4){rank=t("tof.rankMid");verdict=`${score}/${ROUND_LEN}. ${t("tof.verdictMid","")}`;}
+    else{rank=t("tof.rankLow");verdict=`${score}/${ROUND_LEN}. ${t("tof.verdictLow","")}`;}
     document.getElementById("tofFinalScore").textContent=score;
     document.getElementById("tofRank").textContent=rank;
     document.getElementById("tofVerdict").textContent=verdict;
-    document.getElementById("tofStats").innerHTML=`真语录识破 ${realCorrect}/${realTotal} · 假语录识破 ${fakeCorrect}/${fakeTotal} · 最高连击 ${maxStreak}`;
+    document.getElementById("tofStats").innerHTML=`${t("tof.realStat","Real")}${realCorrect}/${realTotal} · ${t("tof.fakeStat","Fake")}${fakeCorrect}/${fakeTotal} · ${t("tof.maxStreak","Max streak")}${maxStreak}`;
     if(window.__badge) window.__badge("quiz",{score,total:ROUND_LEN,pct});  // 复用 quiz 成就触发
     // 分数滚动
     const fs=document.getElementById("tofFinalScore");
     let n=0;const t0=performance.now();
     (function tick(now){const p=Math.min((now-t0)/900,1);const eased=1-Math.pow(1-p,3);fs.textContent=Math.floor(eased*score);if(p<1)requestAnimationFrame(tick);else fs.textContent=score;})(performance.now());
   }
+  // 语言切换：保留 idx/score/streak，仅重渲染当前题文本或结果页
+  document.addEventListener("ca7:lang-change",()=>{
+    if(!resultBox.hidden){
+      // 结果页：更新 rank/verdict/stats
+      const pct=score/ROUND_LEN;
+      let rank,verdict;
+      if(pct===1){rank=t("tof.rankPerfect");verdict=`${score}/${ROUND_LEN} ${t("tof.verdictPerfect","")}`;}
+      else if(pct>=0.7){rank=t("tof.rankHigh");verdict=`${score}/${ROUND_LEN}. ${t("tof.verdictHigh","")}`;}
+      else if(pct>=0.4){rank=t("tof.rankMid");verdict=`${score}/${ROUND_LEN}. ${t("tof.verdictMid","")}`;}
+      else{rank=t("tof.rankLow");verdict=`${score}/${ROUND_LEN}. ${t("tof.verdictLow","")}`;}
+      document.getElementById("tofRank").textContent=rank;
+      document.getElementById("tofVerdict").textContent=verdict;
+    } else if(game[idx]){
+      // 答题中：更新当前题文本（已锁定的 reveal 也重渲染）
+      const item=game[idx];
+      textEl.textContent=tt(item,"text");
+      if(!revealEl.hidden){
+        const verdict = item.truth ? t("tof.realVerdict") : t("tof.fakeVerdict");
+        // 是否已答对/错不可知，简单保留 reveal 文本结构
+        revealEl.innerHTML=`${verdict}<br>${tt(item,"reveal")}<span class="src">${t("tof.source")}${tt(item,"source")}</span>`;
+      }
+    }
+  });
 
   // 事件绑定
   actionsEl.addEventListener("click",e=>{
@@ -852,19 +1135,22 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   const verdict=document.getElementById("gaugeVerdict");
   const status=scanner?scanner.querySelector(".scanner-status"):null;
   if(!grid||typeof penaltyData==="undefined") return;
-  // 渲染检测项
-  grid.innerHTML=penaltyData.items.map(it=>`
-    <div class="scan-item" data-score="${it.score}">
-      <div class="scan-label">${it.label}</div>
-      <div class="scan-value">${it.value}<span class="unit"> ${it.unit||''}</span></div>
-      <div class="scan-note">${it.note}</div>
-    </div>`).join("");
+  // 渲染检测项（封装以便语言切换重渲染）
+  function renderScanItems(){
+    grid.innerHTML=penaltyData.items.map(it=>`
+      <div class="scan-item" data-score="${it.score}">
+        <div class="scan-label">${tt(it,"label")}</div>
+        <div class="scan-value">${tt(it,"value")}<span class="unit"> ${tt(it,"unit")||''}</span></div>
+        <div class="scan-note">${tt(it,"note")}</div>
+      </div>`).join("");
+  }
+  renderScanItems();
   const circumference=292; // 半圆弧长近似
   let scanned=false;
   function runScan(){
     if(scanned) return; scanned=true;
     scanner.classList.add("scanning");
-    status.innerHTML='<span class="blink"></span>SCANNING... 检测中';
+    status.innerHTML='<span class="blink"></span>'+t("scanner.statusScan");
     // 逐项高亮
     const items=grid.querySelectorAll(".scan-item");
     items.forEach((it,i)=>{
@@ -885,9 +1171,9 @@ document.querySelectorAll(".viz-card").forEach(card=>{
         else gaugeNum.textContent=target+"%";
       }
       requestAnimationFrame(tick);
-      status.innerHTML='<span class="blink"></span>检测完成 · 含金量严重不足';
-      let v=""; if(score<20) v="严重注水，建议脱水后重测"; else if(score<40) v="含金量堪忧";
-      else v="勉强及格"; verdict.textContent=v;
+      status.innerHTML='<span class="blink"></span>'+t("scanner.statusDone");
+      let v=""; if(score<20) v=t("scanner.verdict.low"); else if(score<40) v=t("scanner.verdict.mid");
+      else v=t("scanner.verdict.high"); verdict.textContent=v;
       setTimeout(()=>scanner.classList.remove("scanning"),3000);
     },items.length*350+400);
   }
@@ -901,8 +1187,21 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     scanned=false;
     grid.querySelectorAll(".scan-item").forEach(it=>it.classList.remove("detected"));
     gaugeFill.style.strokeDashoffset=circumference;
-    gaugeNum.textContent="--"; verdict.textContent="等待检测...";
+    gaugeNum.textContent="--"; verdict.textContent=t("scanner.verdict.wait");
     setTimeout(runScan,200);
+  });
+  // 语言切换：重渲染检测项文本（不重跑动画）；若已扫描完则更新 verdict/status 文案
+  document.addEventListener("ca7:lang-change",()=>{
+    renderScanItems();
+    if(scanned){
+      const score=penaltyData.totalScore;
+      let v=""; if(score<20) v=t("scanner.verdict.low"); else if(score<40) v=t("scanner.verdict.mid");
+      else v=t("scanner.verdict.high");
+      verdict.textContent=v;
+      status.innerHTML='<span class="blink"></span>'+t("scanner.statusDone");
+    } else {
+      status.innerHTML='<span class="blink"></span>'+t("scanner.statusReady");
+    }
   });
 })();
 
@@ -926,8 +1225,12 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     thumbs.dataset.built="1";
     thumbs.innerHTML=memePhotos.map((p,i)=>`<div class="meme-thumb ${i===0?'active':''}" data-src="${p}" data-webp="${toWebp(p)}" style="background-image:url('${toWebp(p)}')"></div>`).join("");
   }
-  // 预设
-  presetsEl.innerHTML=memePresets.map((p,i)=>`<span class="meme-preset" data-i="${i}">${p.top.slice(0,8)}…</span>`).join("");
+  // 预设（读 tt 双语）
+  function renderPresets(){
+    presetsEl.innerHTML=memePresets.map((p,i)=>`<span class="meme-preset" data-i="${i}">${tt(p,"top").slice(0,8)}…</span>`).join("");
+  }
+  renderPresets();
+  document.addEventListener("ca7:lang-change", renderPresets);
   function draw(){
     ctx.fillStyle="#000"; ctx.fillRect(0,0,canvas.width,canvas.height);
     // 居中绘制图片（cover）
@@ -999,7 +1302,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   presetsEl.addEventListener("click",e=>{
     const t=e.target.closest(".meme-preset"); if(!t) return;
     const p=memePresets[parseInt(t.dataset.i)];
-    top.value=p.top; bot.value=p.bottom; draw();
+    top.value=tt(p,"top"); bot.value=tt(p,"bottom"); draw();
   });
   dl.addEventListener("click",()=>{
     try{
@@ -1011,8 +1314,8 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       dl.textContent="下载失败(跨域)";
     }
   });
-  // 默认填一句
-  top.value="SIUUUUU"; bot.value="点球进了";
+  // 默认填一句（读字典）
+  top.value=t("meme.defaultTop"); bot.value=t("meme.defaultBottom");
   draw();
 })();
 
@@ -1020,35 +1323,47 @@ document.querySelectorAll(".viz-card").forEach(card=>{
 (function(){
   const ledger=document.getElementById("ledger");
   if(!ledger||typeof moneyLedger==="undefined") return;
-  ledger.innerHTML=`
-    <div class="ledger-head">
-      <div class="ledger-title">罪恶账本</div>
-      <div class="ledger-no">NO. CA7-2026-${moneyLedger.length}ENTRIES</div>
-    </div>
-    <div class="ledger-rows">
-      ${moneyLedger.map((m,i)=>`
-        <div class="ledger-row" data-i="${i}">
-          <div class="ld-desc">
-            <span class="ledger-cat">${m.cat}</span>${m.desc}
-            <small>${m.detail}</small>
-          </div>
-          <div class="ld-amount">${m.amount}<span class="cur"> ${m.currency}</span></div>
-        </div>`).join("")}
-    </div>
-    <div class="ledger-foot">
-      <div class="ledger-total">TOTAL DISPUTED VALUE · <span class="n">不可估量</span></div>
-    </div>`;
-  // 逐行揭示
-  const rows=ledger.querySelectorAll(".ledger-row");
-  const lo=new IntersectionObserver((ents)=>{
-    ents.forEach(en=>{
-      if(en.isIntersecting){
-        rows.forEach((r,i)=>setTimeout(()=>r.classList.add("show"),i*180));
-        lo.unobserve(en.target);
-      }
+  let revealed=false;
+  function render(){
+    ledger.innerHTML=`
+      <div class="ledger-head">
+        <div class="ledger-title">${t("ledger.headTitle")}</div>
+        <div class="ledger-no">NO. CA7-2026-${moneyLedger.length}ENTRIES</div>
+      </div>
+      <div class="ledger-rows">
+        ${moneyLedger.map((m,i)=>`
+          <div class="ledger-row" data-i="${i}">
+            <div class="ld-desc">
+              <span class="ledger-cat">${m.cat}</span>${tt(m,"desc")}
+              <small>${tt(m,"detail")}</small>
+            </div>
+            <div class="ld-amount">${m.amount}<span class="cur"> ${m.currency}</span></div>
+          </div>`).join("")}
+      </div>
+      <div class="ledger-foot">
+        <div class="ledger-total">${t("ledger.total")}<span class="n">${t("ledger.totalVal")}</span></div>
+      </div>`;
+    // 逐行揭示（若已揭示过则立即全部 show）
+    const rows=ledger.querySelectorAll(".ledger-row");
+    rows.forEach((r,i)=>{
+      if(revealed) r.classList.add("show");
     });
-  },{threshold:0.2});
-  lo.observe(ledger);
+    if(!revealed){
+      const lo=new IntersectionObserver((ents)=>{
+        ents.forEach(en=>{
+          if(en.isIntersecting){
+            revealed=true;
+            const rs=ledger.querySelectorAll(".ledger-row");
+            rs.forEach((r,i)=>setTimeout(()=>r.classList.add("show"),i*180));
+            lo.unobserve(en.target);
+          }
+        });
+      },{threshold:0.2});
+      lo.observe(ledger);
+    }
+  }
+  render();
+  document.addEventListener("ca7:lang-change", render);
 })();
 
 /* ========== 鼠标涟漪/光晕氛围层 ========== */
@@ -1117,11 +1432,11 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   if(!seal||!stamp) return;
 
   const MAX=7;   // 封顶 7 印
-  // 称号阶梯（封顶 7）
+  // 称号阶梯（封顶 7，双语）
   const TITLES=[
-    {n:1,name:"见习封印官",line:"第一枚封印已落下。"},
-    {n:3,name:"档案守护者",line:"三枚红印，黑历史由你看管。"},
-    {n:7,name:"首席档案官",line:"七印封顶 · SIU! 触发庆祝。"}
+    {n:1,name:"见习封印官",nameEn:"Apprentice Sealer",line:"第一枚封印已落下。",lineEn:"The first seal has fallen."},
+    {n:3,name:"档案守护者",nameEn:"Archive Guardian",line:"三枚红印，黑历史由你看管。",lineEn:"Three red seals — the dark history is yours to guard."},
+    {n:7,name:"首席档案官",nameEn:"Chief Archivist",line:"七印封顶 · SIU! 触发庆祝。",lineEn:"Seven seals capped · SIU! Celebration triggered."}
   ];
   let count=0, titleIdx=-1, siuUnlocked=false, siuPlaying=false;
 
@@ -1270,32 +1585,48 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     marks.appendChild(ink);
     // 4) 计数显示
     countEl.hidden=false;
-    countEl.textContent="封印 · "+count+" / "+MAX;
+    countEl.textContent=t("footer.sealCount","封印 · ")+count+" / "+MAX;
     // 5) 解锁称号
     let newIdx=titleIdx;
-    TITLES.forEach((t,i)=>{ if(count>=t.n) newIdx=i; });
+    TITLES.forEach((tt2,i)=>{ if(count>=tt2.n) newIdx=i; });
     if(newIdx>titleIdx){
       titleIdx=newIdx;
-      const t=TITLES[newIdx];
+      const tt2=TITLES[newIdx];
       titleEl.hidden=false;
-      titleEl.textContent="« "+t.name+" »";
+      titleEl.textContent="« "+tt(tt2,"name")+" »";
       titleEl.style.animation="none"; void titleEl.offsetWidth;
       titleEl.style.animation="";
-      hint.textContent=t.line;
+      hint.textContent=tt(tt2,"line");
     }
     // 6) 封顶触发 SIU
     if(count===MAX){
       siuUnlocked=true;
-      hint.textContent="七印封顶 · 再点签名重放 SIU 庆祝";
+      hint.textContent=t("footer.sealHint2");
       setTimeout(playSIU, 500);   // 等印章砸落动画收尾再庆祝
     } else if(count===1){
-      hint.textContent="再点几下，集齐 7 印触发隐藏庆祝 →";
+      hint.textContent=t("footer.sealHint3");
     }
   }
 
   stamp.addEventListener("click",stamp_seal);
   stamp.addEventListener("keydown",e=>{
     if(e.key==="Enter"||e.key===" "){ e.preventDefault(); stamp_seal(); }
+  });
+  // 语言切换：更新 hint/title/count 文本（保留 count/titleIdx/siuUnlocked 状态）
+  document.addEventListener("ca7:lang-change",()=>{
+    if(count>0){
+      countEl.hidden=false;
+      countEl.textContent=t("footer.sealCount","封印 · ")+count+" / "+MAX;
+    }
+    if(titleIdx>=0){
+      const tt2=TITLES[titleIdx];
+      titleEl.textContent="« "+tt(tt2,"name")+" »";
+      hint.textContent=tt(tt2,"line");
+    } else {
+      hint.textContent=t("footer.sealHint");
+    }
+    if(count===MAX) hint.textContent=t("footer.sealHint2");
+    else if(count>=1 && count<MAX) hint.textContent=t("footer.sealHint3");
   });
 })();
 
@@ -1322,22 +1653,23 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   }
 
   function sevLabel(s){
-    return s>=5?"极重":s===4?"严重":s===3?"较重":s===2?"一般":"轻微";
+    return t("sev."+Math.max(1,Math.min(5,s)), s>=5?"极重":s===4?"严重":s===3?"较重":s===2?"一般":"轻微");
   }
 
   function render(ev){
     current=ev;
     els.no.textContent="№ "+String(ev.id).padStart(3,"0")+" / "+String(events.length).padStart(3,"0");
-    els.cat.textContent=ev.catLabel;
-    els.title.textContent=ev.title;
-    els.date.textContent="📅 "+(ev.date||"—");
-    els.loc.textContent="📍 "+(ev.location||"—");
+    const catLabel = catConfig[ev.cat] ? tt(catConfig[ev.cat],"label") : (ev.catLabel||"");
+    els.cat.textContent=catLabel;
+    els.title.textContent=tt(ev,"title");
+    els.date.textContent="📅 "+(tt(ev,"date")||"—");
+    els.loc.textContent="📍 "+(tt(ev,"location")||"—");
     let bars="";
     for(let i=1;i<=5;i++){
       bars+=`<span class="sev-bar${i<=ev.severity?" on":""}"></span>`;
     }
-    els.sev.innerHTML=`严重程度 ${bars} <span>${sevLabel(ev.severity)}</span>`;
-    els.summary.textContent=ev.summary;
+    els.sev.innerHTML=`${t("blindbox.sev","严重程度")} ${bars} <span>${sevLabel(ev.severity)}</span>`;
+    els.summary.textContent=tt(ev,"summary");
   }
 
   function shuffle(){
@@ -1377,18 +1709,19 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     x.fillText("№ "+String(current.id).padStart(3,"0")+" / "+String(events.length).padStart(3,"0"),45,110);
     // 分类
     x.fillStyle="#7a7a82";x.font="12px 'Courier New',monospace";
-    x.fillText((current.catLabel||"").toUpperCase(),45,135);
+    const dlCatLabel = catConfig[current.cat] ? tt(catConfig[current.cat],"label") : (current.catLabel||"");
+    x.fillText(dlCatLabel.toUpperCase(),45,135);
     x.strokeStyle="#2a2a30";x.beginPath();x.moveTo(45,148);x.lineTo(W-45,148);x.stroke();
     // 标题（自动换行）
     x.fillStyle="#f0f0f4";x.font="900 30px Georgia,serif";
-    wrapText(x,current.title,45,195,W-90,36);
+    wrapText(x,tt(current,"title"),45,195,W-90,36);
     // 日期/地点
     x.fillStyle="#7a7a82";x.font="13px 'Courier New',monospace";
-    x.fillText("📅 "+(current.date||"—"),45,290);
-    x.fillText("📍 "+(current.location||"—"),45,312);
+    x.fillText("📅 "+(tt(current,"date")||"—"),45,290);
+    x.fillText("📍 "+(tt(current,"location")||"—"),45,312);
     // 严重程度条
     x.fillStyle="#7a7a82";x.font="11px 'Courier New',monospace";
-    x.fillText("严重程度",45,345);
+    x.fillText(t("blindbox.sev","严重程度"),45,345);
     for(let i=0;i<5;i++){
       x.fillStyle=i<current.severity?"#dc143c":"#2a2a30";
       x.fillRect(45+i*24,355,18,8);
@@ -1397,14 +1730,14 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     x.fillText(sevLabel(current.severity),45,382);
     // 摘要
     x.fillStyle="#d6d6db";x.font="15px Georgia,serif";
-    wrapText(x,current.summary,45,430,W-90,26);
+    wrapText(x,tt(current,"summary"),45,430,W-90,26);
     // 底部
     x.fillStyle="#7a7a82";x.font="10px 'Courier New',monospace";
     x.textAlign="center";
-    x.fillText("THE AVEIRO FILES · 黑料盲盒 · 球迷文化创作，不代表任何官方立场",W/2,H-30);
+    x.fillText("THE AVEIRO FILES · "+t("blindbox.title","黑料盲盒")+" · "+t("footer.shortDisclaimer","球迷文化创作，不代表任何官方立场"),W/2,H-30);
 
     const a=document.createElement("a");
-    a.download=`CA7-通缉令-${String(current.id).padStart(3,"0")}.png`;
+    a.download=`CA7-wanted-${String(current.id).padStart(3,"0")}.png`;
     a.href=c.toDataURL("image/png");
     a.click();
     if(window.__badge) window.__badge("blindbox");
@@ -1434,6 +1767,10 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   });
 
   shuffle();
+  // 语言切换：重渲染当前盲盒（保留 current 不变）
+  document.addEventListener("ca7:lang-change",()=>{
+    if(current) render(current);
+  });
 })();
 
 /* ========== 争议世界地图 2.0（时间轴 + 生涯轨迹 + 热度图） ========== */
@@ -1565,10 +1902,10 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     g.addEventListener("mouseenter",(e)=>{
       const ev=b.items[0];
       tip.hidden=false;
-      tip.innerHTML=`<b>${ev.title}</b>`+
-        (b.items.length>1?`<small>＋${b.items.length-1} 起同地事件</small><br>`:"")+
-        `<small>${ev.date||""} · ${ev.location||""}</small><br>`+
-        `${ev.summary.slice(0,60)}…`;
+      tip.innerHTML=`<b>${tt(ev,"title")}</b>`+
+        (b.items.length>1?`<small>＋${b.items.length-1} ${t("map.sameLoc","起同地事件")}</small><br>`:"")+
+        `<small>${tt(ev,"date")||""} · ${tt(ev,"location")||""}</small><br>`+
+        `${tt(ev,"summary").slice(0,60)}…`;
       moveTip(e);
     });
     g.addEventListener("mousemove",moveTip);
@@ -1587,12 +1924,12 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   /* —— #8-1 生涯轨迹：C罗效力过的球队按时间连线 —— */
   // 球队 → 坐标 + 效力年份区间（公开资料）
   const career=[
-    {name:"里斯本竞技",x:455,y:208,from:2002,to:2003},
-    {name:"曼联(一)",x:462,y:148,from:2003,to:2009},
-    {name:"皇马",x:485,y:205,from:2009,to:2018},
-    {name:"尤文图斯",x:518,y:188,from:2018,to:2021},
-    {name:"曼联(二)",x:462,y:148,from:2021,to:2022},
-    {name:"利雅得胜利",x:625,y:225,from:2023,to:2026},
+    {name:"里斯本竞技",nameEn:"Sporting CP",x:455,y:208,from:2002,to:2003},
+    {name:"曼联(一)",nameEn:"Man United (1st)",x:462,y:148,from:2003,to:2009},
+    {name:"皇马",nameEn:"Real Madrid",x:485,y:205,from:2009,to:2018},
+    {name:"尤文图斯",nameEn:"Juventus",x:518,y:188,from:2018,to:2021},
+    {name:"曼联(二)",nameEn:"Man United (2nd)",x:462,y:148,from:2021,to:2022},
+    {name:"利雅得胜利",nameEn:"Al Nassr",x:625,y:225,from:2023,to:2026},
   ];
   function renderTrail(){
     trailLayer.innerHTML="";
@@ -1612,11 +1949,12 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       const lb=document.createElementNS(ns,"text");
       lb.setAttribute("class","wm-club-label");
       lb.setAttribute("x",c.x);lb.setAttribute("y",c.y-9);
-      lb.textContent=c.name;
+      lb.textContent=tt(c,"name");
       trailLayer.appendChild(lb);
     });
   }
   renderTrail();
+  document.addEventListener("ca7:lang-change",renderTrail);
 
   /* —— #8-2 热度图：每个 bucket 一个柔光大圆，半径随事件数/严重度 —— */
   function renderHeat(){
@@ -1668,7 +2006,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     // 热度：整体随区间收紧而加强（视觉聚焦）
     heatLayer.querySelectorAll(".wm-heat-blob").forEach(c=>{ c.style.opacity = (b-a<=6)?"0.25":"0.12"; });
     // 读数
-    readout.textContent=`显示：${a} – ${b} · ${shownCount} 个地点`;
+    readout.textContent=`${t("map.readout")} ${a} – ${b} · ${shownCount} ${t("map.incidents","起")}`;
   }
   yrStart.addEventListener("input",applyFilter);
   yrEnd.addEventListener("input",applyFilter);
@@ -1737,7 +2075,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
 
   function render(){
     balEl.textContent=balance;
-    recEl.innerHTML=`<span style="color:#3ddc84">${wins}胜</span> <span style="color:#ff1744">${losses}负</span>`;
+    recEl.innerHTML=`<span style="color:#3ddc84">${wins}${t("casino.win","胜")}</span> <span style="color:#ff1744">${losses}${t("casino.lose","负")}</span>`;
     resetBtn.hidden = balance<=0 ? false : true;
     board.innerHTML=casinoBets.map((b,i)=>{
       const st=states[i];
@@ -1745,26 +2083,27 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       if(st&&st.resolved){
         const cls = st.won?"win":"lose";
         const delta = st.won ? `+${st.payout}` : `-${st.stake}`;
-        const yourPickText = st.pick==="a"?b.a:b.b;
-        const verdictText = st.won ? "✓ 猜中" : "✗ 猜错";
-        resultHtml=`<div class="casino-result ${cls}">你押：<b>${yourPickText}</b> · 开奖：<b>${st.outcomeText}</b>（${verdictText}）· ${delta} Factos<small>${b.reveal}</small></div>`;
+        const yourPickText = st.pick==="a"?tt(b,"a"):tt(b,"b");
+        const outcomeText = st.outcome==="a"?tt(b,"a"):tt(b,"b");
+        const verdictText = st.won ? "✓ "+t("casino.correct","猜中") : "✗ "+t("casino.wrong","猜错");
+        resultHtml=`<div class="casino-result ${cls}">${t("casino.youBet","你押")}：<b>${yourPickText}</b> · ${t("casino.draw","开奖")}：<b>${outcomeText}</b>（${verdictText}）· ${delta} Factos<small>${tt(b,"reveal")}</small></div>`;
       }
       return `<div class="casino-card ${st&&st.resolved?'resolved':''}">
-        <div class="casino-q">${b.q}</div>
+        <div class="casino-q">${tt(b,"q")}</div>
         ${st&&st.resolved ? '' : `
         <div class="casino-odds-row">
-          <button class="casino-pick ${st&&st.pick==='a'?'selected':''}" data-i="${i}" data-pick="a">${b.a}<small>赔率 ${b.odds}×</small></button>
-          <button class="casino-pick ${st&&st.pick==='b'?'selected':''}" data-i="${i}" data-pick="b">${b.b}<small>赔率 ${(1/(1-1/b.odds)).toFixed(2)}×</small></button>
+          <button class="casino-pick ${st&&st.pick==='a'?'selected':''}" data-i="${i}" data-pick="a">${tt(b,"a")}<small>${t("casino.odds","赔率")} ${b.odds}×</small></button>
+          <button class="casino-pick ${st&&st.pick==='b'?'selected':''}" data-i="${i}" data-pick="b">${tt(b,"b")}<small>${t("casino.odds","赔率")} ${(1/(1-1/b.odds)).toFixed(2)}×</small></button>
         </div>
         <div class="casino-bet-row">
           <div class="casino-stake">
-            下注:<input type="number" min="10" max="${balance}" value="${st?st.stake:50}" data-i="${i}">
+            ${t("casino.stake","下注")}:<input type="number" min="10" max="${balance}" value="${st?st.stake:50}" data-i="${i}">
             <span class="chip" data-i="${i}" data-amt="50">50</span>
             <span class="chip" data-i="${i}" data-amt="100">100</span>
             <span class="chip" data-i="${i}" data-amt="500">500</span>
-            <span class="chip" data-i="${i}" data-amt="all">梭哈</span>
+            <span class="chip" data-i="${i}" data-amt="all">${t("casino.allin","梭哈")}</span>
           </div>
-          <button class="casino-place ${st&&st.pick?'':'disabled'}" data-i="${i}" ${st&&st.pick?'':'disabled'}>下注</button>
+          <button class="casino-place ${st&&st.pick?'':'disabled'}" data-i="${i}" ${st&&st.pick?'':'disabled'}>${t("casino.place","下注")}</button>
         </div>`}
         ${resultHtml}
       </div>`;
@@ -1784,10 +2123,10 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   function placeBet(i){
     const bet=casinoBets[i];
     const st=states[i];
-    if(!st||!st.pick){ flashHint("先选一个选项"); return; }
+    if(!st||!st.pick){ flashHint(t("casino.flashPick")); return; }
     if(st.resolved) return;
     const stake=Math.max(10,Math.min(balance, st.stake||50));
-    if(stake>balance){ flashHint("余额不足"); return; }
+    if(stake>balance){ flashHint(t("casino.flashBalance")); return; }
     balance-=stake;
     // 开奖：按 hist 概率决定 a 是否「发生」
     const aHappened = Math.random() < bet.hist;
@@ -1796,18 +2135,18 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     const odds = userPickIsA ? bet.odds : (1/(1-1/bet.odds));
     const payout = won ? Math.round(stake*odds) : 0;
     if(won){ balance+=payout; wins++; } else { losses++; }
-    states[i]={resolved:true, won, stake, payout, outcomeText: aHappened?bet.a:bet.b, pick:st.pick};
-    addHistory(bet.q, st.pick==="a"?bet.a:bet.b, won, payout, stake);
+    states[i]={resolved:true, won, stake, payout, outcome: aHappened?"a":"b", pick:st.pick};
+    addHistory(i, st.pick, won, payout, stake);
     save();
     render();
   }
 
   function flashHint(msg){
-    const t=document.createElement("div");
-    t.textContent=msg;
-    t.style.cssText="position:fixed;left:50%;top:20%;transform:translateX(-50%);background:#ff1744;color:#fff;padding:10px 20px;border-radius:4px;font-family:var(--mono);font-size:13px;z-index:9999;animation:casinoFlash 1.6s forwards";
-    document.body.appendChild(t);
-    setTimeout(()=>t.remove(),1600);
+    const tip=document.createElement("div");
+    tip.textContent=msg;
+    tip.style.cssText="position:fixed;left:50%;top:20%;transform:translateX(-50%);background:#ff1744;color:#fff;padding:10px 20px;border-radius:4px;font-family:var(--mono);font-size:13px;z-index:9999;animation:casinoFlash 1.6s forwards";
+    document.body.appendChild(tip);
+    setTimeout(()=>tip.remove(),1600);
   }
   // 注入一次性 flash 动画样式
   if(!document.getElementById("casinoFlashStyle")){
@@ -1817,37 +2156,42 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     document.head.appendChild(s);
   }
 
-  function addHistory(q,pickText,won,payout,stake){
+  function addHistory(betIndex,pick,won,payout,stake){
     const empty=histEl.querySelector(".casino-history-empty");
     if(empty) empty.remove();
+    const bet=casinoBets[betIndex];
+    const q=tt(bet,"q");
+    const pickText = pick==="a"?tt(bet,"a"):tt(bet,"b");
     const row=document.createElement("div");
     row.className="casino-history-row";
     const qshort=q.slice(0,16)+(q.length>16?"…":"");
     const res = won?`<span class="win">+${payout}</span>`:`<span class="lose">-${stake}</span>`;
-    row.innerHTML=`<span>${qshort} 押「${pickText}」</span>${res}`;
+    row.innerHTML=`<span>${qshort} ${t("casino.youBet","你押")}「${pickText}」</span>${res}`;
     histEl.appendChild(row);
     histEl.scrollTop=histEl.scrollHeight;
   }
 
   // 事件委托
   board.addEventListener("click",e=>{
-    const t=e.target.closest("[data-i]");
-    if(!t) return;
-    const i=+t.dataset.i;
-    if(t.classList.contains("casino-pick")){ setPick(i,t.dataset.pick); render(); }
-    else if(t.classList.contains("chip")){ setStake(i,t.dataset.amt); render(); }
-    else if(t.classList.contains("casino-place")){ placeBet(i); }
+    const tgt=e.target.closest("[data-i]");
+    if(!tgt) return;
+    const i=+tgt.dataset.i;
+    if(tgt.classList.contains("casino-pick")){ setPick(i,tgt.dataset.pick); render(); }
+    else if(tgt.classList.contains("chip")){ setStake(i,tgt.dataset.amt); render(); }
+    else if(tgt.classList.contains("casino-place")){ placeBet(i); }
   });
   board.addEventListener("input",e=>{
     if(e.target.matches("input[type=number]")){ setStake(+e.target.dataset.i, e.target.value); }
   });
   resetBtn.addEventListener("click",()=>{
     balance=1000; wins=0; losses=0; states.fill(null);
-    histEl.innerHTML='<div class="casino-history-title">// 投注记录</div><div class="casino-history-empty">还没有投注。下注后这里会显示开奖流水。</div>';
+    histEl.innerHTML=`<div class="casino-history-title">${t("casino.history")}</div><div class="casino-history-empty">${t("casino.historyEmpty")}</div>`;
     save(); render();
   });
 
   render();
+  // 语言切换：重渲染盘口（保留 states/balance/wins/losses 不变）
+  document.addEventListener("ca7:lang-change", render);
 })();
 
 /* ========== 人设崩塌编年史 ========== */
@@ -1864,37 +2208,42 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     return m?parseInt(m[1],10):9999;
   }
 
-  wrap.innerHTML=persona.map(ev=>{
-    const yr=String(ev.date||"").match(/(\d{4})/);
-    const year=yr?yr[1]:"—";
-    return `<div class="persona-item" data-id="${ev.id}">
-      <div class="persona-year">${year} · №${String(ev.id).padStart(3,"0")}</div>
-      <div class="persona-card">
-        <h4>${ev.title}</h4>
-        <p>${ev.summary}</p>
-        <span class="persona-tag">${ev.catLabel}</span>
-      </div>
-    </div>`;
-  }).join("");
-
-  // 点击展开
-  wrap.querySelectorAll(".persona-card").forEach(card=>{
-    card.addEventListener("click",()=>{
-      const id=parseInt(card.parentElement.dataset.id,10);
-      let list=currentList.length?currentList:events;
-      let idx=list.findIndex(e=>e.id===id);
-      if(idx<0){ list=events; idx=list.findIndex(e=>e.id===id); }
-      if(idx>=0) openModalByIdx(idx);
+  function initPersona(){
+    wrap.innerHTML=persona.map(ev=>{
+      const yr=String(ev.date||"").match(/(\d{4})/);
+      const year=yr?yr[1]:"—";
+      const catLabel = catConfig[ev.cat] ? tt(catConfig[ev.cat],"label") : (ev.catLabel||"");
+      return `<div class="persona-item" data-id="${ev.id}">
+        <div class="persona-year">${year} · №${String(ev.id).padStart(3,"0")}</div>
+        <div class="persona-card">
+          <h4>${tt(ev,"title")}</h4>
+          <p>${tt(ev,"summary")}</p>
+          <span class="persona-tag">${catLabel}</span>
+        </div>
+      </div>`;
+    }).join("");
+    // 重新挂点击 + 观察
+    wrap.querySelectorAll(".persona-card").forEach(card=>{
+      card.addEventListener("click",()=>{
+        const id=parseInt(card.parentElement.dataset.id,10);
+        let list=currentList.length?currentList:events;
+        let idx=list.findIndex(e=>e.id===id);
+        if(idx<0){ list=events; idx=list.findIndex(e=>e.id===id); }
+        if(idx>=0) openModalByIdx(idx);
+      });
     });
-  });
+    wrap.querySelectorAll(".persona-item").forEach(item=>revealObserver.observe(item));
+    // 入场动画：滚入视口时加 .in（重渲染后重挂）
+    const obs=new IntersectionObserver((ents)=>{
+      ents.forEach(en=>{
+        if(en.isIntersecting){ en.target.classList.add("in"); obs.unobserve(en.target); }
+      });
+    },{threshold:.15});
+    wrap.querySelectorAll(".persona-item").forEach(el=>obs.observe(el));
+  }
+  initPersona();
+  document.addEventListener("ca7:lang-change", initPersona);
 
-  // 入场动画：滚入视口时加 .in
-  const obs=new IntersectionObserver((ents)=>{
-    ents.forEach(en=>{
-      if(en.isIntersecting){ en.target.classList.add("in"); obs.unobserve(en.target); }
-    });
-  },{threshold:.15});
-  wrap.querySelectorAll(".persona-item").forEach(el=>obs.observe(el));
 })();
 
 /* ========== #10 罗黑弹幕墙 + 段子工厂 ========== */
@@ -1909,20 +2258,16 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   if(!stage) return;
 
   // —— 内置预设弹幕（让墙一开始就有内容，氛围感）——
-  const PRESET_DANMU=[
-    "六届世界杯，零座奖杯",
-    "Factos! Factos! Factos!",
-    "SIUUUUU（空荡的球场里）",
-    "点球进了！含金量？",
-    "我就是历史第一第二第三",
-    "问心无愧.jpg",
-    "沙特4年1冠，沙漠骆驼",
-    "背弃祖姓，蹭大罗热度",
-    "摔手机、摔袖标、摔麦克风",
-    "The King leaves without his crown",
-    "再见阿伟罗",
-    "球玊=球王+一点（球）"
-  ];
+  // 预设弹幕从字典读取（双语）
+  function getPresetDanmu(){
+    const arr = t("wall.presetDanmu", null);
+    return Array.isArray(arr) && arr.length ? arr : [
+      "六届世界杯，零座奖杯","Factos! Factos! Factos!","SIUUUUU（空荡的球场里）",
+      "点球进了！含金量？","我就是历史第一第二第三","问心无愧.jpg",
+      "沙特4年1冠，沙漠骆驼","背弃祖姓，蹭大罗热度","摔手机、摔袖标、摔麦克风",
+      "The King leaves without his crown","再见阿伟罗","球玊=球王+一点（球）"
+    ];
+  }
   const PRESET_COLORS=["#fff","#dc143c","#e8b923","#3ddc84"];
 
   // localStorage：我的弹幕 + 我的段子投稿 + 段子点赞
@@ -1956,15 +2301,17 @@ document.querySelectorAll(".viz-card").forEach(card=>{
 
   // 启动：先播预设弹幕（错峰），再播用户存的
   function seedPreset(){
-    PRESET_DANMU.forEach((t,i)=>{
-      setTimeout(()=>launchDanmu(t,PRESET_COLORS[i%PRESET_COLORS.length]), i*700+400);
+    const presets=getPresetDanmu();
+    presets.forEach((txt,i)=>{
+      setTimeout(()=>launchDanmu(txt,PRESET_COLORS[i%PRESET_COLORS.length]), i*700+400);
     });
   }
   seedPreset();
   // 循环：每 1.5s 从「预设+用户」池里随机再发一条，保持墙不空
   setInterval(()=>{
     if(document.hidden) return;
-    const pool=[...PRESET_DANMU.map((t,i)=>({text:t,color:PRESET_COLORS[i%PRESET_COLORS.length]})), ...myDanmu];
+    const presets=getPresetDanmu();
+    const pool=[...presets.map((txt,i)=>({text:txt,color:PRESET_COLORS[i%PRESET_COLORS.length]})), ...myDanmu];
     const pick=pool[Math.floor(Math.random()*pool.length)];
     launchDanmu(pick.text,pick.color);
   },1500);
@@ -2001,16 +2348,20 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   });
 
   /* —— 段子接龙工厂 —— */
-  const PROMPTS=[
-    "输球后，C 罗 第一件事是___",
-    "C 罗 打开 ins，第一张照片必须是___",
-    "梅西夺冠那天，C 罗 在___",
-    "C 罗 说「问心无愧」，翻译成人话是___",
-    "如果给 C 罗 的点球写个说明书，第一条是___",
-    "C 罗 退役那天，他会先___",
-    "沙特给了 C 罗 2亿，C 罗 给了沙特___",
-    "C 罗 照镜子时，镜子里的人是___"
-  ];
+  // 段子 prompt 从字典读取（双语）
+  function getPrompts(){
+    const arr = t("wall.jokePrompts", null);
+    return Array.isArray(arr) && arr.length ? arr : [
+      "输球后，C 罗 第一件事是___",
+      "C 罗 打开 ins，第一张照片必须是___",
+      "梅西夺冠那天，C 罗 在___",
+      "C 罗 说「问心无愧」，翻译成人话是___",
+      "如果给 C 罗 的点球写个说明书，第一条是___",
+      "C 罗 退役那天，他会先___",
+      "沙特给了 C 罗 2亿，C 罗 给了沙特___",
+      "C 罗 照镜子时，镜子里的人是___"
+    ];
+  }
   const promptEl=document.getElementById("punchlinePrompt");
   const plInput=document.getElementById("punchlineInput");
   const plSubmit=document.getElementById("punchlineSubmit");
@@ -2026,6 +2377,7 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   function saveLiked(){ try{localStorage.setItem("ca7_jokes_liked",JSON.stringify([...likedSet]));}catch(e){} }
 
   function showPrompt(){
+    const PROMPTS=getPrompts();
     curPromptIdx=Math.floor(Math.random()*PROMPTS.length);
     const p=PROMPTS[curPromptIdx];
     // 把 ___ 替换成可视的空位
@@ -2033,21 +2385,30 @@ document.querySelectorAll(".viz-card").forEach(card=>{
     renderJokes();
   }
   function renderJokes(){
+    const PROMPTS=getPrompts();
     const key=curPromptIdx;
     const arr=(jokes[key]||[]).slice().sort((a,b)=>b.likes-a.likes).slice(0,12);
     if(arr.length===0){
-      plList.innerHTML='<div class="punchline-empty">还没有人接这句。来当第一个。</div>';
+      plList.innerHTML=`<div class="punchline-empty">${t("wall.jokeEmpty")}</div>`;
       return;
     }
     plList.innerHTML=arr.map((j,i)=>{
       const id=j.t;
       const liked=likedSet.has(id);
       return `<div class="punchline-item">
-        <span class="pl-prompt">${PROMPTS[key].replace("___","")}<span class="pl-fill">${escapeHtml(j.fill)}</span></span>
+        <span class="pl-prompt">${(PROMPTS[key]||"").replace("___","")}<span class="pl-fill">${escapeHtml(j.fill)}</span></span>
         <button class="pl-like ${liked?'liked':''}" data-id="${id}">👍 ${j.likes}</button>
       </div>`;
     }).join("");
   }
+  // 语言切换：更新当前 prompt 文本 + 列表（保留 jokes/likedSet 数据）
+  document.addEventListener("ca7:lang-change",()=>{
+    const PROMPTS=getPrompts();
+    if(curPromptIdx < PROMPTS.length){
+      promptEl.innerHTML=PROMPTS[curPromptIdx].replace("___",'<span class="blank">______</span>');
+    }
+    renderJokes();
+  });
   function escapeHtml(s){return s.replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
   plShuffle.addEventListener("click",showPrompt);
   plSubmit.addEventListener("click",()=>{
@@ -2086,16 +2447,16 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   if(!grid) return;
 
   const defs=[
-    {id:"firstlook", icon:"👁️", name:"初窥档案", desc:"打开第一份卷宗", test:st=>st.read>=1},
-    {id:"voracious", icon:"📚", name:"档案老饕", desc:"阅读 10 份卷宗", test:st=>st.read>=10},
-    {id:"completist", icon:"🗂️", name:"档案强迫症", desc:"阅读 25 份卷宗", test:st=>st.read>=25},
-    {id:"quizzer",   icon:"🎯", name:"罗黑见习", desc:"完成罗黑测试", test:st=>st.quizDone},
-    {id:"scholar",   icon:"🧠", name:"骨灰级罗黑", desc:"测试满分", test:st=>st.quizPct===1},
-    {id:"gacha",     icon:"🎰", name:"盲盒开箱", desc:"抽取并下载通缉令", test:st=>st.blindbox},
-    {id:"explorer",  icon:"🗺️", name:"环球追踪", desc:"查看争议地图任意标点", test:st=>st.mapClick},
-    {id:"narrative", icon:"📖", name:"编年通读", desc:"浏览人设编年史到底", test:st=>st.personaEnd},
-    {id:"roaster",   icon:"🔥", name:"罗黑开火", desc:"弹幕墙发弹幕或段子接龙投稿", test:st=>st.wall},
-    {id:"ottoman",   icon:"OTTOMAN", name:"首席档案官", desc:"集齐以上九枚", test:st=>st._unlocked>=9},
+    {id:"firstlook", icon:"👁️", name:"初窥档案", nameEn:"First Glance", desc:"打开第一份卷宗", descEn:"Open your first dossier", test:st=>st.read>=1},
+    {id:"voracious", icon:"📚", name:"档案老饕", nameEn:"Archive Glutton", desc:"阅读 10 份卷宗", descEn:"Read 10 dossiers", test:st=>st.read>=10},
+    {id:"completist", icon:"🗂️", name:"档案强迫症", nameEn:"Archive OCD", desc:"阅读 25 份卷宗", descEn:"Read 25 dossiers", test:st=>st.read>=25},
+    {id:"quizzer",   icon:"🎯", name:"罗黑见习", nameEn:"Hater Apprentice", desc:"完成罗黑测试", descEn:"Finish the Hater Test", test:st=>st.quizDone},
+    {id:"scholar",   icon:"🧠", name:"骨灰级罗黑", nameEn:"Hardcore Hater", desc:"测试满分", descEn:"Ace the Hater Test", test:st=>st.quizPct===1},
+    {id:"gacha",     icon:"🎰", name:"盲盒开箱", nameEn:"Blind Box", desc:"抽取并下载通缉令", descEn:"Draw & download a wanted poster", test:st=>st.blindbox},
+    {id:"explorer",  icon:"🗺️", name:"环球追踪", nameEn:"Global Tracker", desc:"查看争议地图任意标点", descEn:"Click any map pin", test:st=>st.mapClick},
+    {id:"narrative", icon:"📖", name:"编年通读", nameEn:"Chronicle Reader", desc:"浏览人设编年史到底", descEn:"Scroll the Persona Chronicle to the end", test:st=>st.personaEnd},
+    {id:"roaster",   icon:"🔥", name:"罗黑开火", nameEn:"Roaster", desc:"弹幕墙发弹幕或段子接龙投稿", descEn:"Fire danmu or submit a joke", test:st=>st.wall},
+    {id:"ottoman",   icon:"OTTOMAN", name:"首席档案官", nameEn:"Chief Archivist", desc:"集齐以上九枚", descEn:"Unlock all nine above", test:st=>st._unlocked>=9},
   ];
 
   const state={read:0,quizDone:false,quizPct:0,blindbox:false,mapClick:false,personaEnd:false,wall:false,_unlocked:0};
@@ -2111,8 +2472,8 @@ document.querySelectorAll(".viz-card").forEach(card=>{
       const on=unlocked.has(d.id);
       return `<div class="badge ${on?"unlocked":""}" data-id="${d.id}">
         <div class="badge-icon">${d.icon}</div>
-        <div class="badge-name">${d.name}</div>
-        <div class="badge-desc">${d.desc}</div>
+        <div class="badge-name">${tt(d,"name")}</div>
+        <div class="badge-desc">${tt(d,"desc")}</div>
       </div>`;
     }).join("");
     updateProgress();
@@ -2128,8 +2489,8 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   function showToast(def){
     toast.hidden=false;
     document.getElementById("badgeToastIcon").textContent=def.icon;
-    document.getElementById("badgeToastTitle").textContent="解锁 · "+def.name;
-    document.getElementById("badgeToastDesc").textContent=def.desc;
+    document.getElementById("badgeToastTitle").textContent=t("badges.unlocked","解锁 · ")+tt(def,"name");
+    document.getElementById("badgeToastDesc").textContent=tt(def,"desc");
     toast.classList.add("show");
     clearTimeout(showToast._t);
     showToast._t=setTimeout(()=>{
@@ -2204,6 +2565,8 @@ document.querySelectorAll(".viz-card").forEach(card=>{
   render();
   // 初始化时如果已有解锁，重建 state 让链式成就正常
   check();
+  // 语言切换：重渲染徽章（保留 unlocked/state 不变）
+  document.addEventListener("ca7:lang-change", render);
 })();
 
 /* ========== 悬浮 SIU 音效按钮 ========== */
@@ -2332,4 +2695,22 @@ document.querySelectorAll(".viz-card").forEach(card=>{
 
 /* ========== 初始渲染 ========== */
 renderCards();
+
+/* ========== 语言切换按钮：事件绑定 + 首次初始化 ==========
+   必须在所有模块 IIFE 之后执行：此时各模块的 'ca7:lang-change'
+   监听器尚未注册（它们在各自 IIFE 内 addEventListener），但
+   setLanguage 内部 dispatchEvent 是同步的，监听器在事件触发时
+   才查找，所以顺序上只要按钮绑定先于用户点击即可。
+   首次 setLanguage(currentLang) 会把 HTML 初始中文替换为默认 en。 */
+(function langSwitcherInit(){
+  const btn = document.getElementById("langToggleBtn");
+  if(btn){
+    btn.addEventListener("click", ()=>{
+      setLanguage(currentLang === "en" ? "zh" : "en");
+    });
+  }
+  // 首次应用语言（默认 en 会覆盖 HTML 中的中文初始文本）
+  setLanguage(currentLang);
+})();
+
 })();
