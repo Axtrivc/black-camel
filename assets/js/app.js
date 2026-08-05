@@ -171,6 +171,68 @@ let currentSeverity = 0;
 let searchQuery = "";
 let currentList = [];        // 当前筛选后的列表（供模态翻页用）
 
+/* ========== 搜索匹配工具 ==========
+ * 设计目标：
+ *  1) 大小写不敏感：统一 toLowerCase。
+ *  2) 重音不敏感：NFD 分解后剔除组合用记号，使 "agua" 能命中 "Água"。
+ *  3) 字段全量覆盖：英文(EN)模式下检索 titleEn / summaryEn / detailEn /
+ *     locationEn / tags / quote.textEn / quote.authorEn；中文(ZH)模式下检索
+ *     title / summary / detail / location / tags / quote.text / quote.author。
+ *  4) 多关键词分词：按空白拆分 tokens，要求每个 token 都命中（AND），
+ *     例如 "coke bottle" 仅在事件同时包含两者时才命中。
+ */
+function normalizeText(s){
+  if(s == null) return "";
+  return String(s)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/* 将一个事件的待搜索字段汇总成一段归一化后的「拼接文本」并缓存到事件对象上，
+ * 避免每次输入都重新字符串化所有字段。语言切换时缓存自动失效。 */
+function getSearchBlob(e, lang){
+  const cacheKey = "__searchBlob_" + lang;
+  if(e[cacheKey]) return e[cacheKey];
+  let text;
+  if(lang === "en"){
+    const detailEn = Array.isArray(e.detailEn) ? e.detailEn.join(" ") : (e.detailEn || "");
+    const tags = Array.isArray(e.tags) ? e.tags.join(" ") : (e.tags || "");
+    const quote = e.quote || {};
+    text = [
+      e.titleEn, e.summaryEn, detailEn, e.locationEn, tags,
+      quote.textEn, quote.authorEn
+    ].join(" ");
+  }else{
+    const detail = Array.isArray(e.detail) ? e.detail.join(" ") : (e.detail || "");
+    const tags = Array.isArray(e.tags) ? e.tags.join(" ") : (e.tags || "");
+    const quote = e.quote || {};
+    text = [
+      e.title, e.summary, detail, e.location, tags,
+      quote.text, quote.author
+    ].join(" ");
+  }
+  // 同时把另一种语言的标题也并入，这样中文界面搜英文专名也能命中，反之亦然
+  const altTitle = (lang === "en") ? (e.title || "") : (e.titleEn || "");
+  text += " " + altTitle;
+  text = normalizeText(text);
+  e[cacheKey] = text;
+  return text;
+}
+
+/* 判断单个事件是否匹配当前搜索词（已归一化、按空白分词、AND 逻辑） */
+function eventMatchesQuery(e, query, lang){
+  if(!query) return true;
+  const blob = getSearchBlob(e, lang);
+  const tokens = query.split(/\s+/).filter(Boolean);
+  if(tokens.length === 0) return true;
+  // 每个 token 都必须命中
+  for(let i = 0; i < tokens.length; i++){
+    if(!blob.includes(tokens[i])) return false;
+  }
+  return true;
+}
+
 /* ========== 渲染卡片 ========== */
 function renderCards(){
   grid.innerHTML = "";
@@ -178,15 +240,8 @@ function renderCards(){
     if(currentFilter !== "all" && e.cat !== currentFilter) return false;
     if(currentSeverity > 0 && e.severity < currentSeverity) return false;
     if(searchQuery){
-      const q = searchQuery;
-      const inDetail = e.detail && e.detail.some(p=>p.toLowerCase().includes(q));
-      if(!(
-        e.title.toLowerCase().includes(q) ||
-        e.summary.toLowerCase().includes(q) ||
-        (e.location && e.location.toLowerCase().includes(q)) ||
-        (e.tags && e.tags.some(t=>t.toLowerCase().includes(q))) ||
-        inDetail
-      )) return false;
+      // searchQuery 已在输入监听器中归一化（小写 + 去重音）
+      if(!eventMatchesQuery(e, searchQuery, currentLang)) return false;
     }
     return true;
   });
@@ -357,12 +412,14 @@ document.getElementById("severitySelect").addEventListener("change",(e)=>{
   renderCards();
 });
 
-/* 搜索：防抖 200ms，结果区不在视口时自动滚动 */
+/* 搜索：防抖 200ms，结果区不在视口时自动滚动。
+ * 输入归一化（小写 + 去重音）以支持大小写/重音不敏感匹配，
+ * 例如输入 "agua" 也能命中 "Água"。 */
 const searchInput = document.getElementById("searchInput");
 let searchTimer = null;
 searchInput.addEventListener("input",(e)=>{
   clearTimeout(searchTimer);
-  const val = e.target.value.toLowerCase().trim();
+  const val = normalizeText(e.target.value).trim();
   searchTimer = setTimeout(()=>{
     searchQuery = val;
     renderCards();
