@@ -180,22 +180,45 @@ a{color:inherit;text-decoration:none}
   padding:14px 0;
 }
 .nav-inner{
-  max-width:1300px;
+  /* 两端对齐布局：Logo 紧贴左侧、导航菜单居中过渡、人设/语言组件紧贴右侧。
+   * 取消过紧的 max-width 限制，改为接近全宽 + 左右 2rem 内边距，
+   * 使 space-between 真正把两端撑到屏幕两侧。 */
+  width:100%;
+  max-width:1600px;
   margin:0 auto;
-  padding:0 24px;
+  padding:0 2rem;
   display:flex;
   align-items:center;
   justify-content:space-between;
+  gap:16px;
 }
 .nav-logo{
+  /* 现为 <a>：点击返回首页 */
+  display:inline-flex;
+  align-items:center;
   font-family:var(--serif);
   font-size:20px;
   font-weight:bold;
   letter-spacing:-.5px;
   color:var(--text-bright);
+  text-decoration:none;
+  cursor:pointer;
+  white-space:nowrap;
+  flex-shrink:0;
+  transition:opacity .2s;
 }
+.nav-logo:hover{opacity:.85}
 .nav-logo .red{color:var(--crimson)}
-.nav-links{display:flex;gap:18px;align-items:center;flex-shrink:1;flex-wrap:wrap}
+.nav-links{
+  /* 中间导航菜单：居中过渡，自动收放 */
+  display:flex;
+  gap:18px;
+  align-items:center;
+  flex-shrink:1;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin:0 auto;
+}
 .nav-links a{
   font-size:13px;
   color:var(--text-dim);
@@ -204,6 +227,8 @@ a{color:inherit;text-decoration:none}
 }
 .nav-links a:hover{color:var(--crimson)}
 .nav-search{
+  /* margin-left:auto：把搜索框（及其后的主题/语言切换、汉堡按钮）整体推向右侧紧贴边 */
+  margin-left:auto;
   background:var(--card);
   border:1px solid var(--border);
   border-radius:20px;
@@ -1460,6 +1485,7 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   /* 搜索框不再隐藏，而是收进汉堡菜单层（恢复移动端搜索能力） */
   .nav-search{
     width:100%;
+    margin-left:0;   /* 移动端取消「推向右侧」的 auto，避免与 width:100% 冲突 */
     border-radius:20px;
   }
   .nav-search:focus{width:100%}
@@ -2904,3 +2930,113 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 @media (max-width:380px){
   .lang-btn{font-size:10px;padding:5px 9px}
 }
+
+/* ============================================================
+ * 事件独立子页面（/incident/<slug>/）布局
+ * 复用 .modal-hero / .modal-body / .modal-title / .modal-detail 等
+ * 既有内容类；仅在此新增页面级外壳（topbar / breadcrumb / pager / back）。
+ * ============================================================ */
+.incident-page{
+  background:var(--bg-2);
+  color:var(--text);
+  min-height:100vh;
+}
+.ip-topbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;
+  background:rgba(10,10,12,.92);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+}
+.ip-brand{
+  font-family:var(--mono);font-size:14px;font-weight:600;
+  letter-spacing:.5px;color:var(--text-bright);
+  text-decoration:none;
+}
+.ip-brand span{color:var(--crimson)}
+.ip-lang{
+  background:transparent;border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:6px 12px;border-radius:4px;cursor:pointer;
+  transition:all .2s;
+}
+.ip-lang:hover{border-color:var(--crimson);color:var(--crimson)}
+.ip-lang .lang-globe{margin-right:4px}
+
+.ip-breadcrumb{
+  max-width:860px;margin:24px auto 0;padding:0 24px;
+  font-family:var(--mono);font-size:12px;
+  color:var(--text-dim);
+}
+.ip-breadcrumb a{color:var(--text-dim);text-decoration:none;transition:color .2s}
+.ip-breadcrumb a:hover{color:var(--crimson)}
+.ip-breadcrumb .sep{margin:0 8px;opacity:.6}
+.ip-breadcrumb .crumb-current{color:var(--text-bright)}
+
+.ip-main{
+  max-width:860px;margin:16px auto 60px;padding:0 24px;
+}
+.ip-article{
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+}
+/* 子页正文宽度比 .modal 略宽，覆盖 .modal-body 的固定内边距以适配长文阅读 */
+.ip-article .modal-body{padding:32px 40px 40px}
+
+/* 上一 / 下一 内链 */
+.ip-pager{
+  max-width:860px;margin:32px auto 0;padding:0 24px;
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+}
+.ip-pager-link{
+  display:flex;flex-direction:column;gap:6px;
+  padding:16px 18px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  text-decoration:none;
+  transition:all .2s;
+  min-height:64px;
+}
+.ip-pager-link:hover{
+  border-color:var(--crimson);
+  transform:translateY(-2px);
+}
+.ip-pager-link.ip-disabled{visibility:hidden}
+.ip-pager-link.ip-next{text-align:right}
+.ip-pager-link.ip-next .ip-pager-dir{align-self:flex-end}
+.ip-pager-dir{
+  font-family:var(--mono);font-size:11px;
+  color:var(--text-dim);letter-spacing:.5px;
+}
+.ip-pager-title{
+  font-size:14px;font-weight:600;color:var(--text-bright);
+  line-height:1.4;
+}
+
+/* 返回档案库 */
+.ip-back{
+  max-width:860px;margin:28px auto 0;padding:0 24px;
+  text-align:center;
+}
+.ip-back a{
+  display:inline-block;
+  font-family:var(--mono);font-size:13px;
+  color:var(--text-dim);text-decoration:none;
+  padding:10px 20px;border:1px solid var(--border);border-radius:4px;
+  transition:all .2s;
+}
+.ip-back a:hover{border-color:var(--crimson);color:var(--crimson)}
+
+@media (max-width:680px){
+  .ip-article .modal-body{padding:24px 20px 28px}
+  .ip-pager{grid-template-columns:1fr}
+  .ip-pager-link.ip-next{text-align:left}
+  .ip-pager-link.ip-next .ip-pager-dir{align-self:flex-start}
+  .ip-topbar{padding:10px 16px}
+  .ip-breadcrumb,.ip-main,.ip-pager,.ip-back{padding-left:16px;padding-right:16px}
+}
+

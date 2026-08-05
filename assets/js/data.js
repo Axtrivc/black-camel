@@ -337,6 +337,9 @@ const i18nDict = {
   "modal.cat": "Category",
   "modal.sev": "Severity",
   "modal.detailNotice": "Full article below (Chinese original — English translation pending)",
+  "incident.back": "← Back to Archive",
+  "incident.prev": "← Previous incident",
+  "incident.next": "Next incident →",
   // —— 搜索 / 滚动 ——
   "scroll.top": "Back to top"
 },
@@ -664,6 +667,9 @@ const i18nDict = {
   "modal.cat": "分类",
   "modal.sev": "严重程度",
   "modal.detailNotice": "完整长文见下（中文原文）",
+  "incident.back": "← 返回档案库",
+  "incident.prev": "← 上一个事件",
+  "incident.next": "下一个事件 →",
   // —— 搜索 / 滚动 ——
   "scroll.top": "返回顶部"
 }

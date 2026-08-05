@@ -306,96 +306,32 @@ grid.addEventListener("error",(e)=>{
   }
 },true);
 
-/* ========== 模态框（含翻页） ========== */
-const overlay = document.getElementById("modalOverlay");
-const modalContent = document.getElementById("modalContent");
-const modalCounter = document.getElementById("modalCounter");
-let modalIdx = 0;   // 当前在 currentList 中的索引
-
-function openModalByIdx(idx){
-  modalIdx = idx;
-  renderModal();
-  overlay.classList.add("show");
-  document.body.style.overflow = "hidden";
-  document.querySelector(".modal").scrollTop = 0;
+/* ========== 事件详情：跳转独立子页面（SEO 重构后取代原 Modal） ==========
+ * 原先打开弹窗展示事件详情；现在改为跳转到 /incident/<slug>/ 独立页。
+ * slug 映射由构建脚本生成（assets/js/incident-slugs.js → window.__INCIDENT_SLUGS__）。
+ * 提供 slugForEvent(id) 与 goToIncident(id) 两个工具，供卡片 / BREAKING /
+ * 盲盒 / 地图 / 人设卡 等所有入口复用，统一导航行为。
+ */
+function slugForEvent(id){
+  const map = window.__INCIDENT_SLUGS__ || {};
+  return map[id] || map[String(id)] || null;
+}
+// 跳转到事件独立页（id 优先；idx 兜底用于 currentList 上下文）
+function goToIncident(id){
+  const slug = slugForEvent(id);
+  if(!slug){
+    console.warn("[goToIncident] 未找到 id="+id+" 的 slug（请重新运行 npm run build:seo）");
+    return;
+  }
   if(window.__badge) window.__badge("read", 1);
+  location.href = "incident/" + slug + "/";
 }
-
-function renderModal(){
-  const e = currentList[modalIdx];
+// 兼容旧调用：openModalByIdx(idx) → 跳转该 idx 对应的事件
+function openModalByIdx(idx){
+  const e = currentList[idx];
   if(!e) return;
-  let dots = "";
-  for(let i=0;i<5;i++){
-    dots += `<span class="dot ${i<e.severity?'on':''}"></span>`;
-  }
-  // detail：detailEn 存在则用，否则回退 detail（中文）；en 模式下无 detailEn 时加"长文待译"提示
-  const blockTag=/^\s*<(p|figure|div|blockquote|h[1-6]|ul|ol|table)\b/i;
-  const detailSrc = (currentLang==="en" && e.detailEn) ? e.detailEn : e.detail;
-  const detailHtml = detailSrc.map(p=> blockTag.test(p) ? p : `<p>${p}</p>`).join("");
-  const detailNotice = (currentLang==="en" && !e.detailEn) ? `<p style="font-family:var(--mono);font-size:11px;color:var(--text-dim);border-top:1px dashed var(--border);padding-top:10px;margin-top:8px">${t("modal.detailNotice")}</p>` : "";
-  const catLabel = catConfig[e.cat] ? tt(catConfig[e.cat],"label") : (e.catLabel||"");
-  let quoteHtml = "";
-  if(e.quote){
-    quoteHtml = `<div class="modal-quote">"${tt(e.quote,"text")}"<cite>— ${tt(e.quote,"author")}</cite></div>`;
-  }
-  modalContent.innerHTML = `
-    <div class="modal-hero">
-      <span class="modal-cat-badge" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'};color:#fff">${catLabel}</span>
-      ${pic(e.img||'',{alt:tt(e,"title"),decoding:"async","data-cat-label":catLabel})}
-    </div>
-    <div class="modal-body">
-      <div class="modal-date">${tt(e,"date")}</div>
-      <div class="modal-title">${tt(e,"title")}</div>
-      <div class="modal-meta">
-        <div class="modal-meta-item"><span class="label">${t("modal.loc","地点")}</span><span class="val">${tt(e,"location")}</span></div>
-        <div class="modal-meta-item"><span class="label">${t("modal.cat","分类")}</span><span class="val">${catLabel}</span></div>
-        <div class="modal-meta-item"><span class="label">${t("modal.sev","严重程度")}</span><span class="val modal-severity-bar">${dots}</span></div>
-      </div>
-      <div class="modal-detail">${detailHtml}${detailNotice}</div>
-      ${quoteHtml}
-      <div class="modal-tags">${e.tags.map(tk=>`<span class="modal-tag">${tk}</span>`).join("")}</div>
-    </div>
-  `;
-  modalCounter.textContent = `${modalIdx+1} / ${currentList.length}`;
+  goToIncident(e.id);
 }
-
-// 模态图兜底：事件委托
-modalContent.addEventListener("error",(e)=>{
-  const img = e.target;
-  if(img.tagName === "IMG"){
-    handleImgError(img, img.dataset.catLabel || "档案图");
-  }
-},true);
-
-function closeModal(){
-  overlay.classList.remove("show");
-  document.body.style.overflow = "";
-}
-function modalNext(){
-  if(currentList.length === 0) return;
-  modalIdx = (modalIdx + 1) % currentList.length;
-  renderModal();
-  document.querySelector(".modal").scrollTop = 0;
-}
-function modalPrev(){
-  if(currentList.length === 0) return;
-  modalIdx = (modalIdx - 1 + currentList.length) % currentList.length;
-  renderModal();
-  document.querySelector(".modal").scrollTop = 0;
-}
-
-document.getElementById("modalClose").addEventListener("click",closeModal);
-document.getElementById("modalNext").addEventListener("click",modalNext);
-document.getElementById("modalPrev").addEventListener("click",modalPrev);
-overlay.addEventListener("click",(e)=>{
-  if(e.target === overlay) closeModal();
-});
-document.addEventListener("keydown",(e)=>{
-  if(!overlay.classList.contains("show")) return;
-  if(e.key === "Escape") closeModal();
-  else if(e.key === "ArrowRight") modalNext();
-  else if(e.key === "ArrowLeft") modalPrev();
-});
 
 /* ========== 筛选交互 ========== */
 document.querySelectorAll(".filter-chip").forEach(chip=>{
@@ -457,10 +393,6 @@ initTimeline();
 document.addEventListener("ca7:lang-change", initTimeline);
 // 语言切换：重渲染档案库卡片（title/summary/date/catLabel 跟随语言）
 document.addEventListener("ca7:lang-change", renderCards);
-// 若模态框打开，同步刷新模态内容
-document.addEventListener("ca7:lang-change", ()=>{
-  if(overlay.classList.contains("show")) renderModal();
-});
 
 /* ========== 数字计数动画 + 单位本地化 ==========
  * data-suffix 存的是"中文单位 key"（万/亿），按 currentLang 映射英文表达。

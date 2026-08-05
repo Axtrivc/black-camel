@@ -35,7 +35,7 @@
 <!-- 导航 -->
 <nav class="nav">
   <div class="nav-inner">
-    <div class="nav-logo">THE <span class="red">AVEIRO</span> FILES</div>
+    <a class="nav-logo" href="/" aria-label="The Aveiro Files — 返回首页">THE <span class="red">AVEIRO</span> FILES</a>
     <div class="nav-links" id="navLinks">
       <a href="#archive" data-i18n="nav.archive">档案库</a>
       <a href="#timeline" data-i18n="nav.timeline">时间线</a>
@@ -633,21 +633,11 @@
   </div>
 </footer>
 
-<!-- 模态框 -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal" id="modal">
-    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
-    <div id="modalContent"></div>
-    <button class="modal-nav modal-nav-prev" id="modalPrev" aria-label="Prev">‹</button>
-    <button class="modal-nav modal-nav-next" id="modalNext" aria-label="Next">›</button>
-    <div class="modal-counter" id="modalCounter"></div>
-  </div>
-</div>
-
 <!-- 返回顶部 -->
 <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
 
 <script src="assets/js/data.js"></script>
+<script src="assets/js/incident-slugs.js"></script>
 <script src="assets/js/extra-data.js"></script>
 <script src="assets/js/app.js"></script>
 </body>

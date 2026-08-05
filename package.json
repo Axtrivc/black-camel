@@ -1,0 +1,12 @@
+{
+  "name": "ca7-the-aveiro-files",
+  "version": "1.0.0",
+  "description": "CA7 黑历史档案馆 — The Aveiro Files. 静态站点；事件数据改动后运行构建脚本重新生成独立子页面与 sitemap。",
+  "private": true,
+  "scripts": {
+    "build:seo": "node scripts/generate-pages.js"
+  },
+  "keywords": ["CR7", "CA7", "Cristiano-Ronaldo", "Aveiro-Files", "static-site"],
+  "author": "Axtrivc",
+  "license": "UNLICENSED"
+}

@@ -9,9 +9,12 @@ Thumbs.db
 
 # 开发工具与中间产物，不计入部署
 build/
-scripts/
+scripts/*
+!scripts/generate-pages.js
 docs/
 .workbuddy/
+.zcode/
+.playwright-mcp/
 
 # 图片下载/备份的临时目录，不计入部署
 event-images/
