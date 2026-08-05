@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ca7.axtrivc.com/sitemap.xml
