@@ -98,7 +98,7 @@ body.fx-ready .fx-aura{opacity:.18}  /* 启用后的常态透明度 */
 }
 
 /* 主题切换平滑过渡 */
-body,nav,.ticker,.modal,.event-card,.nick-card,.viz-card,.filter-chip,
+body,nav,.ticker,.event-card,.nick-card,.viz-card,.filter-chip,
 .btn,.name-expose,.hero-stats,.quote-wall,.footer,.tl-item,.scan-item,
 .pk-arena,.meme-studio,.ledger,.nick-card-img{
   transition:background-color .5s,color .5s,border-color .5s;
@@ -117,8 +117,6 @@ body,nav,.ticker,.modal,.event-card,.nick-card,.viz-card,.filter-chip,
 }
 [data-theme="galactico"] .hero-grid{opacity:.5}
 [data-theme="galactico"] .hero-stats{background:rgba(255,255,255,.9);border-top-color:#d4d7dc}
-[data-theme="galactico"] .modal{background:#fff}
-[data-theme="galactico"] .modal-overlay{background:rgba(0,0,0,.5)}
 [data-theme="galactico"] .quote-wall::before{color:#1a1a1a}
 [data-theme="galactico"] .bar-track{background:#eef0f3}
 [data-theme="galactico"] .timeline-section,
@@ -700,43 +698,7 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 }
 .name-expose-desc{font-size:13px;color:var(--text-dim);line-height:1.6}
 
-/* ========== 模态框 ========== */
-.modal-overlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.85);
-  backdrop-filter:blur(6px);
-  z-index:200;
-  display:none;
-  align-items:center;justify-content:center;
-  padding:40px 20px;
-  opacity:0;
-  transition:opacity .3s;
-}
-.modal-overlay.show{display:flex;opacity:1}
-.modal{
-  background:var(--bg-2);
-  border:1px solid var(--border);
-  border-radius:8px;
-  max-width:800px;width:100%;
-  max-height:88vh;overflow-y:auto;
-  position:relative;
-  transform:scale(.92) translateY(20px);
-  transition:transform .3s cubic-bezier(.2,.8,.2,1);
-}
-.modal-overlay.show .modal{transform:scale(1) translateY(0)}
-.modal-close{
-  position:absolute;top:16px;right:16px;
-  z-index:5;
-  width:38px;height:38px;
-  background:rgba(0,0,0,.6);
-  border:1px solid var(--border);
-  border-radius:50%;
-  color:#fff;font-size:18px;
-  cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .2s;
-}
-.modal-close:hover{background:var(--crimson);border-color:var(--crimson)}
+/* ========== 模态框（子页面复用 .modal-* 内容样式；旧弹窗 overlay/box/close 已随子页面重构移除） ========== */
 .modal-hero{
   position:relative;
   aspect-ratio:21/9;
@@ -1386,36 +1348,6 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 .back-to-top.show{opacity:1;visibility:visible;transform:translateY(0)}
 .back-to-top:hover{background:var(--crimson-dim)}
 
-/* ========== 模态框翻页 ========== */
-.modal-nav{
-  position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  width:42px;height:64px;
-  background:rgba(11,11,13,.7);
-  border:1px solid var(--border);
-  color:var(--text-bright);
-  font-size:32px;
-  line-height:1;
-  cursor:pointer;
-  border-radius:6px;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .2s,border-color .2s;
-  z-index:5;
-}
-.modal-nav:hover{background:var(--crimson-dim);border-color:var(--crimson)}
-.modal-nav-prev{left:-56px}
-.modal-nav-next{right:-56px}
-.modal-counter{
-  position:absolute;
-  bottom:-36px;left:50%;
-  transform:translateX(-50%);
-  font-family:var(--mono);
-  font-size:12px;
-  color:var(--text-dim);
-  letter-spacing:1px;
-}
-
 /* ========== 引用轮播控制 ========== */
 .quote-controls{
   display:flex;
@@ -1496,8 +1428,6 @@ html[lang="en"] .hero-desc{ font-size:14px; }
     margin-top:4px;
   }
   .nav-links .theme-switcher .theme-btn{flex:1;text-align:center}
-  .modal-nav-prev{left:8px}
-  .modal-nav-next{right:8px}
   .modal-body{padding:24px 20px}
   .modal-title{font-size:24px}
   .modal-hero{aspect-ratio:16/9}
@@ -1561,18 +1491,11 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   .quote-author{font-size:11px;letter-spacing:1px}
   .quote-controls{bottom:22px}
   .quote-btn{width:42px;height:42px}
-  /* 模态框：贴边翻页、减小外边距 */
-  .modal-overlay{padding:0}
-  .modal{max-height:100vh;border-radius:0}
-  .modal-nav{width:36px;height:52px;font-size:26px}
-  .modal-nav-prev{left:6px}
-  .modal-nav-next{right:6px}
   .modal-body{padding:22px 18px 32px}
   .modal-title{font-size:21px;margin-bottom:14px}
   .modal-detail{font-size:14px;line-height:1.75}
   .modal-meta{gap:10px 18px;padding:12px 0}
   .modal-quote{padding:12px 16px;font-size:14px;margin:18px 0}
-  .modal-close{top:10px;right:10px;width:34px;height:34px;font-size:16px}
   /* 返回顶部：缩小，避开内容 */
   .back-to-top{right:16px;bottom:16px;width:42px;height:42px;font-size:18px}
   /* 绰号卡片：单列 */
@@ -1581,8 +1504,6 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   .footer{padding:44px 18px 26px}
   .footer-logo{font-size:22px}
   .footer-text{font-size:12px}
-  /* 模态框计数器贴近底部 */
-  .modal-counter{bottom:-28px;font-size:11px}
 }
 
 /* 超小屏：≤380px */
@@ -1595,7 +1516,7 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 
 /* 触控设备：确保可点击区域足够大 */
 @media (pointer:coarse){
-  .quote-btn,.modal-close,.nav-toggle{min-width:42px;min-height:42px}
+  .quote-btn,.nav-toggle{min-width:42px;min-height:42px}
   .filter-chip{padding:9px 16px}
   .card-tag,.modal-tag{padding:3px 9px}
 }
@@ -2316,15 +2237,11 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 /* 按下反馈：可点击元素 active 时轻微缩放 */
 .btn:active,.filter-chip:active,.theme-btn:active,.quote-btn:active,
 .meme-thumb:active,.meme-preset:active,.nav-logo:active,.event-card:active,
-.back-to-top:active,.modal-close:active,.modal-nav:active{
+.back-to-top:active{
   transform:scale(.96);
 }
 /* primary 按钮：active 时保留 hover 的 translateY(-2px)，叠加缩放，避免按下跳位 */
 .btn-primary:active{transform:translateY(-2px) scale(.96)}
-
-/* 模态框打开：scale + 淡入动画（仅 .show 触发，不破坏默认隐藏）*/
-@keyframes modalPopIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
-.modal-overlay.show .modal{animation:modalPopIn .28s cubic-bezier(.2,.7,.3,1)}
 
 /* 时间线条目 hover：高亮（不重写 transition/transform，避免覆盖 line 756 的 all .6s 入场动画与主题切换过渡）*/
 .tl-item:hover{border-left-color:var(--crimson);background:var(--card-hover)}

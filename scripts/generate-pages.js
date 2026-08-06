@@ -125,6 +125,13 @@ function safeInline(html) {
   return String(html || "").replace(/<\s*(script|style|iframe|object|embed)\b[^>]*>[\s\S]*?<\s*\/\1\s*>/gi, "");
 }
 
+/** 子页面路径修正：detail 文案在首页根目录撰写，内嵌图为裸相对路径 assets/...，
+ *  原样写入 incident/<slug>/ 子页面会 404。这里给 src/srcset 的裸 assets/ 值补上深度前缀；
+ *  绝对 URL（http/data:/ 开头）与已带 ../../ 的值不受影响。 */
+function rewriteAssetPaths(html, prefix) {
+  return String(html || "").replace(/(\b(?:src|srcset)\s*=\s*["'])assets\//gi, `$1${prefix}assets/`);
+}
+
 /** 确保目录存在 */
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -200,9 +207,9 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
   const quoteEnAuthor = quote.authorEn || quote.author || "";
   const quoteZhAuthor = quote.author || quote.authorEn || "";
 
-  // 正文 HTML（EN 默认静态渲染）
-  const detailHtmlEn = safeInline(renderDetail(detailEn));
-  const detailHtmlZh = safeInline(renderDetail(detailZh));
+  // 正文 HTML（EN 默认静态渲染；裸 assets/ 路径补 ../../ 前缀，避免子页面 404）
+  const detailHtmlEn = rewriteAssetPaths(safeInline(renderDetail(detailEn)), absDepth);
+  const detailHtmlZh = rewriteAssetPaths(safeInline(renderDetail(detailZh)), absDepth);
 
   return `<!DOCTYPE html>
 <html lang="en">

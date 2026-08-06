@@ -29,28 +29,34 @@
     return fallback !== undefined ? fallback : key;
   }
 
-  /** 白名单 HTML 清洗（与 app.js 同策略：仅允许 strong/em/b/i/br/span + style/class） */
+  /** 白名单 HTML 清洗（与 app.js 同策略：仅放行正文排版标签 + 安全属性）
+   *  正文 detail 含 p/div/figure/picture/source/img/figcaption 等块级与媒体标签，
+   *  属性含 src/srcset/alt/loading/decoding/type，单双引号风格皆有，需一并支持。 */
   function sanitizeHtml(s) {
     if (typeof s !== "string") return "";
-    const ALLOWED_TAGS = ["strong", "em", "b", "i", "br", "span"];
-    const ALLOWED_ATTRS = ["style", "class"];
-    const SAFE_ATTR_VAL = /^([a-zA-Z0-9\s:;.\-#(),%'"]+)$/;
+    const ALLOWED_TAGS = [
+      "strong", "em", "b", "i", "br", "span",
+      "p", "div", "figure", "figcaption", "picture", "source", "img",
+    ];
+    const ALLOWED_ATTRS = ["style", "class", "src", "srcset", "alt", "loading", "decoding", "type"];
+    const SAFE_URL = /^(assets\/|\.\.\/|https?:\/\/)/i;
     let esc = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     esc = esc.replace(
-      /&lt;(\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[a-zA-Z-]+=&quot;[^&]*&quot;|\s+[a-zA-Z-]+="[^"]*")*)\s*(\/?)&gt;/g,
+      /&lt;(\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[a-zA-Z-]+=(?:&quot;[^&]*&quot;|"[^"]*"|'[^']*'))*)\s*(\/?)&gt;/g,
       (full, slash, tag, attrs, selfclose) => {
         tag = tag.toLowerCase();
         if (ALLOWED_TAGS.indexOf(tag) === -1) return full;
         let safeAttrs = "";
         if (attrs) {
-          const attrRe = /\s+([a-zA-Z-]+)=(&quot;([^&]*)&quot;|"([^"]*)")/g;
+          const attrRe = /\s+([a-zA-Z-]+)=(&quot;([^&]*)&quot;|"([^"]*)"|'([^']*)')/g;
           let am;
           while ((am = attrRe.exec(attrs)) !== null) {
             const attrName = am[1].toLowerCase();
-            const attrVal = am[3] !== undefined ? am[3] : am[5];
-            if (ALLOWED_ATTRS.indexOf(attrName) !== -1 && SAFE_ATTR_VAL.test(attrVal)) {
-              safeAttrs += ` ${attrName}="${attrVal}"`;
-            }
+            const attrVal = am[3] !== undefined ? am[3] : am[4] !== undefined ? am[4] : am[5];
+            if (ALLOWED_ATTRS.indexOf(attrName) === -1) continue;
+            if ((attrName === "src" || attrName === "srcset") && !SAFE_URL.test(attrVal.trim())) continue;
+            if (attrName === "style" && /expression|javascript:|url\(/i.test(attrVal)) continue;
+            safeAttrs += ` ${attrName}="${attrVal.replace(/"/g, "&quot;")}"`;
           }
         }
         const lt = "<",
