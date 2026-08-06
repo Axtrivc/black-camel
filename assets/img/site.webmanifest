@@ -1,0 +1,14 @@
+{
+  "name": "The Aveiro Files — CA7 Controversy Archive",
+  "short_name": "CA7 Files",
+  "description": "A comprehensive archive documenting 61 major controversial incidents of Cristiano Ronaldo (CA7).",
+  "icons": [
+    { "src": "/assets/img/favicon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/img/favicon-48x48.png", "sizes": "48x48", "type": "image/png" },
+    { "src": "/assets/img/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "theme_color": "#0D0D11",
+  "background_color": "#0D0D11",
+  "display": "standalone",
+  "start_url": "/"
+}
