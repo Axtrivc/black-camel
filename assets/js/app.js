@@ -15,26 +15,46 @@
 "use strict";
 
 /* ============================================================
- * i18n 双语核心机制
- * - currentLang: 'en' | 'zh'，默认 'en'，localStorage('ca7-lang') 记忆
- * - tt(obj, field): 按 currentLang 读取 obj.field / obj.fieldEn，无备选降级
+ * i18n 三语核心机制（EN / ES / ZH）
+ * - currentLang: 'en' | 'es' | 'zh'，默认 'en'，localStorage('ca7-lang') 记忆
+ * - LANGS: 支持语言枚举与循环顺序
+ * - tt(obj, field): 按 currentLang 读取 obj.{fieldEn|fieldEs|field}，逐级降级到 en→zh
  * - setLanguage(lang): 写入缓存 + 改 <html lang> + 应用静态 i18n + 派发 'ca7:lang-change'
  * - applyStaticI18n(): 遍历 [data-i18n] 节点，innerHTML 渲染（白名单防 XSS）
  * - 有状态模块监听 'ca7:lang-change' 时仅更新文本，不重置状态
  * ============================================================ */
+const LANGS = ["en", "es", "zh"];
+const LANG_HTML = { en: "en", es: "es", zh: "zh-CN" };
+const LANG_LABEL = { en: "EN", es: "ES", zh: "中" };
+function normalizeLang(l){
+  if(l === "es" || l === "en" || l === "zh") return l;
+  return "en";
+}
 let currentLang = (function(){
-  try { return localStorage.getItem("ca7-lang") || "en"; } catch(e) { return "en"; }
+  try { return normalizeLang(localStorage.getItem("ca7-lang")); } catch(e) { return "en"; }
 })();
-// 降级读取：en 优先取 fieldEn（无则回退原字段）；zh 取原字段
+// 三语降级读取：es → fieldEs（无则 fieldEn → field）；en → fieldEn（无则 field）；zh → field
 function tt(obj, field){
   if(!obj) return "";
+  if(currentLang === "es"){
+    const es = obj[field+"Es"];
+    if(es !== undefined && es !== "") return es;
+    // es 缺失时降级到 en，再降级到 zh 原字段
+    const en = obj[field+"En"];
+    return (en !== undefined && en !== "") ? en : obj[field];
+  }
   if(currentLang === "en"){
     const en = obj[field+"En"];
     return (en !== undefined && en !== "") ? en : obj[field];
   }
-  return obj[field];
+  // zh
+  const zh = obj[field];
+  if(zh !== undefined && zh !== "") return zh;
+  // zh 原字段缺失时降级 en
+  const en = obj[field+"En"];
+  return (en !== undefined && en !== "") ? en : "";
 }
-// 字典读取辅助（带 key 默认值）
+// 字典读取辅助（带 key 默认值）；currentLang 无对应字典时降级 en
 function t(key, fallback){
   const dict = (typeof i18nDict !== "undefined") ? (i18nDict[currentLang] || i18nDict.en) : null;
   if(dict && dict[key] !== undefined) return dict[key];
@@ -108,20 +128,44 @@ function applyStaticI18n(){
   });
 }
 
+/* 三语切换按钮：点击展开下拉菜单，点击选项切换语言。
+   仍兼容旧"循环切换"——按钮主区点击在 EN→ES→ZH→EN 间循环。 */
+function buildLangMenu(){
+  return LANGS.map(l =>
+    `<button type="button" class="lang-option${l===currentLang?" active":""}" data-lang="${l}">${LANG_LABEL[l]}</button>`
+  ).join("");
+}
 function updateLangBtn(){
-  const lbl = document.querySelector("#langToggleBtn .lang-label");
-  if(!lbl) return;
-  // 始终显示双语提示，当前语言高亮在前
-  lbl.innerHTML = '<span class="lang-globe">🌐</span>' +
-    (currentLang === "en" ? "EN / 中" : "中 / EN");
+  const btn = document.getElementById("langToggleBtn");
+  if(!btn) return;
+  const lbl = btn.querySelector(".lang-label");
+  if(lbl){
+    lbl.innerHTML = '<span class="lang-globe">🌐</span>' + LANG_LABEL[currentLang];
+  }
+  // 高亮当前项
+  btn.querySelectorAll(".lang-option").forEach(o=>{
+    o.classList.toggle("active", o.dataset.lang === currentLang);
+  });
+}
+function closeLangMenu(){
+  const btn = document.getElementById("langToggleBtn");
+  if(btn) btn.classList.remove("open");
+}
+function toggleLangMenu(open){
+  const btn = document.getElementById("langToggleBtn");
+  if(!btn) return;
+  if(open === undefined) btn.classList.toggle("open");
+  else btn.classList.toggle("open", open);
+  if(btn.classList.contains("open")) updateLangBtn();
 }
 
 function setLanguage(lang){
-  currentLang = (lang === "zh") ? "zh" : "en";
+  currentLang = normalizeLang(lang);
   try { localStorage.setItem("ca7-lang", currentLang); } catch(e){}
-  document.documentElement.lang = (currentLang === "zh") ? "zh-CN" : "en";
+  document.documentElement.lang = LANG_HTML[currentLang];
   applyStaticI18n();
   updateLangBtn();
+  closeLangMenu();
   // 派发事件：各闭包模块自治重渲染（有状态模块仅更新文本）
   document.dispatchEvent(new CustomEvent("ca7:lang-change", { detail:{ lang: currentLang } }));
 }
@@ -400,8 +444,8 @@ document.addEventListener("ca7:lang-change", renderCards);
  * 英文：18.8M（1880万欧元 = €18.8M）/ 4B（40亿美元 = $4B）
  * 用 OVERRIDE 表对特定 target 值给出英文规范写法，其余按 M/B 通用规则。
  */
-const SUFFIX_I18N = { "万":{en:"M",zh:"万"}, "亿":{en:"B",zh:"亿"} };
-// 特定数值的英文规范写法（target → 英文显示字符串）。优先级最高。
+const SUFFIX_I18N = { "万":{en:"M",es:"M",zh:"万"}, "亿":{en:"B",es:"B",zh:"亿"} };
+// 特定数值的英文/西语规范写法（target → 显示字符串）。优先级最高。ES 复用 EN 的 M/B 写法。
 const OVERRIDE_EN = {
   "1880": "18.8M",   // 1880万欧元 → €18.8M
   "40":   "4B"       // 40亿美元 → $4B
@@ -410,10 +454,10 @@ function localizedStatText(el){
   const target = parseInt(el.dataset.target);
   const rawSuffix = el.dataset.suffix || "";
   const lang = (typeof currentLang !== "undefined") ? currentLang : "en";
-  if(lang === "en" && OVERRIDE_EN[String(target)]) return OVERRIDE_EN[String(target)];
-  if(lang === "en" && SUFFIX_I18N[rawSuffix]){
+  if((lang === "en" || lang === "es") && OVERRIDE_EN[String(target)]) return OVERRIDE_EN[String(target)];
+  if((lang === "en" || lang === "es") && SUFFIX_I18N[rawSuffix]){
     // 通用回退：万→M，亿→B（数值不变，如 12万→12M，仅作兜底）
-    return target + SUFFIX_I18N[rawSuffix].en;
+    return target + SUFFIX_I18N[rawSuffix][lang];
   }
   return target + (rawSuffix || "");
 }
@@ -421,12 +465,12 @@ function animateNumber(el){
   const target = parseInt(el.dataset.target);
   const rawSuffix = el.dataset.suffix || "";
   const lang = (typeof currentLang !== "undefined") ? currentLang : "en";
-  // 英文模式 + 有 override：直接显示目标字符串，不做计数动画（避免中间态混乱）
-  if(lang === "en" && OVERRIDE_EN[String(target)]){
+  // EN/ES 模式 + 有 override：直接显示目标字符串，不做计数动画（避免中间态混乱）
+  if((lang === "en" || lang === "es") && OVERRIDE_EN[String(target)]){
     el.textContent = OVERRIDE_EN[String(target)];
     return;
   }
-  const suffix = (lang === "en" && SUFFIX_I18N[rawSuffix]) ? SUFFIX_I18N[rawSuffix].en : rawSuffix;
+  const suffix = ((lang === "en" || lang === "es") && SUFFIX_I18N[rawSuffix]) ? SUFFIX_I18N[rawSuffix][lang] : rawSuffix;
   const duration = 1800;
   const start = performance.now();
   function update(now){
@@ -2694,8 +2738,27 @@ renderCards();
 (function langSwitcherInit(){
   const btn = document.getElementById("langToggleBtn");
   if(btn){
-    btn.addEventListener("click", ()=>{
-      setLanguage(currentLang === "en" ? "zh" : "en");
+    // 主按钮：切换下拉菜单开合
+    btn.addEventListener("click", (e)=>{
+      // 点击的是下拉项 → 直接切换语言（由下方委托处理），此处不重复
+      if(e.target.closest(".lang-option")) return;
+      toggleLangMenu();
+      btn.setAttribute("aria-expanded", btn.classList.contains("open"));
+    });
+    // 下拉项委托：选择语言
+    btn.addEventListener("click", (e)=>{
+      const opt = e.target.closest(".lang-option");
+      if(!opt) return;
+      const lang = opt.getAttribute("data-lang");
+      if(lang) setLanguage(lang);
+    });
+    // 点击页面其它位置关闭下拉
+    document.addEventListener("click", (e)=>{
+      if(!btn.contains(e.target)) closeLangMenu();
+    });
+    // 键盘 Esc 关闭
+    document.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape") closeLangMenu();
     });
   }
   // 首次应用语言（默认 en 会覆盖 HTML 中的中文初始文本）

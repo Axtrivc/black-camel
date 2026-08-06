@@ -151,8 +151,10 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
 
   const titleEn = ev.titleEn || ev.title || `Incident #${ev.id}`;
   const titleZh = ev.title || ev.titleEn || `事件 #${ev.id}`;
+  const titleEs = ev.titleEs || titleEn; // 西语标题（缺则降级 EN）
   const summaryEn = ev.summaryEn || ev.summary || "";
   const summaryZh = ev.summary || ev.summaryEn || "";
+  const summaryEs = ev.summaryEs || summaryEn;
   const desc = metaDescription(summaryEn);
 
   // og:image 用绝对 URL
@@ -162,16 +164,20 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
   const catColor = catConf.color || "#4a235a";
   const catLabelEn = catConf.labelEn || ev.catLabel || ev.cat || "";
   const catLabelZh = catConf.label || ev.catLabel || ev.cat || "";
+  const catLabelEs = catConf.labelEs || catLabelEn;
 
   // 日期：用于 <time> 与 JSON-LD
   const dateTextEn = ev.dateEn || ev.date || "";
   const dateTextZh = ev.date || ev.dateEn || "";
+  const dateTextEs = ev.dateEs || dateTextEn;
   const locEn = ev.locationEn || ev.location || "";
   const locZh = ev.location || ev.locationEn || "";
+  const locEs = ev.locationEs || locEn;
 
-  // 正文（EN 写进静态 HTML 利于 SEO；ZH 作为 data-* 属性携带，运行时由 incident-page.js 替换）
+  // 正文（EN 写进静态 HTML 利于 SEO；ZH/ES 作为 data-*-html 属性携带，运行时由 incident-page.js 替换）
   const detailEn = ev.detailEn && ev.detailEn.length ? ev.detailEn : ev.detail || [];
   const detailZh = ev.detail || ev.detailEn || [];
+  const detailEs = ev.detailEs && ev.detailEs.length ? ev.detailEs : detailEn;
 
   // JSON-LD 结构化数据（NewsArticle）
   const jsonLd = {
@@ -187,29 +193,34 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
     articleSection: catLabelEn,
   };
 
-  // 上一/下一内链（slug 与标题，中英均备）
+  // 上一/下一内链（slug 与标题，三语均备）
   const prevUrl = prev ? `${absDepth}incident/${prev._slug}/` : null;
   const nextUrl = next ? `${absDepth}incident/${next._slug}/` : null;
   const prevTitleEn = prev ? (prev.titleEn || prev.title) : null;
   const nextTitleEn = next ? (next.titleEn || next.title) : null;
   const prevTitleZh = prev ? (prev.title || prev.titleEn) : null;
   const nextTitleZh = next ? (next.title || next.titleEn) : null;
+  const prevTitleEs = prev ? (prev.titleEs || prev.titleEn || prev.title) : null;
+  const nextTitleEs = next ? (next.titleEs || next.titleEn || next.title) : null;
 
   // 标签（保持中文；与首页一致）
   const tagsHtml = (ev.tags || [])
     .map((tk) => `<span class="modal-tag">${escText(tk)}</span>`)
     .join("");
 
-  // 引言
+  // 引言（三语）
   const quote = ev.quote || {};
   const quoteEnText = quote.textEn || quote.text || "";
   const quoteZhText = quote.text || quote.textEn || "";
+  const quoteEsText = quote.textEs || quoteEnText;
   const quoteEnAuthor = quote.authorEn || quote.author || "";
   const quoteZhAuthor = quote.author || quote.authorEn || "";
+  const quoteEsAuthor = quote.authorEs || quoteEnAuthor;
 
   // 正文 HTML（EN 默认静态渲染；裸 assets/ 路径补 ../../ 前缀，避免子页面 404）
   const detailHtmlEn = rewriteAssetPaths(safeInline(renderDetail(detailEn)), absDepth);
   const detailHtmlZh = rewriteAssetPaths(safeInline(renderDetail(detailZh)), absDepth);
+  const detailHtmlEs = rewriteAssetPaths(safeInline(renderDetail(detailEs)), absDepth);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -240,6 +251,7 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
 <meta property="og:url" content="${escAttr(thisUrl)}">
 <meta property="og:image" content="${escAttr(ogImage)}">
 <meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
 <meta property="og:locale:alternate" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escAttr(titleEn + " | The Aveiro Files")}">
@@ -259,8 +271,14 @@ ${JSON.stringify(jsonLd, null, 2)}
 <!-- 顶部迷你导航条 -->
 <header class="ip-topbar">
   <a class="ip-brand" href="${absDepth}">🏠 <span>CA7</span> · The Aveiro Files</a>
-  <button class="ip-lang" id="langToggleBtn" type="button" aria-label="Switch language">
-    <span class="lang-label">🌐 EN / 中</span>
+  <button class="ip-lang" id="langToggleBtn" type="button" aria-label="Switch language" aria-haspopup="true" aria-expanded="false">
+    <span class="lang-label">🌐 EN</span>
+    <span class="lang-caret">▾</span>
+    <span class="lang-menu" role="menu" aria-label="Language">
+      <span class="lang-option" data-lang="en" role="menuitem" tabindex="0">EN · English</span>
+      <span class="lang-option" data-lang="es" role="menuitem" tabindex="0">ES · Español</span>
+      <span class="lang-option" data-lang="zh" role="menuitem" tabindex="0">中 · 中文</span>
+    </span>
   </button>
 </header>
 
@@ -268,33 +286,35 @@ ${JSON.stringify(jsonLd, null, 2)}
 <nav class="ip-breadcrumb" aria-label="Breadcrumb">
   <a href="${absDepth}">Home</a> <span class="sep">›</span>
   <a href="${absDepth}#archive" data-i18n="nav.archive">Archive</a> <span class="sep">›</span>
-  <span class="crumb-current" data-crumb-en="${escAttr(titleEn)}" data-crumb-zh="${escAttr(titleZh)}">${escText(titleEn)}</span>
+  <span class="crumb-current" data-crumb-en="${escAttr(titleEn)}" data-crumb-es="${escAttr(titleEs)}" data-crumb-zh="${escAttr(titleZh)}">${escText(titleEn)}</span>
 </nav>
 
 <main class="ip-main">
   <article class="ip-article">
     <div class="modal-hero">
-      <span class="modal-cat-badge" style="background:${escAttr(catColor)};color:#fff">${escText(catLabelEn)}</span>
+      <span class="modal-cat-badge" style="background:${escAttr(catColor)};color:#fff" data-cat-en="${escAttr(catLabelEn)}" data-cat-es="${escAttr(catLabelEs)}" data-cat-zh="${escAttr(catLabelZh)}">${escText(catLabelEn)}</span>
       ${picMarkup(ev.img, titleEn, absDepth)}
     </div>
 
     <div class="modal-body">
       <div class="modal-date"
            data-en="${escAttr(dateTextEn)}"
+           data-es="${escAttr(dateTextEs)}"
            data-zh="${escAttr(dateTextZh)}">${escText(dateTextEn)}</div>
 
       <h1 class="modal-title"
           data-en="${escAttr(titleEn)}"
+          data-es="${escAttr(titleEs)}"
           data-zh="${escAttr(titleZh)}">${escText(titleEn)}</h1>
 
       <div class="modal-meta">
         <div class="modal-meta-item">
           <span class="label" data-i18n="modal.loc">Location</span>
-          <span class="val" data-en="${escAttr(locEn)}" data-zh="${escAttr(locZh)}">${escText(locEn)}</span>
+          <span class="val" data-en="${escAttr(locEn)}" data-es="${escAttr(locEs)}" data-zh="${escAttr(locZh)}">${escText(locEn)}</span>
         </div>
         <div class="modal-meta-item">
           <span class="label" data-i18n="modal.cat">Category</span>
-          <span class="val" data-cat-en="${escAttr(catLabelEn)}" data-cat-zh="${escAttr(catLabelZh)}">${escText(catLabelEn)}</span>
+          <span class="val" data-cat-en="${escAttr(catLabelEn)}" data-cat-es="${escAttr(catLabelEs)}" data-cat-zh="${escAttr(catLabelZh)}">${escText(catLabelEn)}</span>
         </div>
         <div class="modal-meta-item">
           <span class="label" data-i18n="modal.sev">Severity</span>
@@ -304,14 +324,16 @@ ${JSON.stringify(jsonLd, null, 2)}
 
       <div class="modal-detail"
            data-en-html="${escAttr(detailHtmlEn)}"
+           data-es-html="${escAttr(detailHtmlEs)}"
            data-zh-html="${escAttr(detailHtmlZh)}">
         ${detailHtmlEn}
       </div>
 
-      ${(quoteEnText || quoteZhText) ? `
+      ${(quoteEnText || quoteZhText || quoteEsText) ? `
       <div class="modal-quote"
-           data-en-text="${escAttr(quoteEnText)}" data-en-author="${escAttr(quoteEnAuthor)}"
-           data-zh-text="${escAttr(quoteZhText)}" data-zh-author="${escAttr(quoteZhAuthor)}">
+           data-text-en="${escAttr(quoteEnText)}" data-author-en="${escAttr(quoteEnAuthor)}"
+           data-text-es="${escAttr(quoteEsText)}" data-author-es="${escAttr(quoteEsAuthor)}"
+           data-text-zh="${escAttr(quoteZhText)}" data-author-zh="${escAttr(quoteZhAuthor)}">
         &ldquo;<span class="q-text">${safeInline(quoteEnText)}</span>&rdquo;<cite>— <span class="q-author">${escText(quoteEnAuthor)}</span></cite>
       </div>` : ""}
 
@@ -325,12 +347,12 @@ ${JSON.stringify(jsonLd, null, 2)}
     ${prev ? `
     <a class="ip-pager-link ip-prev" href="${escAttr(prevUrl)}" rel="prev">
       <span class="ip-pager-dir" data-i18n="incident.prev">← Previous incident</span>
-      <span class="ip-pager-title" data-en="${escAttr(prevTitleEn)}" data-zh="${escAttr(prevTitleZh)}">${escText(prevTitleEn)}</span>
+      <span class="ip-pager-title" data-en="${escAttr(prevTitleEn)}" data-es="${escAttr(prevTitleEs)}" data-zh="${escAttr(prevTitleZh)}">${escText(prevTitleEn)}</span>
     </a>` : `<span class="ip-pager-link ip-prev ip-disabled"></span>`}
     ${next ? `
     <a class="ip-pager-link ip-next" href="${escAttr(nextUrl)}" rel="next">
       <span class="ip-pager-dir" data-i18n="incident.next">Next incident →</span>
-      <span class="ip-pager-title" data-en="${escAttr(nextTitleEn)}" data-zh="${escAttr(nextTitleZh)}">${escText(nextTitleEn)}</span>
+      <span class="ip-pager-title" data-en="${escAttr(nextTitleEn)}" data-es="${escAttr(nextTitleEs)}" data-zh="${escAttr(nextTitleZh)}">${escText(nextTitleEn)}</span>
     </a>` : `<span class="ip-pager-link ip-next ip-disabled"></span>`}
   </nav>` : ""}
 
@@ -341,13 +363,15 @@ ${JSON.stringify(jsonLd, null, 2)}
 </main>
 
 <script>
-  // 把本事件的中英内容注入全局，供 incident-page.js 做语言切换
+  // 把本事件的三语内容注入全局，供 incident-page.js 做语言切换
   window.__INCIDENT__ = {
     id: ${Number(ev.id) || 0},
     slug: ${JSON.stringify(slug)},
     titleEn: ${JSON.stringify(titleEn)},
+    titleEs: ${JSON.stringify(titleEs)},
     titleZh: ${JSON.stringify(titleZh)},
-    hasZhDetail: ${detailZh && detailZh.length ? "true" : "false"}
+    hasZhDetail: ${detailZh && detailZh.length ? "true" : "false"},
+    hasEsDetail: ${detailEs && detailEs.length ? "true" : "false"}
   };
 </script>
 <script src="${absDepth}assets/js/data.js"></script>
@@ -430,6 +454,7 @@ function main() {
     id: ev.id,
     slug: ev._slug,
     titleEn: ev.titleEn || ev.title,
+    titleEs: ev.titleEs || ev.titleEn || ev.title,
     titleZh: ev.title || ev.titleEn,
   }));
   writeFile(INDEX_JSON, JSON.stringify(indexMap, null, 2));

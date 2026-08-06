@@ -13,10 +13,17 @@
 (function () {
   "use strict";
 
-  /* ---------- 语言状态 ---------- */
+  /* ---------- 语言状态（三语 EN / ES / ZH）---------- */
+  const LANGS = ["en", "es", "zh"];
+  const LANG_HTML = { en: "en", es: "es", zh: "zh-CN" };
+  const LANG_LABEL = { en: "EN", es: "ES", zh: "中" };
+  function normalizeLang(l) {
+    if (l === "es" || l === "en" || l === "zh") return l;
+    return "en";
+  }
   let currentLang = (function () {
     try {
-      return localStorage.getItem("ca7-lang") || "en";
+      return normalizeLang(localStorage.getItem("ca7-lang"));
     } catch (e) {
       return "en";
     }
@@ -68,13 +75,25 @@
     return esc;
   }
 
-  /** 读取元素 data-en / data-zh（纯文本） */
+  /** 读取元素 data-en / data-es / data-zh（纯文本），按 currentLang 降级 */
   function field(el, attrPrefix) {
     if (!el) return "";
     const en = el.getAttribute(attrPrefix + "-en");
+    const es = el.getAttribute(attrPrefix + "-es");
     const zh = el.getAttribute(attrPrefix + "-zh");
+    if (currentLang === "es") return es || en || zh || "";
     if (currentLang === "zh") return zh || en || "";
-    return en || zh || "";
+    return en || es || zh || "";
+  }
+  /** 读取 cat 属性（data-cat-en / data-cat-es / data-cat-zh） */
+  function catField(el) {
+    if (!el) return "";
+    const en = el.getAttribute("data-cat-en");
+    const es = el.getAttribute("data-cat-es");
+    const zh = el.getAttribute("data-cat-zh");
+    if (currentLang === "es") return es || en || zh || "";
+    if (currentLang === "zh") return zh || en || "";
+    return en || es || zh || "";
   }
 
   /* ---------- 内容渲染 ---------- */
@@ -94,30 +113,30 @@
     // 分类
     const cat = document.querySelector(".modal-meta-item:nth-child(2) .val");
     if (cat && cat.hasAttribute("data-cat-en")) {
-      const en = cat.getAttribute("data-cat-en");
-      const zh = cat.getAttribute("data-cat-zh");
-      cat.textContent = currentLang === "zh" ? zh || en || "" : en || zh || "";
+      cat.textContent = catField(cat);
     }
 
     // 分类徽章（hero）
     const badge = document.querySelector(".modal-cat-badge");
     if (badge && badge.hasAttribute("data-cat-en")) {
-      const en = badge.getAttribute("data-cat-en");
-      const zh = badge.getAttribute("data-cat-zh");
-      badge.textContent = currentLang === "zh" ? zh || en || "" : en || zh || "";
+      badge.textContent = catField(badge);
     }
 
     // 正文（含 HTML，需清洗）
     const detail = document.querySelector(".modal-detail");
     if (detail) {
       const enHtml = detail.getAttribute("data-en-html");
+      const esHtml = detail.getAttribute("data-es-html");
       const zhHtml = detail.getAttribute("data-zh-html");
-      // EN 无 detailEn 时回退中文并加"长文待译"提示（与首页 modal 行为一致）
-      let html = currentLang === "zh" ? zhHtml : enHtml;
-      if (!html) html = currentLang === "en" ? zhHtml : enHtml; // 互为回退
-      if (currentLang === "en" && !enHtml) {
+      // 按当前语言取正文，缺失时降级 en→zh
+      let html;
+      if (currentLang === "es") html = esHtml || enHtml || zhHtml;
+      else if (currentLang === "zh") html = zhHtml || enHtml;
+      else html = enHtml || zhHtml;
+      // ES/EN 缺失时加"长文待译"提示（与首页 modal 行为一致）
+      if ((currentLang === "en" && !enHtml) || (currentLang === "es" && !esHtml)) {
         html =
-          (zhHtml || "") +
+          (html || "") +
           `<p style="font-family:var(--mono);font-size:11px;color:var(--text-dim);border-top:1px dashed var(--border);padding-top:10px;margin-top:8px">${t(
             "modal.detailNotice",
             "Full translation coming soon."
@@ -131,12 +150,8 @@
     if (quote) {
       const qt = quote.querySelector(".q-text");
       const qa = quote.querySelector(".q-author");
-      const enText = quote.getAttribute("data-en-text");
-      const zhText = quote.getAttribute("data-zh-text");
-      const enAuthor = quote.getAttribute("data-en-author");
-      const zhAuthor = quote.getAttribute("data-zh-author");
-      if (qt) qt.textContent = currentLang === "zh" ? (zhText || enText || "") : (enText || zhText || "");
-      if (qa) qa.textContent = currentLang === "zh" ? (zhAuthor || enAuthor || "") : (enAuthor || zhAuthor || "");
+      if (qt) qt.textContent = field(quote, "data-text");
+      if (qa) qa.textContent = field(quote, "data-author");
     }
 
     // 面包屑当前项
@@ -150,10 +165,12 @@
 
     // <title> 跟随语言（SEO 友好；EN 用规范格式）
     const inc = window.__INCIDENT__ || {};
-    const titleEn = inc.titleEn || document.title;
-    const titleZh = inc.titleZh || document.title;
-    document.title =
-      currentLang === "zh" ? `${titleZh} | The Aveiro Files` : `${titleEn} | The Aveiro Files`;
+    const titleByLang = {
+      en: inc.titleEn || inc.titleZh || inc.titleEs || document.title,
+      es: inc.titleEs || inc.titleEn || inc.titleZh || document.title,
+      zh: inc.titleZh || inc.titleEn || document.title,
+    };
+    document.title = `${titleByLang[currentLang] || titleByLang.en} | The Aveiro Files`;
   }
 
   function applyStaticI18n() {
@@ -170,33 +187,60 @@
   }
 
   function updateLangBtn() {
-    const lbl = document.querySelector("#langToggleBtn .lang-label");
-    if (!lbl) return;
-    lbl.innerHTML =
-      '<span class="lang-globe">🌐</span>' + (currentLang === "en" ? "EN / 中" : "中 / EN");
+    const btn = document.getElementById("langToggleBtn");
+    if (!btn) return;
+    const lbl = btn.querySelector(".lang-label");
+    if (lbl) lbl.innerHTML = '<span class="lang-globe">🌐</span>' + LANG_LABEL[currentLang];
+    btn.querySelectorAll(".lang-option").forEach((o) => {
+      o.classList.toggle("active", o.getAttribute("data-lang") === currentLang);
+    });
+  }
+  function closeLangMenu() {
+    const btn = document.getElementById("langToggleBtn");
+    if (btn) btn.classList.remove("open");
+  }
+  function toggleLangMenu() {
+    const btn = document.getElementById("langToggleBtn");
+    if (btn) {
+      btn.classList.toggle("open");
+      btn.setAttribute("aria-expanded", btn.classList.contains("open"));
+    }
   }
 
   function setLanguage(lang) {
-    currentLang = lang === "zh" ? "zh" : "en";
+    currentLang = normalizeLang(lang);
     try {
       localStorage.setItem("ca7-lang", currentLang);
     } catch (e) {}
-    document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+    document.documentElement.lang = LANG_HTML[currentLang];
     applyStaticI18n();
     updateLangBtn();
+    closeLangMenu();
     renderDynamic();
   }
 
   /* ---------- 启动 ---------- */
-  document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+  document.documentElement.lang = LANG_HTML[currentLang];
   applyStaticI18n();
   updateLangBtn();
   renderDynamic();
 
   const btn = document.getElementById("langToggleBtn");
   if (btn) {
-    btn.addEventListener("click", () => {
-      setLanguage(currentLang === "en" ? "zh" : "en");
+    btn.addEventListener("click", (e) => {
+      const opt = e.target.closest(".lang-option");
+      if (opt) {
+        const lang = opt.getAttribute("data-lang");
+        if (lang) setLanguage(lang);
+        return;
+      }
+      toggleLangMenu();
+    });
+    document.addEventListener("click", (e) => {
+      if (!btn.contains(e.target)) closeLangMenu();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeLangMenu();
     });
   }
 })();

@@ -11,6 +11,13 @@ Thumbs.db
 build/
 scripts/*
 !scripts/generate-pages.js
+# 西语国际化翻译源（纳入版本管理，便于后续维护/增补）
+!scripts/es-i18n-dict.js
+!scripts/es-content.js
+!scripts/backfill-es.js
+!scripts/backfill-extra-es.js
+!scripts/es-batches/
+!scripts/es-batches/*
 docs/
 .workbuddy/
 .zcode/

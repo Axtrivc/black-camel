@@ -2830,14 +2830,54 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   display:inline-flex;
   align-items:center;
   gap:5px;
+  position:relative;       /* 下拉菜单锚点 */
 }
 .lang-btn:hover{border-color:var(--crimson);color:var(--text-bright);transform:translateY(-1px)}
 .lang-btn:active{transform:scale(.96)}
 .lang-btn .lang-globe{font-size:12px;line-height:1}
+.lang-btn .lang-caret{font-size:9px;opacity:.7;transition:transform .2s}
+.lang-btn.open .lang-caret{transform:rotate(180deg)}
+
+/* 三语下拉菜单 */
+.lang-menu{
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  z-index:1000;
+  min-width:140px;
+  display:none;
+  flex-direction:column;
+  gap:2px;
+  padding:5px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.45);
+}
+.lang-btn.open .lang-menu{display:flex}
+.lang-option{
+  font-family:var(--mono);
+  font-size:11px;
+  text-align:left;
+  padding:7px 10px;
+  background:transparent;
+  border:none;
+  border-radius:6px;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all .15s;
+  white-space:nowrap;
+}
+.lang-option:hover{background:var(--crimson);color:#fff}
+.lang-option.active{background:rgba(220,20,60,.18);color:var(--text-bright);font-weight:700}
 
 /* galactico 浅色主题适配 */
 [data-theme="galactico"] .lang-btn{background:#f5f6f8;border-color:#d4d7dc;color:#5a5f66}
 [data-theme="galactico"] .lang-btn:hover{border-color:#1a1a1a;color:#1a1a1a}
+[data-theme="galactico"] .lang-menu{background:#fff;border-color:#d4d7dc}
+[data-theme="galactico"] .lang-option{color:#5a5f66}
+[data-theme="galactico"] .lang-option:hover{background:#1a1a1a;color:#fff}
+[data-theme="galactico"] .lang-option.active{background:#e8e9ec;color:#1a1a1a}
 
 /* 响应式：≤900px 随主题切换器一起被 JS 搬进汉堡菜单层 */
 @media (max-width:900px){
