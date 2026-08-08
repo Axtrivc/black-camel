@@ -1301,7 +1301,8 @@ const events = [
       "<strong>Sin roja:</strong> Sorprendentemente, el árbitro no mostró la tarjeta roja. La prensa italiana cargó contra la actuación arbitral, pero la sanción no llegó.",
       "<strong>El patrón:</strong> Entradas con la plancha levantada son otra constante de Cristiano: a Cragno, a otros rivales. El factor «estrella» parece blindarlo de las rojas evidentes.",
       "<strong>Cragno:</strong> El portero, herido en la mandíbula, siguió jugando, pero las imágenes permanecen como una prueba más del estilo agresivo del portugués.",
-      "<strong>Conclusión:</strong> Una patada voladora a la mandíbula de un portero, sangre por doquier y, aun así, sin expulsión. Una entrada que en cualquier otro jugador habría sido roja directa y varios partidos."
+      "<strong>Conclusión:</strong> Una patada voladora a la mandíbula de un portero, sangre por doquier y, aun así, sin expulsión. Una entrada que en cualquier otro jugador habría sido roja directa y varios partidos.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> Ni el árbitro del campo ni el VAR consideraron la acción como tarjeta roja. Las opiniones sobre la naturaleza de la jugada difieren entre el colectivo arbitral y los medios de comunicación; este expediente sintetiza diversos comentarios públicos.</div>"
     ],
 
 
@@ -2567,7 +2568,7 @@ const events = [
     detailEs: [
       "<strong>El origen de «CR7»:</strong> «CR7» son las iniciales de «Cristiano Ronaldo» más su dorsal 7. La marca nació en 2006, cuando Cristiano empezó a explotar comercialmente su imagen por todo el mundo.",
       "<strong>Los hoteles «Pestana CR7»:</strong> En sociedad con el grupo hotelero portugués Pestana, Cristiano ha abierto hoteles «Pestana CR7» en Lisboa, Funchal, Madrid, Nueva York y Marrakech. Un imperio hotelero con su marca.",
-      "<strong>Ropa interior CR7:</strong> Cristiano ha lanzado varias líneas de ropa interior «CR7» con campañas protagonizadas por él mismo,半desnudo. La obsesión por su propio cuerpo como herramienta de marketing.",
+      "<strong>Ropa interior CR7:</strong> Cristiano ha lanzado varias líneas de ropa interior «CR7» con campañas protagonizadas por él mismo, semidesnudo. La obsesión por su propio cuerpo como herramienta de marketing.",
       "<strong>Fragancias CR7:</strong> Ha lanzado varias fragancias con su nombre. El imperio se extiende a perfumes, relojes, calcetines, vaqueros — cualquier producto con el sello «CR7» se vende a base de su imagen.",
       "<strong>La apropiación del nombre:</strong> La paradoja: la marca «CR7» abandona el apellido familiar real (Aveiro) y se queda con el segundo nombre (Ronaldo). Una marca construida sobre una mentira nominal.",
       "<strong>El narcisismo como producto:</strong> Para los críticos, el imperio CR7 es la cumbre del narcisismo: la propia imagen como producto, el propio cuerpo como reclamo, el propio nombre (manipulado) como sello.",
@@ -4069,11 +4070,11 @@ const events = [
 
 // ========== 分类配置 ==========
 const catConfig = {
-  persona:{label:"人设争议",labelEn:"Persona",labelEs:"Personaje",labelEs:"Personaje",labelEs:"Personaje",labelEs:"Personaje",labelEs:"Personaje",labelEs:"Personaje",labelEs:"Personaje",color:"#4a235a"},
-  violence:{label:"场内暴力",labelEn:"Violence",labelEs:"Violencia",labelEs:"Violencia",labelEs:"Violencia",labelEs:"Violencia",labelEs:"Violencia",labelEs:"Violencia",labelEs:"Violencia",color:"#dc143c"},
-  offpitch:{label:"场外失态",labelEn:"Off-pitch",labelEs:"Fuera del campo",labelEs:"Fuera del campo",labelEs:"Fuera del campo",labelEs:"Fuera del campo",labelEs:"Fuera del campo",labelEs:"Fuera del campo",labelEs:"Fuera del campo",color:"#b9770e"},
-  club:{label:"俱乐部与法律",labelEn:"Club & Law",labelEs:"Club y Ley",labelEs:"Club y Ley",labelEs:"Club y Ley",labelEs:"Club y Ley",labelEs:"Club y Ley",labelEs:"Club y Ley",labelEs:"Club y Ley",color:"#6e2c00"},
-  national:{label:"国家队争议",labelEn:"National Team",labelEs:"Selección",labelEs:"Selección",labelEs:"Selección",labelEs:"Selección",labelEs:"Selección",labelEs:"Selección",labelEs:"Selección",color:"#145a32"}
+  persona:{label:"人设争议",labelEn:"Persona",labelEs:"Personaje",color:"#4a235a"},
+  violence:{label:"场内暴力",labelEn:"Violence",labelEs:"Violencia",color:"#dc143c"},
+  offpitch:{label:"场外失态",labelEn:"Off-pitch",labelEs:"Fuera del campo",color:"#b9770e"},
+  club:{label:"俱乐部与法律",labelEn:"Club & Law",labelEs:"Club y Ley",color:"#6e2c00"},
+  national:{label:"国家队争议",labelEn:"National Team",labelEs:"Selección",color:"#145a32"}
 };
 
 // ========== 时间线数据 ==========

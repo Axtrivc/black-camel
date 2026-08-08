@@ -16,7 +16,7 @@
   --gold:#c9a84c;
   --theme-name:"小小罗";
   --text:#d6d6db;
-  --text-dim:#7a7a82;
+  --text-dim:#8e8e96;
   --text-bright:#f0f0f4;
   --on-accent:#fff;            /* 主色块上的文字色 */
   --serif:Georgia,'Times New Roman','Noto Serif SC',serif;
@@ -138,6 +138,8 @@ body{
 }
 img{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
+/* 键盘焦点可见环（鼠标操作时不显示，避免视觉噪音）*/
+:focus-visible{outline:2px solid var(--crimson);outline-offset:2px;border-radius:2px}
 
 /* 滚动条 */
 ::-webkit-scrollbar{width:8px}
@@ -737,7 +739,7 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 .modal-body p strong{color:var(--text-bright)}
 .modal-body .modal-lead{
   font-size:17px;line-height:1.85;color:var(--text);
-  border-left:3px solid var(--crimson);padding-left:16px;margin:20px 0 28px;
+  border-left:3px solid var(--crimson);margin:20px 0 28px;
   background:var(--crimson-glow);padding:14px 16px;border-radius:0 4px 4px 0;
 }
 .modal-date{
@@ -2529,7 +2531,7 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 .wm-play:hover{background:#ff1744}
 .wm-play.playing{background:#3ddc84}
 .wm-tl-track{flex:1;position:relative;height:36px}
-.wm-tl-range{position:relative;height:36px}
+.wm-tl-range{position:relative;height:36px;z-index:1}
 .wm-tl-range input[type=range]{
   position:absolute;left:0;right:0;width:100%;margin:0;
   pointer-events:none;-webkit-appearance:none;appearance:none;background:transparent;height:36px;
@@ -2550,7 +2552,6 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   content:"";position:absolute;left:0;right:0;top:50%;height:4px;transform:translateY(-50%);
   background:var(--bg);border-radius:2px;
 }
-.wm-tl-range{position:relative;z-index:1}
 .wm-tl-ticks{position:absolute;left:0;right:0;top:50%;height:4px;transform:translateY(-50%);display:flex;justify-content:space-between;pointer-events:none}
 .wm-tl-ticks span{width:2px;height:8px;background:var(--border);align-self:center}
 .wm-tl-labels{flex-shrink:0;display:flex;gap:4px;font-family:var(--mono);font-size:10px;color:var(--text-dim)}
@@ -2587,7 +2588,7 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 .punchline-submit{padding:10px 22px;border:none;border-radius:4px;background:#e8b923;color:#131316;font-family:var(--mono);font-weight:700;font-size:13px;cursor:pointer;transition:.18s}
 .punchline-submit:hover{background:#f1c40f;transform:translateY(-1px)}
 .punchline-list{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto}
-.punchline-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:13px;line-height:1.5;animation:danmuFly .001s}  /* 占位，避免 lint */
+.punchline-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:13px;line-height:1.5;animation:fadeUp .3s ease both}
 .punchline-item .pl-prompt{color:var(--text-dim);font-family:var(--mono);font-size:12px}
 .punchline-item .pl-fill{color:var(--crimson);font-weight:700}
 .punchline-item .pl-like{margin-left:auto;flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:3px;cursor:pointer;transition:.15s;white-space:nowrap}

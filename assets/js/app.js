@@ -668,9 +668,9 @@ renderBreaking();
 document.getElementById("breakingCta")?.addEventListener("click",()=>{
   // 切到「全部」筛选确保该事件在当前列表中
   document.querySelectorAll(".filter-chip").forEach(c=>c.classList.toggle("active",c.dataset.cat==="all"));
-  currentList=events;
-  renderCards();  // 此后会按置顶/严重程度排序 currentList
-  // 在排序后的 currentList 中定位 id:63
+  currentFilter="all";
+  renderCards();  // 内部会按置顶/严重程度排序 currentList
+  // 在排序后的 currentList 中定位头条事件 id:63
   const idx=currentList.findIndex(e=>e.id===63);
   if(idx>=0) openModalByIdx(idx);
 });
@@ -695,6 +695,9 @@ hstats.forEach(el=>{
   if(key === "hero.statEvents") el.dataset.target = events.length;
   else if(key === "hero.statCats") el.dataset.target = Object.keys(catConfig).length;
 });
+// hero 印章「CASES ON FILE」数字也由数据驱动，避免硬编码与 events 脱节
+const heroCaseCount = document.getElementById("heroCaseCount");
+if(heroCaseCount) heroCaseCount.textContent = events.length;
 
 // 3) 数据可视化：三张图全部由 dataVizData（在 data.js 定义）驱动渲染，支持双语 label
 function initDataViz(){
@@ -2720,7 +2723,6 @@ document.addEventListener("ca7:lang-change", initNicknames);
     } else {
       playSound(); // 兜底：若庆祝函数未就绪，至少出声
     }
-    if(window.__badge) window.__badge("siu");
   }
 
   fab.addEventListener("click",fire);
