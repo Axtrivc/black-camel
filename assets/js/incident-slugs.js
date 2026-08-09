@@ -57,7 +57,7 @@ window.__INCIDENT_SLUGS__ = {
   "60": "2014-world-cup-on-one-knee-out-in-groups-in-tears",
   "61": "shirt-number-sagas-seizing-the-no7",
   "62": "saudi-league-penalty-share-quality-doubts",
-  "63": "headline-six-world-cups-zero-trophies-spains-stoppage-winner-41-year-old-cr7s-te",
+  "63": "six-world-cups-zero-trophies-tearful-farewell",
   "64": "binance-1b-class-action-harvesting-his-own-fans",
   "65": "two-covid-rule-breaches-a-privileged-quarantine",
   "66": "euro-2024-penalty-miss-tears-redemption-or-scene-stealing",

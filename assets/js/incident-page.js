@@ -7,7 +7,7 @@
  *   3) [data-i18n] 静态文案应用（nav.archive / modal.* / incident.* 等）
  *   4) 语言切换按钮绑定
  *
- * 依赖：本页 <script> 在 data.js 之后加载，因此 i18nDict / events 可用。
+ * 依赖：本页 <script> 在 i18n-dict.js 之后加载（i18nDict 可用），incident-page.js 不消费 events。
  * 不依赖首页 DOM（无 #cardsGrid / #modalOverlay 等），故在子页面安全运行。
  */
 (function () {
@@ -102,9 +102,14 @@
     const h1 = document.querySelector(".modal-title");
     if (h1) h1.textContent = field(h1, "data");
 
-    // 日期
+    // 日期（保留 <time> 包裹：替换其内文本，而非整个 .modal-date）
     const date = document.querySelector(".modal-date");
-    if (date) date.textContent = field(date, "data");
+    if (date) {
+      const dateText = field(date, "data");
+      const timeEl = date.querySelector("time");
+      if (timeEl) timeEl.textContent = dateText;
+      else date.textContent = dateText;
+    }
 
     // 地点
     const loc = document.querySelector(".modal-meta-item:nth-child(1) .val");
@@ -157,6 +162,11 @@
     // 面包屑当前项
     const crumb = document.querySelector(".crumb-current");
     if (crumb) crumb.textContent = field(crumb, "data-crumb");
+
+    // 标签（每个 .modal-tag 带 data-en/es/zh）
+    document.querySelectorAll(".modal-tag").forEach((el) => {
+      if (el.hasAttribute("data-en")) el.textContent = field(el, "data");
+    });
 
     // 上一/下一标题
     document.querySelectorAll(".ip-pager-title").forEach((el) => {

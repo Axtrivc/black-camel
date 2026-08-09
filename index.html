@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -89,7 +89,7 @@
   <div class="breaking-inner">
     <span class="breaking-tag" data-i18n="breaking.tag">🚨 BREAKING</span>
     <span class="breaking-ticker" id="breakingTicker"></span>
-    <button class="breaking-cta" id="breakingCta" data-i18n="breaking.cta">查看完整卷宗 →</button>
+    <a class="breaking-cta" id="breakingCta" href="incident/headline-six-world-cups-zero-trophies-spains-stoppage-winner-41-year-old-cr7s-te/" data-i18n="breaking.cta">查看完整卷宗 →</a>
   </div>
 </div>
 
@@ -177,6 +177,12 @@
       <option value="3" data-i18n="severity.3">3星及以上</option>
       <option value="4" data-i18n="severity.4">4星及以上</option>
       <option value="5" data-i18n="severity.5">仅5星 (最严重)</option>
+    </select>
+    <span data-i18n="sort.label" style="margin-left:16px">排序：</span>
+    <select id="sortSelect">
+      <option value="featured" data-i18n="sort.featured">头条优先</option>
+      <option value="oldest" data-i18n="sort.oldest">时间正序</option>
+      <option value="newest" data-i18n="sort.newest">时间倒序</option>
     </select>
     <span id="resultCount" style="margin-left:auto;color:var(--text-dim)">显示全部 61 条记录</span>
   </div>
@@ -657,6 +663,7 @@
 <!-- 返回顶部 -->
 <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
 
+<script src="assets/js/i18n-dict.js"></script>
 <script src="assets/js/data.js"></script>
 <script src="assets/js/incident-slugs.js"></script>
 <script src="assets/js/extra-data.js"></script>

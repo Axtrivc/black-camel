@@ -1,988 +1,18 @@
 /*
  * data.js — CA7 黑历史档案馆 数据层
- * 由 build/split-files.cjs 从原始单文件提取，事件图片已外置为 assets/images/events/ev-NN.jpg
+ * 由 build/split-files.cjs 从原始单文件提取，事件图片已外置为 assets/images/report/r-NN.jpg
  * 续编（2026-07-03）新增事件/绰号/时间线/语录见文末标注。
  *
  * 用顶层 const 暴露全局变量（非 ES module），供 app.js 顺序加载后使用。
  */
 
-/* ============================================================
- * i18nDict — 全站静态 UI 文案双语字典
- * app.js 中 applyStaticI18n() 遍历 [data-i18n="key"] 节点，
- * 按 currentLang 取本字典对应 key 渲染（innerHTML 白名单防 XSS）。
- * 含 <strong>/<em>/<br> 的条目会以 innerHTML 写入。
- * ============================================================ */
-const i18nDict = {
-"en": {
-  // —— 跑马灯 ticker（数组，由 app.js 渲染）——
-  "ticker.items": [
-    "Real name: Cristiano dos Santos Aveiro — \"Ronaldo\" is only a middle name",
-    "Abandoned his family surname — stole the trendy \"Ronaldo\" — real initials: CA7",
-    "Nickname evolution: Little Ronaldo → Showboat → Diver → Three-Vote → Desert Camel → Boss → Ball-king → Ah-Wei → Donkey",
-    "12 girlfriends — from models to shop assistants — Hilton & Kardashian on the list",
-    "14 red cards — a career of violence",
-    "€18.8M — Spanish tax fraud fine",
-    "$40 billion — Coca-Cola market cap wiped out",
-    "$375K — Las Vegas hush money",
-    "12 girlfriends · 5 children · 3 mothers",
-    "Smashed phones · threw mics · tossed armbands · obscene gestures",
-    "Blasted Man United · transfer farce · rejected by Chelsea & Bayern",
-    "Three-kick · Noodle-slice · Lv-Seven-Excellent · Boss-argues-ref · Free-kick chant",
-    "\"The World Cup is not my dream\" · \"I'm the 1st, 2nd & 3rd best in history\"",
-    "Desert Camel · 4 years 1 trophy · €200M salary fleeing Europe"
-  ],
-  // —— 导航 nav ——
-  "nav.archive": "Archive",
-  "nav.timeline": "Timeline",
-  "nav.data": "Data",
-  "nav.quotes": "Quotes",
-  "nav.tof": "Fact/Fake",
-  "nav.worldmap": "Map",
-  "nav.casino": "Casino",
-  "nav.wall": "Roast",
-  "nav.search": "Search events...",
-  "theme.xiaoxiaoluo": "Crybaby",
-  "theme.camel": "Camel",
-  "theme.galactico": "Tapnaldo",
-  // —— BREAKING 头条 ——
-  "breaking.tag": "🚨 BREAKING",
-  "breaking.items": [
-    "[HEADLINE] Six World Cups, zero trophies — Spain's 91st-minute stoppage winner, 41-year-old CA7 bids tearful farewell",
-    "Merino 91' winner · Portugal 0-1 Spain · out in Round of 16",
-    "\"I gave it my all, I leave with a clear conscience.\" — CA7, in tears at the mixed zone",
-    "Six editions · nine knockout games · only one goal · zero trophies"
-  ],
-  "breaking.cta": "View full dossier →",
-  // —— Hero ——
-  "hero.tag": "CONFIDENTIAL FILE",
-  "hero.title": "CA7<br><span class=\"strike\">Dark History</span> Archive",
-  "hero.sub": "The Aveiro Files — A complete record of controversies",
-  "hero.desc": "He calls himself <strong>CR7</strong>, but his full name is actually <strong>Cristiano Ronaldo dos Santos Aveiro</strong> — \"<strong>Aveiro</strong>\" is his family surname, while \"Ronaldo\" is merely a middle name. To chase fame, he abandoned his family surname and stole the trendy \"Ronaldo\". The real initials should be <strong style=\"color:var(--crimson)\">CA7</strong>. This archive systematically documents the <strong>61 most controversial incidents</strong> of his career, across five categories. All content is compiled from public news reports.",
-  "hero.btnArchive": "Enter Archive",
-  "hero.btnTimeline": "View Timeline",
-  "hero.galleryTag": "UNFLATTERING PHOTOS",
-  "hero.stamp": "CASES<br>ON FILE",
-  "hero.statRed": "Red Cards",
-  "hero.statTax": "Tax Fine (€)",
-  "hero.statCoke": "Coke Cap Wiped ($)",
-  "hero.statEvents": "Incidents",
-  "hero.statCats": "Categories",
-  "hero.statGirls": "Ex-GFs",
-  // —— 名字辟谣条 ——
-  "nameExpose.label": "// THE NAME TRUTH",
-  "nameExpose.title": "Full name: Cristiano Ronaldo dos Santos <span class=\"real\">Aveiro</span>",
-  "nameExpose.desc": "By Portuguese naming convention, the final \"<strong style=\"color:#9b59b6\">Aveiro</strong>\" is the family (paternal) surname, \"dos Santos\" the maternal surname, and \"Ronaldo\" is merely a <strong>middle name</strong> his father chose because he worshipped Reagan — a name with zero ties to his bloodline. Yet he cast off his family name, calls himself <span class=\"crossed\">CR7</span>, piggybacking on the fame of Brazil's \"Ronaldo\" (Ronaldo Luís Nazário de Lima). True to his blood, he should be <strong style=\"color:#9b59b6\">CA7 — Cristiano Aveiro</strong>.",
-  // —— 档案库 section ——
-  "archive.label": "// ARCHIVE",
-  "archive.title": "Complete Record of Controversies",
-  "archive.desc": "Click any file card to view the full dossier. Filter by category or severity.",
-  "filter.all": "All",
-  "filter.persona": "Persona",
-  "filter.violence": "Violence",
-  "filter.offpitch": "Off-pitch",
-  "filter.club": "Club & Law",
-  "filter.national": "National Team",
-  "severity.label": "Severity filter:",
-  "severity.all": "All levels",
-  "severity.3": "3 stars & up",
-  "severity.4": "4 stars & up",
-  "severity.5": "5 stars only (worst)",
-  "resultCount.prefix": "Showing",
-  "resultCount.suffix": "records",
-  "card.read": "View dossier →",
-  "card.badgeBreaking": "🔥 HEADLINE",
-  "card.badgeNew": "NEW",
-  "card.empty": "No matching records found",
-  // —— 梅罗 PK ——
-  "pk.label": "// ULTIMATE SHOWDOWN · MESSI vs CA7",
-  "pk.title": "Messi vs CA7",
-  "pk.desc": "Switch dimensions, see who \"won\". Numbers don't lie.",
-  "pk.vs": "VS",
-  "pk.cr7Name": "Cristiano",
-  "pk.cr7Sub": "CRISTIANO · CA7",
-  "pk.messiName": "Messi",
-  "pk.messiSub": "MESSI",
-  "pk.loserTag": "⚠ more black marks",
-  // —— 检测仪 ——
-  "scanner.label": "// AUTHENTICITY SCANNER",
-  "scanner.title": "Penalty Authenticity Scanner",
-  "scanner.desc": "Scan the \"water\" content, auto-assess the purity.",
-  "scanner.statusReady": "SYSTEM READY · Click to start scan",
-  "scanner.statusScan": "SCANNING... Analyzing",
-  "scanner.statusDone": "Scan complete · Purity critically low",
-  "scanner.gaugeLabel": "Overall Purity",
-  "scanner.verdict.wait": "Awaiting scan...",
-  "scanner.verdict.low": "Severely watered — recommend dehydration then rescan",
-  "scanner.verdict.mid": "Purity concerning",
-  "scanner.verdict.high": "Barely passing",
-  // —— 表情生成器 ——
-  "meme.label": "// MEME GENERATOR",
-  "meme.title": "CA7 Meme Generator",
-  "meme.desc": "Pick a photo, type text, download. One click.",
-  "meme.select": "Select photo",
-  "meme.top": "Top text",
-  "meme.bottom": "Bottom text",
-  "meme.presets": "Quick presets",
-  "meme.download": "↓ Download meme",
-  "meme.topPlaceholder": "CA7...",
-  "meme.bottomPlaceholder": "siuuuu",
-  "meme.defaultTop": "SIUUUUU",
-  "meme.defaultBottom": "Penalty scored",
-  // —— 烧钱榜 ——
-  "ledger.label": "// MONEY TRAIL",
-  "ledger.title": "Sin Ledger",
-  "ledger.desc": "Every line, the price of a controversy.",
-  "ledger.headTitle": "Sin Ledger",
-  "ledger.total": "TOTAL DISPUTED VALUE · ",
-  "ledger.totalVal": "Immeasurable",
-  // —— 数据可视化 ——
-  "data.label": "// DATA",
-  "data.title": "Dark History in Numbers",
-  "data.desc": "Measure the scale of controversy with data.",
-  "data.redByClub": "Red cards (by club)",
-  "data.catShare": "Category share",
-  "data.private": "Private life data",
-  "data.manUtd": "Man United (both)",
-  "data.real": "Real Madrid",
-  "data.juve": "Juventus",
-  "data.nassr": "Al Nassr",
-  "data.portugal": "Portugal",
-  "data.other": "Other/unconfirmed",
-  "data.exGfs": "Ex-girlfriends",
-  "data.kids": "Children",
-  "data.mothers": "Mothers of kids",
-  "data.momKnown": "Mothers public",
-  "data.jrMom": "Cristiano Jr's mom",
-  "data.jrMomVal": "Mystery",
-  // —— 时间线 ——
-  "tl.label": "// CHRONOLOGY",
-  "tl.title": "Controversy Timeline",
-  "tl.desc": "From his debut to 2026 — two decades of controversy.",
-  // —— 绰号进化史 ——
-  "nick.label": "// NICKNAME EVOLUTION",
-  "nick.title": "Nine Nicknames, One Dark History",
-  "nick.desc": "From \"Little Ronaldo\" to \"Boss\" — each nickname is a footnote to a controversy.",
-  // —— 引用墙 ——
-  "quotes.label": "QUOTES",
-  // —— 罗黑测试 ——
-  "quiz.label": "// HATER INDEX",
-  "quiz.title": "Hater Index Test",
-  "quiz.desc": "8 questions — measure how much of a \"hater\" of Ah-Wei-Ronaldo you really are. All data from this archive — the more accurate, the higher the score.",
-  "quiz.progress": "Question",
-  "quiz.feedback": "Correct = points, wrong = 0",
-  "quiz.next": "Next →",
-  "quiz.result": "See diagnosis →",
-  "quiz.scoreMax": "/8",
-  "quiz.diagnosis": "Diagnosis complete",
-  "quiz.restart": "Retake test",
-  "quiz.rankPerfect": "Hardcore Hater",
-  "quiz.rankHigh": "Veteran Hater",
-  "quiz.rankMid": "Hater Apprentice",
-  "quiz.rankLow": "Casual Bystander",
-  "quiz.verdictPerfect": "Perfect score. You know his dark history better than this archive — we suggest hiring you as curator. Every question hit dead-on — not luck, that's sediment of hatred.",
-  "quiz.verdictHigh": "You know his dirt cold — the \"hater\" of your friend group. Brush up on a few more anecdotes and you'll graduate.",
-  "quiz.verdictMid": "You're in the door, but still lacking — read the archive front to back and your dirt reserves will visibly swell.",
-  "quiz.verdictLow": "Watching the spectacle, but remembering nothing. Flip through the archive a few times and you'll be able to \"hate\" with evidence next time.",
-  // —— 真假鉴别 ——
-  "tof.label": "// FACT OR FICTION",
-  "tof.title": "Did CA7 really say this, or did we make it up?",
-  "tof.desc": "Half are real CA7 quotes, half are段子 more absurd than the truth. Can you guess right? The irony — his real words are often crazier than the fakes.",
-  "tof.round": "Round",
-  "tof.score": "Correct",
-  "tof.streak": "Streak",
-  "tof.btnFake": "✗ Made up",
-  "tof.btnReal": "✓ He really said it",
-  "tof.next": "Next →",
-  "tof.result": "See diagnosis →",
-  "tof.restart": "Play again",
-  "tof.correct": "Correct!",
-  "tof.wrong": "Wrong!",
-  "tof.realVerdict": "<b>✓ Real quote</b>",
-  "tof.fakeVerdict": "<b>✗ Fake quote (we made it up)</b>",
-  "tof.source": "Source: ",
-  "tof.rankPerfect": "Wide Awake",
-  "tof.rankHigh": "Irony Master",
-  "tof.rankMid": "Gossip Crowd",
-  "tof.rankLow": "Brainwashed by Factos",
-  "tof.verdictPerfect": "Perfect score. You know CA7 better than he knows himself — no, you know his arrogance even better. Every absurdity, you saw through.",
-  "tof.verdictHigh": "You know the boundary of \"Boss-speak\" — the difference between truth and段子, you can tell at a glance.",
-  "tof.verdictMid": "Badly duped — that's the terror of CA7's rhetoric: truth sounds more like段子 than段子.",
-  "tof.verdictLow": "You probably really believe \"I'm the 1st, 2nd, 3rd best in history\". Read the archive front to back.",
-  "tof.realStat": "Real quotes ID'd ",
-  "tof.fakeStat": "Fake quotes ID'd ",
-  "tof.maxStreak": "Max streak ",
-  // —— 黑料盲盒 ——
-  "blindbox.label": "// CASE OF THE DAY",
-  "blindbox.title": "Black-Mark Blind Box",
-  "blindbox.desc": "Draw a random dossier from 61 cases — see what CA7 got flagged for today. Shuffle for another.",
-  "blindbox.stamp": "CLASSIFIED",
-  "blindbox.cat": "Category",
-  "blindbox.date": "Date",
-  "blindbox.loc": "Location",
-  "blindbox.sev": "Severity",
-  "blindbox.shuffle": "⟳ Shuffle",
-  "blindbox.download": "↓ Download wanted poster",
-  "blindbox.open": "Open full dossier →",
-  // —— 世界地图 ——
-  "map.label": "// INCIDENT MAP 2.0",
-  "map.title": "Controversy World Map",
-  "map.desc": "Drag the timeline to see controversies spread. Toggle \"Career Trail\" to trace every club CA7 played for, toggle \"Heatmap\" for hotspots.",
-  "map.trail": "Career Trail",
-  "map.heat": "Heatmap",
-  "map.play": "Play timeline",
-  "map.legendSev5": "Extreme",
-  "map.legendSev4": "Severe",
-  "map.legendSev3": "Notable",
-  "map.legendClub": "Clubs played",
-  "map.readout": "Showing:",
-  "map.readoutAll": "all",
-  "map.incidents": "incidents",
-  "map.sameLoc": "more incidents at same location",
-  // —— 罗黑赌场 ——
-  "casino.label": "// CA7 BETTING ODDS",
-  "casino.title": "Hater Casino",
-  "casino.desc": "Bet virtual \"Factos Coins\" on CA7's \"behavior cards\". Payouts follow the real historical probability of his actions — not predicting a future match, but betting on \"what he'd do again\". The irony: betting he's a \"sore loser\" almost always pays. Pure entertainment, no real currency.",
-  "casino.balance": "Balance:",
-  "casino.record": "Record:",
-  "casino.reset": "Reset balance",
-  "casino.youBet": "Your bet",
-  "casino.stake": "Stake",
-  "casino.allin": "ALL IN",
-  "casino.place": "Place bet",
-  "casino.history": "// Bet history",
-  "casino.historyEmpty": "No bets yet. After betting, results appear here.",
-  "casino.win": "WIN",
-  "casino.lose": "LOSE",
-  "casino.resolved": "✓ settled",
-  "casino.flashPick": "Pick a side first",
-  "casino.flashBalance": "Insufficient balance",
-  "casino.recordFmt": "W L",
-  "casino.odds": "Odds",
-  "casino.correct": "correct",
-  "casino.wrong": "wrong",
-  "casino.draw": "Draw",
-  // —— 人设编年史 ——
-  "persona.label": "// PERSONA UNRAVELED",
-  "persona.title": "Persona Collapse Chronicle",
-  "persona.desc": "From \"self-discipline benchmark\" to \"self-awarded trophy\" — fifteen persona controversies strung into one long downward scroll.",
-  // —— 弹幕墙 + 段子 ——
-  "wall.label": "// ROAST WALL",
-  "wall.title": "Danmu Wall & Joke Factory",
-  "wall.desc": "Drop a roast? Fill a punchline? Your roast flies across the dark-history wall as danmu, and jokes can be liked onto the leaderboard. Stored locally — export to share.",
-  "wall.inputPlaceholder": "Fire a danmu roasting CA7… (max 40 chars)",
-  "wall.color": "color",
-  "wall.send": "Fire →",
-  "wall.stageBg": "CA7 Dark History Wall",
-  "wall.empty": "The danmu wall is empty. Be the first to open fire.",
-  "wall.jokeTitle": "// JOKE CHAIN · finish the second half",
-  "wall.shuffle": "Shuffle ⟳",
-  "wall.jokePlaceholder": "Finish the line… (max 30 chars)",
-  "wall.submit": "Submit",
-  "wall.jokeEmpty": "No one's finished this one yet. Be the first.",
-  "wall.clear": "Clear my danmu",
-  "wall.export": "Export my work",
-  "wall.note": "* Data lives only in your browser (localStorage), never uploaded.",
-  "wall.presetDanmu": [
-    "Six World Cups, zero trophies",
-    "Factos! Factos! Factos!",
-    "SIUUUUU (in an empty stadium)",
-    "Penalty scored! Purity?",
-    "I'm the 1st, 2nd & 3rd best in history",
-    "Clear-conscience.jpg",
-    "4 years 1 Saudi title — Desert Camel",
-    "Abandoned family surname, stole Ronaldo's hype",
-    "Smashed phones, armbands, mics",
-    "The King leaves without his crown",
-    "Goodbye Ah-Wei-Ronaldo",
-    "Ball-king = Ball-king + one (penalty)"
-  ],
-  "wall.jokePrompts": [
-    "After losing, CA7's first move is ___",
-    "When CA7 opens Instagram, the first photo must be ___",
-    "The day Messi won the World Cup, CA7 was ___",
-    "CA7 says \"clear conscience\" — translated, that means ___",
-    "If you wrote a manual for CA7's penalties, rule #1 would be ___",
-    "The day CA7 retires, he'll first ___",
-    "Saudi gave CA7 €200M, CA7 gave Saudi ___",
-    "When CA7 looks in the mirror, the person inside is ___"
-  ],
-  // —— 成就徽章 ——
-  "badges.label": "// ACHIEVEMENTS",
-  "badges.title": "Achievement Badges",
-  "badges.desc": "Browse the archive, check the timeline, take tests, fire danmu… unlock ten badges — collect them all to summon the Chief Archivist certification.",
-  "badges.unlocked": "Unlocked · ",
-  // —— Footer ——
-  "footer.logo": "THE <span class=\"red\">AVEIRO</span> FILES",
-  "footer.text": "This site is a fan-culture creation. All events are compiled from public news reports and do not represent any official position.<br>Cristiano Ronaldo dos Santos Aveiro is one of the greatest players in football history. This site only documents controversial incidents in his career, including the identity controversy of his abandoning his family surname \"Aveiro\" in favor of \"Ronaldo\".",
-  "footer.sources": "DATA SOURCES: AP / ESPN / CNN / BBC / SKY SPORTS · CONTENT FOR ENTERTAINMENT PURPOSES ONLY",
-  "footer.sealHint": "Click the signature · collect 7 seals to trigger the hidden celebration",
-  "footer.sealHint2": "Click again to replay the SIU celebration",
-  "footer.sealHint3": "A few more — collect 7 seals to trigger the hidden celebration →",
-  "footer.sealTitle1": "« Apprentice Sealer »",
-  "footer.sealLine1": "The first seal has fallen.",
-  "footer.sealTitle2": "« Archive Guardian »",
-  "footer.sealLine2": "Three red seals — the dark history is in your hands.",
-  "footer.sealTitle3": "« Chief Archivist »",
-  "footer.sealLine3": "Seven seals capped · SIU! Celebration triggered.",
-  "footer.sealCount": "Seal · ",
-  "footer.shortDisclaimer": "Fan-culture creation, does not represent any official position",
-  // —— 严重度档位（盲盒/通用）——
-  "sev.1": "Minor",
-  "sev.2": "Notable",
-  "sev.3": "Significant",
-  "sev.4": "Severe",
-  "sev.5": "Extreme",
-  // —— 模态框 meta ——
-  "modal.loc": "Location",
-  "modal.cat": "Category",
-  "modal.sev": "Severity",
-  "modal.detailNotice": "Full article below (Chinese original — English translation pending)",
-  "incident.back": "← Back to Archive",
-  "incident.prev": "← Previous incident",
-  "incident.next": "Next incident →",
-  // —— 搜索 / 滚动 ——
-  "scroll.top": "Back to top"
-},
-"es": {
-  "ticker.items": [
-    "Nombre real: Cristiano dos Santos Aveiro — «Ronaldo» es solo un segundo nombre",
-    "Abandonó su apellido familiar — robó el «Ronaldo» de moda — iniciales reales: CA7",
-    "Evolución de apodos: Little Ronaldo → Showboat → Simulator → Three-Vote → El Camello → El Jefe → Ball-King → Ah-Wei → El Burro",
-    "12 novias — de modelos a dependientas — Hilton y Kardashian en la lista",
-    "14 tarjetas rojas — toda una carrera de violencia",
-    "18,8 M€ — multa por fraude fiscal en España",
-    "40.000 M$ — capitalización de Coca-Cola esfumada",
-    "375.000 $ — dinero para callar en Las Vegas",
-    "12 novias · 5 hijos · 3 madres",
-    "Móviles rotos · micrófonos lanzados · brazaliales tirados · gestos obscenos",
-    "Destroza al United · circo del fichaje · rechazado por Chelsea y Bayern",
-    "Tres-patadas · Corta-fideos · Siete-excelente · Jefe-argumenta-árbitro · cántico de falta",
-    "«El Mundial no es mi sueño» · «Soy el 1.º, 2.º y 3.º mejor de la historia»",
-    "El Camello · 4 años 1 título · 200 M€ de sueldo huyendo de Europa"
-  ],
-  "nav.archive": "Archivo",
-  "nav.timeline": "Cronología",
-  "nav.data": "Datos",
-  "nav.quotes": "Frases",
-  "nav.tof": "Real/Fake",
-  "nav.worldmap": "Mapa",
-  "nav.casino": "Casino",
-  "nav.wall": "Roast",
-  "nav.search": "Buscar incidentes…",
-  "theme.xiaoxiaoluo": "Llorón",
-  "theme.camel": "Camello",
-  "theme.galactico": "Penaldo",
-  "breaking.tag": "🚨 ÚLTIMA HORA",
-  "breaking.items": [
-    "[TITULAR] Seis Mundiales, cero títulos — gol de Merino en el descuento (91'), el CA7 de 41 años se despide entre lágrimas",
-    "Gol de Merino al 91' · Portugal 0-1 España · eliminado en octavos",
-    "«Lo di todo, me voy con la conciencia tranquila.» — CA7, llorando en la zona mixta",
-    "Seis ediciones · nueve partidos de eliminatoria · un solo gol · cero títulos"
-  ],
-  "breaking.cta": "Ver expediente completo →",
-  "hero.tag": "EXPEDIENTE CONFIDENCIAL",
-  "hero.title": "CA7<br><span class=\"strike\">Historial Negro</span> Archive",
-  "hero.sub": "The Aveiro Files — Un registro completo de polémicas",
-  "hero.desc": "Se hace llamar <strong>CR7</strong>, pero su nombre completo es en realidad <strong>Cristiano Ronaldo dos Santos Aveiro</strong> — «<strong>Aveiro</strong>» es su apellido familiar, mientras que «Ronaldo» es solo un segundo nombre. Para perseguir la fama, abandonó su apellido y robó el «Ronaldo» de moda. Las iniciales reales deberían ser <strong style=\"color:var(--crimson)\">CA7</strong>. Este archivo documenta de forma sistemática los <strong>61 incidentes más polémicos</strong> de su carrera, en cinco categorías. Todo el contenido está recopilado de noticias públicas.",
-  "hero.btnArchive": "Entrar al Archivo",
-  "hero.btnTimeline": "Ver Cronología",
-  "hero.galleryTag": "FOTOS POCO HALAGUEÑAS",
-  "hero.stamp": "CASOS<br>EN ARCHIVO",
-  "hero.statRed": "Tarjetas Rojas",
-  "hero.statTax": "Multa Fiscal (€)",
-  "hero.statCoke": "Coca-Cola esfumado ($)",
-  "hero.statEvents": "Incidentes",
-  "hero.statCats": "Categorías",
-  "hero.statGirls": "Ex-novias",
-  "nameExpose.label": "// LA VERDAD DEL NOMBRE",
-  "nameExpose.title": "Nombre completo: Cristiano Ronaldo dos Santos <span class=\"real\">Aveiro</span>",
-  "nameExpose.desc": "Por la convención portuguesa de nombres, el último «<strong style=\"color:#9b59b6\">Aveiro</strong>» es el apellido (paterno) familiar, «dos Santos» el materno, y «Ronaldo» es solo un <strong>segundo nombre</strong> que su padre eligió por idolatrar a Reagan — un nombre sin vínculo alguno con su linaje. Sin embargo, se deshizo de su apellido familiar, se llama <span class=\"crossed\">CR7</span>, y se sube a la fama del «Ronaldo» brasileño (Ronaldo Luís Nazário de Lima). Por su sangre, debería ser <strong style=\"color:#9b59b6\">CA7 — Cristiano Aveiro</strong>.",
-  "archive.label": "// ARCHIVO",
-  "archive.title": "Registro Completo de Polémicas",
-  "archive.desc": "Haz clic en cualquier tarjeta de expediente para ver el dosier completo. Filtra por categoría o gravedad.",
-  "filter.all": "Todos",
-  "filter.persona": "Personaje",
-  "filter.violence": "Violencia",
-  "filter.offpitch": "Fuera del campo",
-  "filter.club": "Club y Ley",
-  "filter.national": "Selección",
-  "severity.label": "Filtrar por gravedad:",
-  "severity.all": "Todos los niveles",
-  "severity.3": "3 estrellas o más",
-  "severity.4": "4 estrellas o más",
-  "severity.5": "Solo 5 estrellas (lo peor)",
-  "resultCount.prefix": "Mostrando",
-  "resultCount.suffix": "registros",
-  "card.read": "Ver dosier →",
-  "card.badgeBreaking": "🔥 TITULAR",
-  "card.badgeNew": "NUEVO",
-  "card.empty": "No se encontraron registros",
-  "pk.label": "// ENFRENTAMIENTO DEFINITIVO · MESSI vs CA7",
-  "pk.title": "Messi vs CA7",
-  "pk.desc": "Cambia de dimensión, mira quién «ganó». Los números no mienten.",
-  "pk.vs": "VS",
-  "pk.cr7Name": "Cristiano",
-  "pk.cr7Sub": "CRISTIANO · CA7",
-  "pk.messiName": "Messi",
-  "pk.messiSub": "MESSI",
-  "pk.loserTag": "⚠ Más manchas negras",
-  "scanner.label": "// ESCÁNER DE AUTENTICIDAD",
-  "scanner.title": "Escáner de Pureza de Penales",
-  "scanner.desc": "Escanea el contenido «agua», evalúa automáticamente la pureza.",
-  "scanner.statusReady": "SISTEMA LISTO · Haz clic para empezar",
-  "scanner.statusScan": "ESCANEANDO… Analizando",
-  "scanner.statusDone": "Escaneo completo · Pureza críticamente baja",
-  "scanner.gaugeLabel": "Pureza Total",
-  "scanner.verdict.wait": "Esperando escaneo…",
-  "scanner.verdict.low": "Gravemente aguado — se recomienda deshidratar y reescanear",
-  "scanner.verdict.mid": "Pureza preocupante",
-  "scanner.verdict.high": "Apenas aprueba",
-  "quotes.label": "FRASES",
-  "nick.label": "// EVOLUCIÓN DE APODOS",
-  "nick.title": "Nueve Apodos, un Solo Historial Negro",
-  "nick.desc": "De «Little Ronaldo» a «El Jefe» — cada apodo es una herida de su carrera.",
-  "tl.label": "// CRONOLOGÍA",
-  "tl.title": "Cronología de Polémicas",
-  "tl.desc": "De su debut a 2026 — dos décadas de polémicas en una línea de tiempo.",
-  "data.label": "// DATOS",
-  "data.title": "Historial Negro en Números",
-  "data.desc": "Mide la magnitud de la polémica con datos.",
-  "data.redByClub": "Rojas (por club)",
-  "data.manUtd": "Man United (ambas)",
-  "data.real": "Real Madrid",
-  "data.juve": "Juventus",
-  "data.nassr": "Al Nassr",
-  "data.portugal": "Portugal",
-  "data.other": "Otro/sin confirmar",
-  "data.catShare": "Reparto por categoría",
-  "data.private": "Datos de vida privada",
-  "data.exGfs": "Ex-novias",
-  "data.kids": "Hijos",
-  "data.mothers": "Madres de los hijos",
-  "data.momKnown": "Madres públicas",
-  "data.jrMom": "Madre de Cristiano Jr",
-  "data.jrMomVal": "Misterio",
-  "map.label": "// MAPA DE INCIDENTES 2.0",
-  "map.title": "Mapa Mundial de Polémicas",
-  "map.desc": "Arrastra la cronología para ver cómo se extienden las polémicas. Alterna «Trayectoria» y «Mapa de calor».",
-  "map.trail": "Trayectoria",
-  "map.heat": "Mapa de calor",
-  "map.play": "Reproducir cronología",
-  "map.readout": "Mostrando:",
-  "map.readoutAll": "todos",
-  "map.incidents": "incidentes",
-  "map.sameLoc": "más incidentes en el mismo lugar",
-  "map.legendClub": "Clubes jugados",
-  "map.legendSev3": "Destacado",
-  "map.legendSev4": "Grave",
-  "map.legendSev5": "Extremo",
-  "blindbox.label": "// CASO DEL DÍA",
-  "blindbox.title": "Caja Ciega de Historial Negro",
-  "blindbox.desc": "Saca un dosier al azar de 61 casos — mira en qué pillaron a CA7.",
-  "blindbox.stamp": "CLASIFICADO",
-  "blindbox.cat": "Categoría",
-  "blindbox.date": "Fecha",
-  "blindbox.loc": "Lugar",
-  "blindbox.sev": "Gravedad",
-  "blindbox.open": "Abrir dosier completo →",
-  "blindbox.shuffle": "⟳ Mezclar",
-  "blindbox.download": "↓ Descargar cartel de busca",
-  "quiz.label": "// ÍNDICE DE HATER",
-  "quiz.title": "Test del Índice de Hater",
-  "quiz.desc": "8 preguntas — mide cuánto «hater» de Ah-Wei-Ronaldo eres.",
-  "quiz.progress": "Pregunta",
-  "quiz.scoreMax": "/8",
-  "quiz.next": "Siguiente →",
-  "quiz.result": "Ver diagnóstico →",
-  "quiz.feedback": "Correcto = puntos, fallo = 0",
-  "quiz.diagnosis": "Diagnóstico completo",
-  "quiz.restart": "Repetir test",
-  "quiz.rankLow": "Espectador casual",
-  "quiz.rankMid": "Aprendiz de Hater",
-  "quiz.rankHigh": "Hater Veterano",
-  "quiz.rankPerfect": "Hater Hardcore",
-  "quiz.verdictLow": "Viendo el espectáculo, pero sin recordar nada. Para los amigos eres el que no tiene ni idea.",
-  "quiz.verdictMid": "Has entrado por la puerta, pero aún te falta — léete el archivo completo.",
-  "quiz.verdictHigh": "Te sabes su suciedad al dedillo — el «hater» de tu grupo de amigos.",
-  "quiz.verdictPerfect": "Puntuación perfecta. Conoces su historial negro mejor que él mismo.",
-  "tof.label": "// REAL O FICCIÓN",
-  "tof.title": "¿Lo dijo realmente CA7 o nos lo inventamos?",
-  "tof.desc": "La mitad son frases reales de CA7, la mitad sonumas más absurdas que la realidad. ¿Sabrás distinguirlas?",
-  "tof.btnReal": "✓ Lo dijo de verdad",
-  "tof.btnFake": "✗ Inventado",
-  "tof.correct": "¡Correcto!",
-  "tof.wrong": "¡Fallo!",
-  "tof.round": "Ronda",
-  "tof.score": "Aciertos",
-  "tof.streak": "Racha",
-  "tof.maxStreak": "Racha máxima ",
-  "tof.realStat": "Frases reales identificadas ",
-  "tof.fakeStat": "Frases falsas identificadas ",
-  "tof.realVerdict": "<b>✓ Frase real</b>",
-  "tof.fakeVerdict": "<b>✗ Frase falsa (nos la inventamos)</b>",
-  "tof.source": "Fuente: ",
-  "tof.next": "Siguiente →",
-  "tof.result": "Ver diagnóstico →",
-  "tof.restart": "Jugar otra vez",
-  "tof.rankLow": "Lavado de cerebro por Factos",
-  "tof.rankMid": "Chismoso del barrio",
-  "tof.rankHigh": "Maestro de la ironía",
-  "tof.rankPerfect": "Bien despierto",
-  "tof.verdictLow": "Probablemente te crees de verdad eso de «soy el 1.º, 2.º y 3.º». Ve a leer el archivo.",
-  "tof.verdictMid": "Te la creíste — ese es el terror de la retórica de CA7: lo absurdo suena normal.",
-  "tof.verdictHigh": "Conoces la frontera del «lenguaje del Jefe» — la diferencia entre meme y realidad.",
-  "tof.verdictPerfect": "Puntuación perfecta. Conoces a CA7 mejor que él se conoce a sí mismo.",
-  "meme.label": "// GENERADOR DE MEMES",
-  "meme.title": "Generador de Memes de CA7",
-  "meme.desc": "Elige una foto, escribe el texto, descarga. En un clic.",
-  "meme.select": "Elegir foto",
-  "meme.top": "Texto superior",
-  "meme.bottom": "Texto inferior",
-  "meme.topPlaceholder": "CA7…",
-  "meme.bottomPlaceholder": "siuuuuu",
-  "meme.presets": "Plantillas rápidas",
-  "meme.defaultTop": "SIUUUUU",
-  "meme.defaultBottom": "¡Penal anotado!",
-  "meme.download": "↓ Descargar meme",
-  "wall.label": "// MURO DE ROAST",
-  "wall.title": "Muro de Danmu y Fábrica de Chistes",
-  "wall.desc": "¿Sueltas un roast? ¿Rematas un chiste? Tu roast vuela por la pantalla.",
-  "wall.stageBg": "Muro del Historial Negro de CA7",
-  "wall.inputPlaceholder": "Lanza un danmu roasteando a CA7… (máx 40 car.)",
-  "wall.send": "Disparar →",
-  "wall.color": "color",
-  "wall.clear": "Borrar mis danmu",
-  "wall.export": "Exportar mi obra",
-  "wall.empty": "El muro de danmu está vacío. Sé el primero en abrir fuego.",
-  "wall.note": "* Los datos viven solo en tu navegador (localStorage), no se envían a ningún servidor.",
-  "wall.jokeTitle": "// CADENA DE CHISTES · remata la segunda parte",
-  "wall.jokePlaceholder": "Remata la frase… (máx 30 car.)",
-  "wall.jokeEmpty": "Nadie ha rematado esta todavía. Sé el primero.",
-  "wall.jokePrompts": [
-    "Al perder, el primer movimiento de CA7 es ___",
-    "Cuando CA7 abre Instagram, la primera foto tiene que ser ___",
-    "El día que Messi ganó el Mundial, CA7 estaba ___",
-    "CA7 dice «conciencia tranquila» — traducido, significa ___",
-    "Si escribieras un manual de los penales de CA7, la regla n.º 1 sería ___",
-    "El día que CA7 se retire, primero ___",
-    "Arabia le dio 200 M€ a CA7, CA7 le dio a Arabia ___",
-    "Cuando CA7 se mira al espejo, la persona de dentro es ___"
-  ],
-  "wall.presetDanmu": [
-    "Seis Mundiales, cero títulos",
-    "¡Factos! ¡Factos! ¡Factos!",
-    "SIUUUUU (en un estadio vacío)",
-    "¡Penal anotado! ¿Pureza?",
-    "Soy el 1.º, 2.º y 3.º mejor de la historia",
-    "Conciencia-tranquila.jpg",
-    "4 años 1 título saudí — El Camello",
-    "Abandonó su apellido, robó el hype de Ronaldo",
-    "Móviles rotos, brazaliales, micrófonos",
-    "El Rey se va sin corona",
-    "Adiós Ah-Wei-Ronaldo",
-    "Ball-King = Ball-King + un (penal)"
-  ],
-  "wall.shuffle": "Mezclar ⟳",
-  "wall.submit": "Enviar",
-  "ledger.label": "// RASTRO DEL DINERO",
-  "ledger.title": "Libro de Pecados",
-  "ledger.headTitle": "Libro de Pecados",
-  "ledger.desc": "Cada línea, el precio de una polémica.",
-  "ledger.total": "VALOR TOTAL EN DISPUTA · ",
-  "ledger.totalVal": "Incalculable",
-  "casino.label": "// CUOTAS DE APUESTAS CA7",
-  "casino.title": "Casino del Hater",
-  "casino.desc": "Apuesta «Monedas Factos» virtuales en las «cartas de comportamiento» de CA7. El pago depende de lo probable que sea su próxima jugada.",
-  "casino.balance": "Saldo:",
-  "casino.stake": "Apuesta",
-  "casino.odds": "Cuota",
-  "casino.place": "Apostar",
-  "casino.allin": "ALL IN",
-  "casino.draw": "Sacar carta",
-  "casino.youBet": "Tu apuesta",
-  "casino.win": "GANAS",
-  "casino.lose": "PIERDES",
-  "casino.correct": "acertadas",
-  "casino.wrong": "falladas",
-  "casino.record": "Récord:",
-  "casino.recordFmt": "G P",
-  "casino.resolved": "✓ liquidada",
-  "casino.history": "// Historial de apuestas",
-  "casino.historyEmpty": "Aún no hay apuestas. Tras apostar, los resultados aparecen aquí.",
-  "casino.reset": "Resetear saldo",
-  "casino.flashPick": "Primero elige un lado",
-  "casino.flashBalance": "Saldo insuficiente",
-  "badges.label": "// LOGROS",
-  "badges.title": "Insignias de Logro",
-  "badges.desc": "Recorre el archivo, mira la cronología, haz los test, lanza danmu… desbloquea diez insignias — colecciona todas para invocar la certificación de Archivero Jefe.",
-  "badges.unlocked": "Desbloqueado · ",
-  "persona.label": "// PERSONAJE DESENLADO",
-  "persona.title": "Crónica del Colapso del Personaje",
-  "persona.desc": "De «referente de disciplina» a «trofeo autopremiado» — un personaje que se desmorona.",
-  "modal.loc": "Lugar",
-  "modal.cat": "Categoría",
-  "modal.sev": "Gravedad",
-  "modal.detailNotice": "Artículo completo abajo (original en chino — traducción al español en camino)",
-  "incident.prev": "← Incidente anterior",
-  "incident.next": "Incidente siguiente →",
-  "incident.back": "← Volver al Archivo",
-  "sev.1": "Menor",
-  "sev.2": "Destacado",
-  "sev.3": "Significativo",
-  "sev.4": "Grave",
-  "sev.5": "Extremo",
-  "scroll.top": "Volver arriba",
-  "footer.logo": "THE <span class=\"red\">AVEIRO</span> FILES",
-  "footer.text": "Este sitio es una creación de cultura aficionada. Todos los eventos están recopilados de noticias públicas; cualquier parecido con la realidad no es pura coincidencia — es que él se lo busca.",
-  "footer.shortDisclaimer": "Creación de cultura aficionada, no representa ninguna postura oficial.",
-  "footer.sources": "FUENTES DE DATOS: AP / ESPN / CNN / BBC / SKY SPORTS · CONTENIDO PARA MAYORES DE 14 AÑOS",
-  "footer.sealCount": "Sello · ",
-  "footer.sealHint": "Haz clic en la firma · recoge 7 sellos para activar la celebración oculta",
-  "footer.sealHint2": "Vuelve a hacer clic para repetir la celebración SIU",
-  "footer.sealHint3": "Unos cuantos más — recoge 7 sellos para activar la celebración oculta",
-  "footer.sealTitle1": "« Aprendiz de Sellador »",
-  "footer.sealTitle2": "« Guardián del Archivo »",
-  "footer.sealTitle3": "« Archivero Jefe »",
-  "footer.sealLine1": "El primer sello ha caído.",
-  "footer.sealLine2": "Tres sellos rojos — el historial negro está en tus manos.",
-  "footer.sealLine3": "Siete sellos completados · ¡Celebración SIU desbloqueada!"
-},
-"zh": {
-  // —— 跑马灯 ——
-  "ticker.items": [
-    "本名 Cristiano dos Santos Aveiro — \"Ronaldo\"只是中间名",
-    "背弃祖姓 · 改用蹭热度的\"Ronaldo\" · 真缩写是 CA7",
-    "绰号进化：小小罗→花罗→水罗→罗三票→沙漠骆驼→总裁→球玊→阿伟罗→骡子",
-    "12任女友完整名单 · 从嫩模到柜姐 · 希尔顿卡戴珊榜上有名",
-    "14张红牌 · 职业生涯暴力史",
-    "1880万欧元 · 西班牙逃税罚款",
-    "40亿美元 · 可口可乐市值蒸发",
-    "37.5万美元 · 拉斯维加斯封口费",
-    "12任女友 · 5个孩子3个妈",
-    "摔手机 · 扔麦克风 · 摔袖标 · 不雅动作",
-    "炮轰曼联 · 转会闹剧 · 被切尔西拜仁拒绝",
-    "罗三脚 · 刀削面 · 吕七优人 · 总裁找裁判 · 任意球念咒",
-    "\"世界杯不是我的梦想\" · \"我是历史第一第二第三\"",
-    "沙漠骆驼 · 4年1冠 · 2亿年薪逃避欧洲"
-  ],
-  // —— 导航 ——
-  "nav.archive": "档案库",
-  "nav.timeline": "时间线",
-  "nav.data": "数据",
-  "nav.quotes": "语录",
-  "nav.tof": "真假",
-  "nav.worldmap": "地图",
-  "nav.casino": "赌场",
-  "nav.wall": "开火",
-  "nav.search": "搜索事件...",
-  "theme.xiaoxiaoluo": "小小罗",
-  "theme.camel": "沙漠骆驼",
-  "theme.galactico": "菌鞭罗",
-  // —— BREAKING 头条 ——
-  "breaking.tag": "🚨 BREAKING",
-  "breaking.items": [
-    "【头条】六届世界杯0冠 — 西班牙第91分钟补时绝杀，41岁CA7泪别最后一舞",
-    "梅里诺91'绝杀 · 葡萄牙0-1西班牙 · 1/8决赛出局",
-    "「我已倾尽所有，问心无愧地离开。」—— CA7，泪洒混采区",
-    "六届 · 九场淘汰赛 · 仅一球 · 零冠军"
-  ],
-  "breaking.cta": "查看完整卷宗 →",
-  // —— Hero ——
-  "hero.tag": "机密档案 · CONFIDENTIAL",
-  "hero.title": "CA7<br><span class=\"strike\">黑历史</span>档案馆",
-  "hero.sub": "The Aveiro Files — 一部关于争议的全记录",
-  "hero.desc": "他自称\"<strong>CR7</strong>\"，但全名其实是<strong>Cristiano Ronaldo dos Santos Aveiro</strong>——\"<strong>Aveiro</strong>\"才是他的家族姓氏，\"Ronaldo\"不过是中间名。为了出名，他背弃祖姓、选择了蹭热度的\"Ronaldo\"。真正的缩写应该是 <strong style=\"color:var(--crimson)\">CA7</strong>。本档案馆系统收录其职业生涯中最具争议的<strong>61起事件</strong>，横跨人设、暴力、失态、俱乐部与国家队五大类别。所有内容均基于公开新闻报道整理。",
-  "hero.btnArchive": "进入档案库",
-  "hero.btnTimeline": "查看时间线",
-  "hero.galleryTag": "嬷照档案 · UNFLATTERING PHOTOS",
-  "hero.stamp": "CASES<br>ON FILE",
-  "hero.statRed": "红牌",
-  "hero.statTax": "逃税罚款 (€)",
-  "hero.statCoke": "可乐市值蒸发 ($)",
-  "hero.statEvents": "收录事件",
-  "hero.statCats": "争议分类",
-  "hero.statGirls": "历任女友",
-  // —— 名字辟谣条 ——
-  "nameExpose.label": "// 名字真相 · THE NAME TRUTH",
-  "nameExpose.title": "全名：Cristiano Ronaldo dos Santos <span class=\"real\">Aveiro</span>",
-  "nameExpose.desc": "按葡萄牙命名惯例，最后的\"<strong style=\"color:#9b59b6\">Aveiro</strong>\"才是家族姓氏（父姓），\"dos Santos\"是母姓，而\"Ronaldo\"只是他母亲崇拜里根而起的<strong>中间名</strong>——一个和家族毫无关系的名字。他却抛弃祖姓、自称 <span class=\"crossed\">CR7</span>，硬蹭当时已红透足坛的巴西\"大罗\"罗纳尔多 (Ronaldo) 的热度。若忠于血脉，他该叫 <strong style=\"color:#9b59b6\">CA7 — Cristiano Aveiro</strong>。",
-  // —— 档案库 section ——
-  "archive.label": "// 档案库 · ARCHIVE",
-  "archive.title": "争议事件全记录",
-  "archive.desc": "点击任意档案卡片查看完整卷宗，可按分类或严重程度筛选。",
-  "filter.all": "全部",
-  "filter.persona": "人设争议",
-  "filter.violence": "场内暴力",
-  "filter.offpitch": "场外失态",
-  "filter.club": "俱乐部与法律",
-  "filter.national": "国家队争议",
-  "severity.label": "严重程度筛选：",
-  "severity.all": "全部级别",
-  "severity.3": "3星及以上",
-  "severity.4": "4星及以上",
-  "severity.5": "仅5星 (最严重)",
-  "resultCount.prefix": "显示",
-  "resultCount.suffix": "条记录",
-  "card.read": "查看卷宗 →",
-  "card.badgeBreaking": "🔥 头条",
-  "card.badgeNew": "NEW",
-  "card.empty": "未找到匹配记录",
-  // —— 梅罗 PK ——
-  "pk.label": "// 终极对决 · MESSI vs CA7",
-  "pk.title": "梅罗 PK 大战",
-  "pk.desc": "切换维度，看谁\"赢\"了。数字不撒谎。",
-  "pk.vs": "VS",
-  "pk.cr7Name": "C 罗",
-  "pk.cr7Sub": "CRISTIANO · CA7",
-  "pk.messiName": "梅西",
-  "pk.messiSub": "MESSI",
-  "pk.loserTag": "⚠ 黑点更高",
-  // —— 检测仪 ——
-  "scanner.label": "// 黑科技检测 · AUTHENTICITY SCANNER",
-  "scanner.title": "点球含金量检测仪",
-  "scanner.desc": "扫描\"注水\"成分，自动评估含金量。",
-  "scanner.statusReady": "SYSTEM READY · 点击开始检测",
-  "scanner.statusScan": "SCANNING... 检测中",
-  "scanner.statusDone": "检测完成 · 含金量严重不足",
-  "scanner.gaugeLabel": "综合含金量",
-  "scanner.verdict.wait": "等待检测...",
-  "scanner.verdict.low": "严重注水，建议脱水后重测",
-  "scanner.verdict.mid": "含金量堪忧",
-  "scanner.verdict.high": "勉强及格",
-  // —— 表情生成器 ——
-  "meme.label": "// 嬷照工厂 · MEME GENERATOR",
-  "meme.title": "CA7 表情生成器",
-  "meme.desc": "选图、填字、下载。一键造梗。",
-  "meme.select": "选择嬷照",
-  "meme.top": "顶部文字",
-  "meme.bottom": "底部文字",
-  "meme.presets": "一键套用预设金句",
-  "meme.download": "↓ 下载表情",
-  "meme.topPlaceholder": "CA7...",
-  "meme.bottomPlaceholder": "siuuuu",
-  "meme.defaultTop": "SIUUUUU",
-  "meme.defaultBottom": "点球进了",
-  // —— 烧钱榜 ——
-  "ledger.label": "// 财务流水 · MONEY TRAIL",
-  "ledger.title": "罪恶账本烧钱榜",
-  "ledger.desc": "每一笔，都是争议的标价。",
-  "ledger.headTitle": "罪恶账本",
-  "ledger.total": "TOTAL DISPUTED VALUE · ",
-  "ledger.totalVal": "不可估量",
-  // —— 数据可视化 ——
-  "data.label": "// 数据透视 · DATA",
-  "data.title": "数字里的黑历史",
-  "data.desc": "用数据丈量争议的规模。",
-  "data.redByClub": "红牌分布 (按俱乐部)",
-  "data.catShare": "争议分类占比",
-  "data.private": "私生活数据",
-  "data.manUtd": "曼联 (两段)",
-  "data.real": "皇家马德里",
-  "data.juve": "尤文图斯",
-  "data.nassr": "利雅得胜利",
-  "data.portugal": "葡萄牙队",
-  "data.other": "其他/未确认",
-  "data.exGfs": "历任女友",
-  "data.kids": "子女数量",
-  "data.mothers": "孩子生母数",
-  "data.momKnown": "生母身份公开",
-  "data.jrMom": "迷你罗生母",
-  "data.jrMomVal": "成谜",
-  // —— 时间线 ——
-  "tl.label": "// 编年史 · CHRONOLOGY",
-  "tl.title": "争议时间线",
-  "tl.desc": "从出道到2026，二十余年争议编年。",
-  // —— 绰号进化史 ——
-  "nick.label": "// 绰号进化史 · NICKNAME EVOLUTION",
-  "nick.title": "九个绰号 一部黑历史",
-  "nick.desc": "从\"小小罗\"到\"总裁\"，每个绰号都是一段争议的注脚。",
-  // —— 引用墙 ——
-  "quotes.label": "名场面",
-  // —— 罗黑测试 ——
-  "quiz.label": "// 终极诊断 · HATER INDEX",
-  "quiz.title": "罗黑程度测试",
-  "quiz.desc": "8 道题，测你到底有多\"黑\"这位阿伟罗。数据全部来自本档案馆，答得越准分越高。",
-  "quiz.progress": "第",
-  "quiz.feedback": "答对得分，答错 0 分",
-  "quiz.next": "下一题 →",
-  "quiz.result": "查看诊断结果 →",
-  "quiz.scoreMax": "/8",
-  "quiz.diagnosis": "诊断完成",
-  "quiz.restart": "重新测试",
-  "quiz.rankPerfect": "骨灰级罗黑",
-  "quiz.rankHigh": "资深罗黑",
-  "quiz.rankMid": "黑粉见习",
-  "quiz.rankLow": "吃瓜路人",
-  "quiz.verdictPerfect": "满分。你比本档案馆还了解他的黑历史，建议入职当馆长。每一题都精准命中——这不是巧合，这是仇恨的沉淀。",
-  "quiz.verdictHigh": "你对他的底细门儿清，朋友圈里的\"罗黑\"担当非你莫属。再补几条典故就能毕业了。",
-  "quiz.verdictMid": "入了门，但还差点意思——建议把档案馆从前往后通读一遍，黑料储备会肉眼可见地充实。",
-  "quiz.verdictLow": "看着热闹，其实啥也没记住。多翻几页档案，下次就能在球友面前有理有据地\"黑\"了。",
-  // —— 真假鉴别 ——
-  "tof.label": "// 谎言鉴定 · FACT OR FICTION",
-  "tof.title": "这是 C罗 说的，还是我编的？",
-  "tof.desc": "一半是 C罗 真语录，一半是比真话还离谱的段子。你猜得对吗？讽刺的是——他的真话往往比假话更夸张。",
-  "tof.round": "第几题",
-  "tof.score": "答对",
-  "tof.streak": "连击",
-  "tof.btnFake": "✗ 我编的",
-  "tof.btnReal": "✓ 他真说过",
-  "tof.next": "下一题 →",
-  "tof.result": "查看诊断结果 →",
-  "tof.restart": "再来一局",
-  "tof.correct": "答对了！",
-  "tof.wrong": "答错了！",
-  "tof.realVerdict": "<b>✓ 真语录</b>",
-  "tof.fakeVerdict": "<b>✗ 假语录（我编的）</b>",
-  "tof.source": "出处：",
-  "tof.rankPerfect": "人间清醒",
-  "tof.rankHigh": "反讽大师",
-  "tof.rankMid": "吃瓜群众",
-  "tof.rankLow": "被Factos洗脑",
-  "tof.verdictPerfect": "满分。你比 C罗 还了解他自己——不，你比他还懂他的傲慢。每一句荒诞，你都精准识破。",
-  "tof.verdictHigh": "你深谙「总裁体」的边界——真话和段子的区别，对你来说一眼可辨。",
-  "tof.verdictMid": "被忽悠得不轻——这就是 C罗话术的可怕之处：真话比段子还像段子。",
-  "tof.verdictLow": "你大概真的相信了「我是历史第一第二第三」。建议把档案馆从前往后通读一遍。",
-  "tof.realStat": "真语录识破 ",
-  "tof.fakeStat": "假语录识破 ",
-  "tof.maxStreak": "最高连击 ",
-  // —— 黑料盲盒 ——
-  "blindbox.label": "// 每日通缉 · CASE OF THE DAY",
-  "blindbox.title": "黑料盲盒",
-  "blindbox.desc": "从 61 卷宗里随机抽取一份，看看今天 CA7 又因为什么被立案。换一张，再来一单。",
-  "blindbox.stamp": "CLASSIFIED",
-  "blindbox.cat": "分类",
-  "blindbox.date": "日期",
-  "blindbox.loc": "地点",
-  "blindbox.sev": "严重程度",
-  "blindbox.shuffle": "⟳ 换一单",
-  "blindbox.download": "↓ 下载通缉令",
-  "blindbox.open": "展开完整卷宗 →",
-  // —— 世界地图 ——
-  "map.label": "// 时空档案 · INCIDENT MAP 2.0",
-  "map.title": "争议世界地图",
-  "map.desc": "拖动时间轴看争议如何蔓延，开启「生涯轨迹」追 C罗 效力过的每支球队，开启「热度图」看哪里是高发地。",
-  "map.trail": "生涯轨迹",
-  "map.heat": "热度图",
-  "map.play": "播放时间轴",
-  "map.legendSev5": "极重",
-  "map.legendSev4": "严重",
-  "map.legendSev3": "较重",
-  "map.legendClub": "效力球队",
-  "map.readout": "显示：",
-  "map.readoutAll": "全部",
-  "map.incidents": "起",
-  "map.sameLoc": "起同地事件",
-  // —— 罗黑赌场 ——
-  "casino.label": "// 虚拟盘口 · CA7 BETTING ODDS",
-  "casino.title": "罗黑赌场",
-  "casino.desc": "用虚拟「Factos 币」对 C罗 的「行为卡」下注。开奖按他历史行为的真实概率随机模拟——不是预测某场未来比赛，而是赌「他又会怎样」。讽刺的是，押他「输不起」几乎稳赚。纯属娱乐，无真实货币。",
-  "casino.balance": "💰 余额：",
-  "casino.record": "战绩：",
-  "casino.reset": "重置余额",
-  "casino.youBet": "你押",
-  "casino.stake": "金额",
-  "casino.allin": "梭哈",
-  "casino.place": "下注",
-  "casino.history": "// 投注记录",
-  "casino.historyEmpty": "还没有投注。下注后这里会显示开奖流水。",
-  "casino.win": "胜",
-  "casino.lose": "负",
-  "casino.resolved": "✓ 已开奖",
-  "casino.flashPick": "先选一个选项",
-  "casino.flashBalance": "余额不足",
-  "casino.recordFmt": "胜 负",
-  "casino.odds": "赔率",
-  "casino.correct": "猜中",
-  "casino.wrong": "猜错",
-  "casino.draw": "开奖",
-  // —— 人设编年史 ——
-  "persona.label": "// 人设叙事 · PERSONA UNRAVELED",
-  "persona.title": "人设崩塌编年史",
-  "persona.desc": "从「自律标杆」到「自我颁奖」——十五起人设类争议，串成一条向下坠落的长卷。",
-  // —— 弹幕墙 + 段子 ——
-  "wall.label": "// 罗黑集结 · ROAST WALL",
-  "wall.title": "弹幕墙 & 段子工厂",
-  "wall.desc": "吐个槽？填个梗？你的吐槽会化作弹幕飞过黑历史墙，段子还能点赞上榜。数据存在本地，导出分享。",
-  "wall.inputPlaceholder": "发一条弹幕吐槽 C罗…（最多40字）",
-  "wall.color": "颜色",
-  "wall.send": "发射 →",
-  "wall.stageBg": "CA7 黑历史墙",
-  "wall.empty": "弹幕墙空空如也。来当第一个开火的人。",
-  "wall.jokeTitle": "// 段子接龙 · 把下半句交给你",
-  "wall.shuffle": "换一题 ⟳",
-  "wall.jokePlaceholder": "接下半句…（最多30字）",
-  "wall.submit": "投稿",
-  "wall.jokeEmpty": "还没有人接这句。来当第一个。",
-  "wall.clear": "清空我的弹幕",
-  "wall.export": "导出我的创作",
-  "wall.note": "* 数据仅存于你的浏览器（localStorage），不上传服务器。",
-  "wall.presetDanmu": [
-    "六届世界杯，零座奖杯",
-    "Factos! Factos! Factos!",
-    "SIUUUUU（空荡的球场里）",
-    "点球进了！含金量？",
-    "我就是历史第一第二第三",
-    "问心无愧.jpg",
-    "沙特4年1冠，沙漠骆驼",
-    "背弃祖姓，蹭大罗热度",
-    "摔手机、摔袖标、摔麦克风",
-    "The King leaves without his crown",
-    "再见阿伟罗",
-    "球玊=球王+一点（球）"
-  ],
-  "wall.jokePrompts": [
-    "输球后，C 罗 第一件事是___",
-    "C 罗 打开 ins，第一张照片必须是___",
-    "梅西夺冠那天，C 罗 在___",
-    "C 罗 说「问心无愧」，翻译成人话是___",
-    "如果给 C 罗 的点球写个说明书，第一条是___",
-    "C 罗 退役那天，他会先___",
-    "沙特给了 C 罗 2亿，C 罗 给了沙特___",
-    "C 罗 照镜子时，镜子里的人是___"
-  ],
-  // —— 成就徽章 ——
-  "badges.label": "// 档案官考核 · ACHIEVEMENTS",
-  "badges.title": "成就徽章",
-  "badges.desc": "逛档案库、查时间线、答测试、发弹幕……解锁十枚徽章，集齐召唤档案官认证。",
-  "badges.unlocked": "解锁 · ",
-  // —— Footer ——
-  "footer.logo": "THE <span class=\"red\">AVEIRO</span> FILES",
-  "footer.text": "本网站为球迷文化创作，所有事件均基于公开新闻报道整理，不代表任何官方立场。<br>克里斯蒂亚诺·罗纳尔多（本名 Cristiano Ronaldo dos Santos Aveiro）是世界足坛最伟大的球员之一，本站仅记录其职业生涯中的争议事件，包括其背弃祖姓选择\"Ronaldo\"作为称呼的身份争议。",
-  "footer.sources": "DATA SOURCES: AP / ESPN / CNN / BBC / SKY SPORTS / 腾讯体育 / 知乎 · CONTENT FOR ENTERTAINMENT PURPOSES ONLY",
-  "footer.sealHint": "点击签名 · 集齐 7 印触发隐藏庆祝",
-  "footer.sealHint2": "七印封顶 · 再点签名重放 SIU 庆祝",
-  "footer.sealHint3": "再点几下，集齐 7 印触发隐藏庆祝 →",
-  "footer.sealTitle1": "« 见习封印官 »",
-  "footer.sealLine1": "第一枚封印已落下。",
-  "footer.sealTitle2": "« 档案守护者 »",
-  "footer.sealLine2": "三枚红印，黑历史由你看管。",
-  "footer.sealTitle3": "« 首席档案官 »",
-  "footer.sealLine3": "七印封顶 · SIU! 触发庆祝。",
-  "footer.sealCount": "封印 · ",
-  "footer.shortDisclaimer": "球迷文化创作，不代表任何官方立场",
-  // —— 严重度档位 ——
-  "sev.1": "轻微",
-  "sev.2": "一般",
-  "sev.3": "较重",
-  "sev.4": "严重",
-  "sev.5": "极重",
-  // —— 模态框 meta ——
-  "modal.loc": "地点",
-  "modal.cat": "分类",
-  "modal.sev": "严重程度",
-  "modal.detailNotice": "完整长文见下（中文原文）",
-  "incident.back": "← 返回档案库",
-  "incident.prev": "← 上一个事件",
-  "incident.next": "下一个事件 →",
-  // —— 搜索 / 滚动 ——
-  "scroll.top": "返回顶部"
-}
-};
+/* i18nDict 已剥离到 assets/js/i18n-dict.js（子页与首页共享，需先于 app.js 加载）。 */
 
 // ========== 事件数据 ==========
 const events = [
   {
     id:1, cat:"club", catLabel:"俱乐部与法律", severity:5,
+    dateIso:"2017-06-01",
     title:"西班牙逃税案",
     titleEn:"Spanish Tax Fraud Case",
     titleEs: "Caso de fraude fiscal en España",
@@ -996,7 +26,8 @@ const events = [
       "<strong>Declaración de culpa y acuerdo:</strong> Ante la amenaza de hasta 15 años de cárcel, Cristiano eligió «pagar y salir del paso». En junio de 2018 cerró un acuerdo con Hacienda y el 22 de enero de 2019 se presentó en el juzgado de Madrid unos 15 minutos y <strong>se declaró culpable en Audiencia Pública</strong>, firmando el convenio.",
       "<strong>Sentencia definitiva:</strong> <em>2 años de prisión (en suspenso)</em>, más un total de casi <strong>19 millones de euros</strong> (impuesto + intereses + multas). Por la ley española, los primerizos no violentos con condenas inferiores a dos años no suelen pisar la cárcel. Para comparar: Messi en 2016 se llevó 21 meses en suspenso y 3,7 M€ de multa por defraudar 4,1 M€ — Cristiano evadió 3,6 veces lo que Messi.",
       "<strong>La red de empresas pantalla, una y otra vez bajo sospecha:</strong> No era la primera vez que las sociedades de imagen de Cristiano levantaban sospechas. La prensa destapó que su red de planificación fiscal se extendía por varias pantallas offshore — Tollin Associates (registrada en BVI), Multisports & Image en Irlanda y Talents Films en Reino Unido. Esa estructura de «empresa dentro de empresa» le costó a Hacienda años desentrañarla, y fue tildada de «<em>externalizar las obligaciones fiscales a los contables como un truco de magia</em>».",
-      "<strong>Impacto:</strong> El caso está considerado una de las claves de que Cristiano «huyera» de España a la Juventus en 2018 — Italia solo grava con 100.000 € al año las rentas extranjeras de los no residentes, mientras el tipo máximo español rozaba el 52%."
+      "<strong>Impacto:</strong> El caso está considerado una de las claves de que Cristiano «huyera» de España a la Juventus en 2018 — Italia solo grava con 100.000 € al año las rentas extranjeras de los no residentes, mientras el tipo máximo español rozaba el 52%.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> Este caso se atiene a los documentos oficiales de acuerdo entre la Agencia Tributaria española y el tribunal de Madrid; Cristiano acabó declarándose culpable y aceptó una condena en suspenso y una multa, con cifras según las revelaciones oficiales. Este expediente solo recoge la cobertura mediática pública y los documentos legales, y no constituye una determinación adicional de los hechos.</div>"
     ],
 
 
@@ -1017,7 +48,8 @@ const events = [
       "<strong>认罪和解：</strong>面对最高15年监禁的威胁，C罗最终选择“破财消灾”。2018年6月与税务部门达成和解，2019年1月22日亲赴马德里法庭出庭约15分钟，<strong>当庭认罪</strong>签署协议。",
       "<strong>最终判决：</strong><em>2年有期徒刑（缓刑）</em>，外加总额近<strong>1900万欧元</strong>（税款+利息+罚金）。根据西班牙法律，非暴力犯罪初犯且刑期不满2年者通常无需实际入狱。对比：梅西2016年因漏税410万欧元被判21个月缓刑+370万罚款——C罗逃税金额是梅西的3.6倍。",
       "<strong>壳公司网络反复被查：</strong>这并非C罗第一次因肖像权公司被盯上。媒体披露，他的避税网络横跨多家海外壳公司——包括英属维尔京群岛（BVI）注册的 Tollin Associates、爱尔兰的 Multisports & Image 以及英国 Talents Films 公司。这套「公司套公司」的结构，让税务部门需要多年才能厘清资金流向，被批是「<em>把纳税义务外包给会计师的魔术</em>」。",
-      "<strong>影响：</strong>此案被认为是C罗2018年“逃离”西班牙转投尤文图斯的重要原因之一——意大利对外国人海外收入每年仅收10万欧元税金，而西班牙税率高达52%。"
+      "<strong>影响：</strong>此案被认为是C罗2018年“逃离”西班牙转投尤文图斯的重要原因之一——意大利对外国人海外收入每年仅收10万欧元税金，而西班牙税率高达52%。",
+      "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本案以西班牙税务部门与马德里法院的官方和解文书为准，C罗最终认罪并接受缓刑与罚款判决，相关金额以官方披露为准。本档案仅记录公开媒体报道与法律文书内容，不构成对任何事实的额外认定。</div>"
     ],
     detailEn:[
       "<strong>Case origin:</strong> Spanish tax authorities began investigating Ronaldo as early as the end of 2015. In June 2017, Madrid prosecutors formally filed charges, accusing him of hiding image-rights income between 2011 and 2014 through <em>British Virgin Islands shell companies</em>, evading as much as <strong>€14.75 million</strong> in taxes.",
@@ -1026,13 +58,17 @@ const events = [
       "<strong>Guilty plea and settlement:</strong> Facing up to 15 years in prison, Ronaldo ultimately chose to 'pay his way out'. In June 2018 he reached a settlement with the tax authority, and on 22 January 2019 he personally attended Madrid court for about 15 minutes and <strong>pleaded guilty in open court</strong>, signing the agreement.",
       "<strong>Final verdict:</strong> <em>2 years' imprisonment (suspended)</em>, plus a total of nearly <strong>€19 million</strong> (tax + interest + fines). Under Spanish law, first-time non-violent offenders with sentences under two years typically serve no actual jail time. For comparison: Messi in 2016 was given a 21-month suspended sentence and a €3.7M fine for €4.1M in tax evasion — Ronaldo evaded 3.6 times as much as Messi.",
       "<strong>Repeated scrutiny of the shell-company network:</strong> This was not the first time Ronaldo's image-rights companies had drawn scrutiny. Media outlets revealed that his tax-avoidance network spanned multiple offshore shells — including Tollin Associates (registered in the BVI), Multisports & Image in Ireland and Talents Films in the UK. This layered 'company-within-company' structure took the tax authorities years to unravel, and was slammed as '<em>outsourcing tax obligations to accountants as a magic trick</em>'.",
-      "<strong>Impact:</strong> The case is widely seen as a key reason Ronaldo 'fled' Spain for Juventus in 2018 — Italy levies only €100,000 a year on foreigners' overseas income, whereas Spain's top rate hit 52%."
+      "<strong>Impact:</strong> The case is widely seen as a key reason Ronaldo 'fled' Spain for Juventus in 2018 — Italy levies only €100,000 a year on foreigners' overseas income, whereas Spain's top rate hit 52%.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> This case follows the official settlement documents of the Spanish tax authority and the Madrid court; Ronaldo ultimately pleaded guilty and accepted a suspended sentence and fine, with figures based on official disclosures. This file only records public media reporting and legal documents, and does not constitute any additional finding of fact.</div>"
     ],
     quote:{text:"我做正确的事，无论是球场内外。但在这里，他们想让我变成另一个人。", textEn:"I do the right thing, on and off the pitch. But here, they want to turn me into someone else.", author:"C罗，2017年庭审后声明", authorEn:"Cristiano Ronaldo, statement after the 2017 tax trial", textEs:"Hago lo correcto, dentro y fuera del campo. Pero aquí quieren convertirme en otra persona.", authorEs:"Cristiano Ronaldo, declaración tras el juicio fiscal de 2017"},
-    tags:["逃税","西班牙","1480万欧元","缓刑","认罪"]
+    tags:["逃税","西班牙","1480万欧元","缓刑","认罪"],
+    tagsEn:["tax fraud","Spain","€14.8 million","suspended sentence","pleaded guilty"],
+    tagsEs:["fraude fiscal","España","14,8 M€","condena en suspenso","se declaró culpable"]
   },
   {
     id:2, cat:"club", catLabel:"俱乐部与法律", severity:5,
+    dateIso:"2009-06-01",
     title:"拉斯维加斯酒店事件",
     titleEn:"Las Vegas Hotel Incident",
     titleEs: "Incidente del hotel de Las Vegas",
@@ -1048,7 +84,8 @@ const events = [
       "<strong>Sobreseimiento federal (2022):</strong> En junio de 2022 la fiscalía federal de EE. UU. archivó el caso penal por no poder probar los cargos más allá de duda razonable. La demanda civil, en cambio, siguió su curso.",
       "<strong>Desestimado en apelación (2023):</strong> En 2023 un tribunal de apelaciones confirmó la desestimación de la demanda civil de Mayorga, cerrando efectivamente el caso. Cristiano mantuvo siempre su inocencia.",
       "<strong>Reputación:</strong> Aunque el caso se cerró legalmente, el «dinero para callar» y los documentos filtrados dejaron una mancha imborrable en su imagen pública. Es uno de los episodios más oscuros de su carrera.",
-      "<strong>El coste:</strong> 375.000 dólares de hush money, años de portadas y un caso que lo persiguió durante más de una década — una suma ridículamente baja comparada con el daño reputacional que generó."
+      "<strong>El coste:</strong> 375.000 dólares de hush money, años de portadas y un caso que lo persiguió durante más de una década — una suma ridículamente baja comparada con el daño reputacional que generó.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> La demanda civil fue desestimada en 2022; Ronaldo nunca ha sido condenado penalmente y niega todas las acusaciones. Este expediente solo recoge la cobertura mediática pública y los documentos legales, y no constituye una determinación final de ningún hecho.</div>"
     ],
 
 
@@ -1071,6 +108,7 @@ const events = [
       "<strong>案件结局：</strong>2022年6月，美国联邦法官珍妮弗·多尔西（Jennifer Dorsey）最终撤销了马约尔加的民事诉讼。裁决理由并非否认指控本身，而是认定原告律师斯托瓦尔使用了<strong>非法窃取的保密文件</strong>（Football Leaks泄露材料）作为核心证据，违反律师职业道德，构成“损害司法公正”。法官以“偏见驳回”结案，意味着马约尔加不得再就此起诉。",
       "<strong>舆论反响：</strong>案件被撤销引发巨大争议。女权团体与媒体批评司法系统更关注程序瑕疵而非实质正义，让“富有被告凭借资源逃脱”。马约尔加律师团队称将考虑上诉，但2023年美国第十巡回上诉法院维持原判。拉斯维加斯检方则于2019年宣布因证据不足、时隔太久不予刑事起诉C罗。批评者指出，封口协议本身即是对受害者的二次伤害。",
       "<strong>横向对比：</strong>与众多卷入性侵丑闻的体坛巨星一样，C罗凭借<em>庞大法律团队与商业资本</em>成功规避了法律后果。此案与NFL球星本·罗斯利斯伯格、NBA巨星科比·布莱恩特的封口案如出一辙——金钱和解、保密协议、舆论反转，构成体育界典型的“花钱消灾”模式。区别在于，C罗始终维持着顶级商业代言，从未因此失去耐克等核心赞助。",
+      "<strong>代价：</strong>37.5万美元的封口费、常年占据头条、以及一桩纠缠他十多年的案子——与所造成的声誉损失相比，这笔钱低得可笑。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>民事诉讼已于2022年被撤销，C罗从未被刑事定罪，对所有指控均予否认。本档案仅记录公开媒体报道与法律文书内容，不构成对任何事实的最终认定。</div>"
     ],
     detailEn:[
@@ -1083,12 +121,16 @@ const events = [
       "<strong>Public backlash:</strong> The dismissal sparked huge controversy. Women's rights groups and media outlets criticised a justice system more concerned with procedural flaws than substantive justice, allowing a 'wealthy defendant to escape through his resources'. Mayorga's legal team said it would consider an appeal, but in 2023 the US Tenth Circuit Court of Appeals upheld the original ruling. Las Vegas prosecutors announced in 2019 that they would not file criminal charges against Ronaldo due to insufficient evidence and the passage of time. Critics note the hush agreement itself was a second violation of the victim.",
       "<strong>Broader comparison:</strong> Like many sports stars embroiled in sexual-assault scandals, Ronaldo used <em>a vast legal team and commercial capital</em> to dodge legal consequences. The case mirrors those of NFL quarterback Ben Roethlisberger and NBA legend Kobe Bryant — cash settlements, NDAs, and a media reversal, a textbook sports-world 'pay-your-way-out' pattern. The difference is that Ronaldo kept his top-tier endorsement deals throughout, never losing core sponsors such as Nike."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>The civil lawsuit was dismissed in 2022; Ronaldo has never been criminally convicted and denies all allegations. This file only records public media reporting and legal documents, and does not constitute a final finding of any fact.</div>"],
+      "<strong>The cost:</strong> $375,000 in hush money, years of headlines and a case that dogged him for over a decade — a sum laughably low next to the reputational damage it caused.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>The civil lawsuit was dismissed in 2022; Ronaldo has never been criminally convicted and denies all allegations. This file only records public media reporting and legal documents, and does not constitute a final finding of any fact.</div>"],
     quote:{text:"我明确否认对我的指控。性侵是可憎的犯罪，我对任何人都怀有最大的尊重。", textEn:"I firmly deny the accusations against me. Rape is an abhorrent crime, and I have the utmost respect for everyone.", author:"C罗，2018年声明", authorEn:"Cristiano Ronaldo, 2018 statement", textEs:"Niego firmemente las acusaciones contra mí. La violación es un delito abyecto y tengo el mayor de los respetos por todo el mundo.", authorEs:"Cristiano Ronaldo, declaración de 2018"},
-    tags:["性侵指控","37.5万美元","封口费","Football Leaks","案件驳回"]
+    tags:["性侵指控","37.5万美元","封口费","Football Leaks","案件驳回"],
+    tagsEn:["sexual-assault allegation","$375K","hush money","Football Leaks","case dismissed"],
+    tagsEs:["acusación de agresión sexual","375.000 dólares","dinero de silencio","Football Leaks","caso desestimado"]
   },
   {
     id:3, cat:"violence", catLabel:"场内暴力", severity:4,
+    dateIso:"2017-08-13",
     title:"西超杯推搡裁判",
     titleEn:"Shoving the Ref in the Spanish Super Cup",
     titleEs: "Empuja al árbitro en la Supercopa de España",
@@ -1102,7 +144,8 @@ const events = [
       "<strong>El empujón al árbitro:</strong> Ya de camino al vestuario, Cristiano, enfurecido, empujó por la espalda al árbitro principal. Las cámaras lo captaron todo y la imagen dio la vuelta al mundo.",
       "<strong>La sanción:</strong> El Comité de Competición le cayó con 5 partidos de sanción: 4 por el empujón al árbitro (falta de respeto) y 1 por la expulsión. Cristiano lo llamó «injusto» y presentó recurso, que fue desestimado.",
       "<strong>Consecuencias:</strong> Se perdió el partido de vuelta y el inicio de la temporada liguera. El empujón es uno de los momentos más sonrojantes de su carrera: un capitán pegando un empujón a un colegiado.",
-      "<strong>Reacción:</strong> La prensa española lo machacó; Marca y AS lo titularon como una vergüenza. El gesto de empujar al árbitro quedó como imagen icónica de su falta de autocontrol."
+      "<strong>Reacción:</strong> La prensa española lo machacó; Marca y AS lo titularon como una vergüenza. El gesto de empujar al árbitro quedó como imagen icónica de su falta de autocontrol.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> Este expediente se elabora a partir del boletín oficial de sanciones de la Real Federación Española de Fútbol y de informaciones mediáticas públicas; las sanciones y los partidos de suspensión se atienen a los documentos oficiales.</div>"
     ],
 
 
@@ -1123,6 +166,7 @@ const events = [
       "<strong>追加处罚：</strong>2017年8月14日，西班牙足协竞赛委员会宣布处罚决定：红牌本身停赛1场，推搡裁判<em>追加停赛4场</em>，合计禁赛<strong>5场</strong>。根据足协规则，推搡裁判本可面临4至12场追加禁赛，5场属相对适中区间。皇马随后提出上诉，但西班牙上诉委员会于8月21日驳回，维持原判。",
       "<strong>各方评论：</strong>央视《朝闻天下》对此事进行专题报道，强调“对裁判的肢体接触无论轻重都应严惩”。知乎专栏分析指出：“C罗确有推搡动作，且让裁判明显感知……即便非恶意，也属违规行为。”皇马球迷认为处罚过重，巴萨球迷则认为推裁判应罚更久。前裁判卢卡·马雷利等专家普遍认为<strong>5场禁赛合理且必要</strong>。",
       "<strong>历史定位：</strong>这是C罗皇马生涯第11张红牌（含各项赛事），也是最具争议的一张——不仅因推搡裁判的恶劣性质，更因其发生在万众瞩目的国家德比舞台。相比梅西在巴萨21年仅获少数红牌，C罗的纪律问题再次成为话题。此役皇马虽3-1取胜并最终捧得西超杯，但C罗的冲动让球队付出了新赛季开局即缺阵头号球星的代价。",
+      "<strong>反应：</strong>西班牙媒体对他穷追猛打；《马卡报》和《阿斯报》以「耻辱」为题报道。推搡裁判的一幕，成为他缺乏自控力的标志性画面。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本档案依据西班牙足协官方处罚公告与公开媒体报道整理，相关判罚与禁赛场次均以官方文书为准。</div>"
     ],
     detailEn:[
@@ -1133,11 +177,15 @@ const events = [
       "<strong>Commentary:</strong> CCTV's 'Morning News' ran a special segment on the incident, stressing that 'physical contact with a referee, however slight, must be severely punished'. A Zhihu column argued: 'Ronaldo clearly shoved the referee and made him visibly feel it… even if not malicious, it's a foul.' Real fans felt the punishment was too harsh, while Barcelona fans felt shoving the referee should have drawn more. Former referee Luca Marelli and other experts widely agreed the <strong>five-match ban was justified and necessary</strong>.",
       "<strong>Historical significance:</strong> This was the 11th red card of Ronaldo's Real Madrid career (across all competitions) and the most controversial — not only because he shoved a referee, but because it happened on the El Clásico stage. Compared to Messi picking up only a handful of red cards across 21 years at Barcelona, Ronaldo's discipline was once again under scrutiny. Madrid won the match 3-1 and lifted the Super Cup, but Ronaldo's impulsiveness cost them their biggest star at the start of the new season."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This file is compiled from the Spanish FA's official punishment notice and public media reports; relevant verdicts and ban matches follow official documents.</div>"],
-    tags:["推裁判","禁赛5场","西超杯","国家德比","假摔"]
+      "<strong>Reaction:</strong> The Spanish press hammered him; Marca and AS headlined it as a disgrace. The shove at the referee became an iconic image of his lack of self-control.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This file is compiled from the Spanish FA's official punishment notice and public media reports; relevant verdicts and ban matches follow official documents.</div>"],
+    tags:["推裁判","禁赛5场","西超杯","国家德比","假摔"],
+    tagsEn:["shoved the ref","5-match ban","Spanish Super Cup","El Clásico","diving"],
+    tagsEs:["empuja al árbitro","sanción de 5 partidos","Supercopa de España","Clásico","simulación"]
   },
   {
     id:4, cat:"violence", catLabel:"场内暴力", severity:4,
+    dateIso:"2021-10-24",
     title:"双红会“三连踢”",
     titleEn:"'Three-Kick' in the Northwest Derby",
     titleEs: "El «tres-patadas» en el derbi del Norte",
@@ -1152,7 +200,8 @@ const events = [
       "<strong>Reacción mediática:</strong> La prensa inglesa lo puso a caer: el ídolo regresado al United protagonizando semejante imagen en una goleada histórica. La secuencia de las tres patadas se convirtió en meme.",
       "<strong>El patrón:</strong> Para los críticos, este episodio refuerza el patrón de toda su carrera: cuando el equipo va perdiendo, Cristiano «se va de la cabeza» y recurre a la violencia. No es la primera —ni la última— vez que se le ve pegar.",
       "<strong>Contexto:</strong> El 0-5 fue el principio del fin de la etapa de Solskjær y, para Cristiano, una de las imágenes más bochornosas de su vuelta al United: humillado en el marcador y, encima, repartiendo patadas.",
-      "<strong>Balance:</strong> Tres patadas en dos segundos, sin tarjeta roja y con el equipo goleado. Una imagen que resume a la perfección al Cristiano de las grandes noches frustradas."
+      "<strong>Balance:</strong> Tres patadas en dos segundos, sin tarjeta roja y con el equipo goleado. Una imagen que resume a la perfección al Cristiano de las grandes noches frustradas.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> El contenido de esta entrada se elabora a partir de informaciones públicas y es solo orientativo.</div>"
     ],
 
 
@@ -1174,6 +223,7 @@ const events = [
       "<strong>受害者反应：</strong>21岁的琼斯赛后表现得异常克制，并未过多渲染伤情，但利物浦阵营与媒体却群情激愤。罗伯逊、范戴克当场围上来讨说法，场面一度失控。前裁判、评论员纷纷指出，<em>若换作普通球员早已被罚下</em>，C罗能全身而退，靠的正是那块名为“超级巨星”的免死金牌。",
       "<strong>一耻二辱：</strong>更让曼联球迷绝望的是，球队在场上被全面碾压，唯一能上头条的竟是当家球星的<strong>球场暴力</strong>。0比5的比分已是奇耻大辱，C罗的连踢动作无疑是雪上加霜，让这场溃败从战术失败升级为<strong>形象灾难</strong>。网友调侃<em>被儿时偶像踢是种什么体验</em>。",
       "<strong>模式化失态：</strong>这并非C罗首次在逆境中以暴力宣泄情绪。从拍打小球迷手机到抢夺记者话筒，再到此次蹬踹琼斯，<strong>输不起就动手</strong>几乎成了他的行为定式。这场0比5惨败中的三连踢，也因此被反复列入C罗“黑历史”的经典案例。",
+      "<strong>总评：</strong>两秒内三脚踢人，没有红牌，球队还大比分落败。这一幕完美浓缩了大场面夜晚受挫时的那个C罗。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开报道整理，仅供参考。</div>"
     ],
     detailEn:[
@@ -1185,11 +235,15 @@ const events = [
       "<strong>Double disgrace:</strong> What most devastated United fans was that, while the team was being utterly dismantled on the pitch, the only headline their marquee star could muster was <strong>on-pitch violence</strong>. The 0-5 scoreline was humiliating enough, but Ronaldo's three-kick sequence was rubbing salt in, turning a tactical defeat into an <strong>image disaster</strong>. Fans joked online about <em>what it's like to be kicked by your childhood idol</em>.",
       "<strong>A pattern of meltdown:</strong> This was far from the first time Ronaldo reacted to adversity with violence. From slapping a young fan's phone to snatching a reporter's microphone, to kicking out at Jones here, <strong>'can't lose, so lash out'</strong> is almost his behavioural signature. The three-kick sequence in this 0-5 humiliation is therefore a perennial entry in the 'Ronaldo dark-history' canon."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["三连踢","双红会","利物浦","0-5惨败","报复动作"]
+      "<strong>Verdict:</strong> Three kicks in two seconds, no red card and his team hammered. An image that perfectly sums up the Cristiano of frustrated big nights.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["三连踢","双红会","利物浦","0-5惨败","报复动作"],
+    tagsEn:["triple kick","North West Derby","Liverpool","0-5 thrashing","retaliation"],
+    tagsEs:["patada triple","derbi del Noroeste","Liverpool","5-0 escandaloso","venganza"]
   },
   {
     id:5, cat:"violence", catLabel:"场内暴力", severity:3,
+    dateIso:"2015-01-01",
     title:"拳击克雷霍维亚克头部",
     titleEn:"Punch to Krychowiak's Head",
     titleEs: "Puñetazo a la cabeza de Krychowiak",
@@ -1203,7 +257,8 @@ const events = [
       "<strong>Reacción:</strong> La prensa deportiva se hizo eco, pero la sanción nunca llegó — uno de los muchos episodios violentos de Cristiano que quedaron impunes en España.",
       "<strong>El patrón violento:</strong> Suma y sigue: puñetazos, codazos, patadas, pisotones. Cristiano acumula 14 rojas en su carrera, pero muchas acciones violentas como esta ni siquiera llegaron a tarjeta.",
       "<strong>Krychowiak:</strong> El polaco no hizo gran ruido mediático, pero las imágenes son evidentes: un puñetazo clavado en la cabeza en plena carrera. Clásico Cristiano fuera de sí.",
-      "<strong>Conclusión:</strong> Un puñetazo impune que retrata la permisividad del fútbol español con las estrellas y la tendencia violenta del propio Cristiano."
+      "<strong>Conclusión:</strong> Un puñetazo impune que retrata la permisividad del fútbol español con las estrellas y la tendencia violenta del propio Cristiano.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> Este suceso se basa principalmente en informes de medios británicos y repeticiones del partido; el árbitro del campo y La Liga no tomaron medidas retroactivas. Este archivo solo recoge el debate público y no representa una veredicto factual definitivo.</div>"
     ],
 
 
@@ -1224,6 +279,7 @@ const events = [
       "<strong>模式化行为：</strong>《镜报》将拳击克雷霍维亚克与肘击阿尔维斯、飞踹门将等并列为C罗“纪律幸运儿”的代表作。分析指出，C罗作为超级巨星，长期享受裁判的<strong>“名声保护伞”</strong>——其挑衅性动作往往被默认为“情绪宣泄”而非暴力行为。这种现象在梅西身上几乎看不到，成为两人纪律记录差距悬殊的重要原因之一。",
       "<strong>对手态度：</strong>克雷霍维亚克本人在后续采访中并未大肆炒作此事，但曾向南非媒体坦言，得知C罗对阵塞维利亚的恐怖进球纪录后感到“非常愤怒”，暗示两人之间存在明显的个人恩怨。作为波兰国脚与塞维利亚核心后腰，克雷霍维亚克素以强硬防守著称，但面对C罗的暗算也只能无奈接受裁判的沉默。",
       "<strong>横向对比：</strong>同类动作在英超、德甲往往直接红牌起步。C罗的拳击动作力度更大、目标更明确（后脑），却全身而退，再次印证了<strong>顶级球星在判罚尺度上的双重标准</strong>。",
+      "<strong>结论：</strong>一记未受惩罚的拳头，折射出西班牙足球对球星的宽容，以及C罗本人倾向暴力的做派。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>该事件主要依据英国媒体报道与赛后视频回放，当值裁判与西甲官方未对此做出追加处罚认定。本档案仅记录公开讨论，不代表最终事实判定。</div>"
     ],
     detailEn:[
@@ -1234,11 +290,15 @@ const events = [
       "<strong>Opponent's attitude:</strong> Krychowiak himself did not play up the incident in subsequent interviews, but told South African media he was 'very angry' after learning of Ronaldo's terrifying goal-scoring record against Sevilla, hinting at clear personal enmity between the two. As a Polish international and Sevilla's holding midfield anchor, Krychowiak was known for hard-nosed defending, but facing Ronaldo's underhand jab he had no choice but to swallow the referee's silence.",
       "<strong>Broad comparison:</strong> Comparable actions in the Premier League or Bundesliga typically start at a straight red. Ronaldo's punch was harder and more targeted (the back of the head), yet he walked away unscathed, further proof of <strong>the double standard in officiating of elite stars</strong>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This event is based mainly on British media reports and post-match video replays; the on-field referee and La Liga took no retrospective action. This archive only records public discussion and does not represent a final factual verdict.</div>"],
-    tags:["拳击","塞维利亚","无球暴力","克雷霍维亚克"]
+      "<strong>Conclusion:</strong> An unpunished punch that captures Spanish football's leniency with its stars and Cristiano's own violent tendencies.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This event is based mainly on British media reports and post-match video replays; the on-field referee and La Liga took no retrospective action. This archive only records public discussion and does not represent a final factual verdict.</div>"],
+    tags:["拳击","塞维利亚","无球暴力","克雷霍维亚克"],
+    tagsEn:["punch","Sevilla","off-ball violence","Krychowiak"],
+    tagsEs:["puñetazo","Sevilla","violencia sin balón","Krychowiak"]
   },
   {
     id:6, cat:"violence", catLabel:"场内暴力", severity:3,
+    dateIso:"2010-01-01",
     title:"国家德比肘击阿尔维斯",
     titleEn:"Elbow to Dani Alves in El Clásico",
     titleEs: "Codazo a Dani Alves en el Clásico",
@@ -1252,7 +312,8 @@ const events = [
       "<strong>El historial de codazos:</strong> No fue un caso aislado: los codazos de Cristiano (a Alves, a otros rivales) son una constante de su carrera. Es una de sus marcas de la casa cuando se siente acorralado.",
       "<strong>Consecuencias:</strong> Según el partido y el árbitro, este tipo de codazos le costaron amarillas o directamente rojas. Aquí, como en muchas otras, el alcance disciplinario quedó a medias.",
       "<strong>El «Clásico violento»:</strong> Para los culés, Cristiano quedó retratado como un jugador que, cuando no le salían las cosas, recurría a la violencia callejera: codazos, manotazos y pisotones.",
-      "<strong>Balance:</strong> Un codazo en un Clásico, una tangana, y una imagen más para la colección de «momentos violentos de Cristiano»."
+      "<strong>Balance:</strong> Un codazo en un Clásico, una tangana, y una imagen más para la colección de «momentos violentos de Cristiano».",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> El árbitro del campo consideró el contacto «accidental» y no tomó medidas. Este expediente sintetiza informaciones mediáticas y distintos puntos de vista; la naturaleza del codazo se interpreta de manera distinta según la postura.</div>"
     ],
 
 
@@ -1273,6 +334,7 @@ const events = [
       "<strong>媒体反应：</strong>Bleacher Report报道标题直言“C罗肘击阿尔维斯头部”。足球记者格拉汉姆·亨特在推特上抨击：“这是非常糟糕的选择，C罗的肘击明显是红牌犯规。”巴萨球迷账号totalBarca称其为“故意肘击，本应红牌”。而马德里《阿斯报》则辩护称“C罗只是跑动中撞到阿尔维斯”，双方媒体各执一词。",
       "<strong>裁判双标：</strong>此案与拳击克雷霍维亚克、飞踹克拉尼奥等事件一脉相承，共同构成了C罗<strong>“超级巨星裁判豁免权”</strong>的证据链。同一时期，巴萨球员因类似肘击动作多次被红牌罚下，而C罗的肘击却连黄牌都未吃。这种判罚的不对等，长期被西班牙媒体和球迷社群视为国家德比中“皇马受益”的典型例证。",
       "<strong>后续影响：</strong>这场比赛最终巴萨4-0大胜，C罗全场零进球零助攻，伯纳乌见证了他罕见的彻底失势之夜。肘击阿尔维斯事件虽未被追加处罚，但被《马卡报》读者投票评为当赛季国家德比“最该红牌却未判”的动作之一。",
+      "<strong>总评：</strong>国家德比里的一记肘击、一场冲突，再加上一帧画面，收入「C罗暴力瞬间」合集。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>当值裁判认定该接触为“意外”，未做出处罚。本档案综合媒体报道与多方观点整理，肘击性质在不同立场下存在解读差异。</div>"
     ],
     detailEn:[
@@ -1283,11 +345,15 @@ const events = [
       "<strong>Referee double standards:</strong> This case, together with the punch on Krychowiak and the flying kick on Cragno, forms the evidentiary chain of Ronaldo's <strong>'superstar referee immunity'</strong>. In the same period Barcelona players were repeatedly sent off for similar elbow gestures, yet Ronaldo's elbow drew not even a yellow. That disparity in officiating has long been cited by Spanish media and fan communities as a textbook example of 'Real Madrid benefiting' in El Clásico.",
       "<strong>Aftermath:</strong> Barça won 4-0; Ronaldo finished with zero goals and zero assists, the Bernabéu witnessing a rare night of total defeat. The elbow on Alves drew no retrospective punishment but was voted by Marca readers as one of the season's 'most-should-have-been-red' El Clásico incidents."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>The on-field referee deemed the contact 'accidental' and took no action. This file synthesises media reporting and multiple viewpoints; the nature of the elbow is read differently across positions.</div>"],
-    tags:["肘击","国家德比","阿尔维斯","巴萨","头部攻击"]
+      "<strong>Verdict:</strong> An elbow in a Clásico, a flare-up, and yet another image for the «Cristiano's violent moments» collection.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>The on-field referee deemed the contact 'accidental' and took no action. This file synthesises media reporting and multiple viewpoints; the nature of the elbow is read differently across positions.</div>"],
+    tags:["肘击","国家德比","阿尔维斯","巴萨","头部攻击"],
+    tagsEn:["elbow","El Clásico","Dani Alves","Barça","head attack"],
+    tagsEs:["codazo","Clásico","Dani Alves","Barça","golpe con la cabeza"]
   },
   {
     id:7, cat:"violence", catLabel:"场内暴力", severity:4,
+    dateIso:"2018-01-01",
     title:"飞踹门将克拉尼奥下巴",
     titleEn:"Flying Kick to Keeper Cragno's Jaw",
     titleEs: "Patada voladora a la mandíbula del portero Cragno",
@@ -1335,11 +401,14 @@ const events = [
       "<strong>Ironic aftermath:</strong> Having escaped red, Ronaldo not only stayed on but won a penalty in the 25th minute (Cragno's foul), converted it himself, and added another in the 32nd to complete his hat-trick. He celebrated by <em>touching his own neck</em> — interpretations varied. Some saw a riposte to critics; others read it as a provocative hint that he had 'only nicked Cragno's neck'.",
       "<strong>Historical significance:</strong> The Cragno flying kick was ranked by Britain's The Sun at the top of 'horrific Ronaldo tackles that escaped red', alongside the Krychowiak punch and the Alves elbow — the complete picture of his on-pitch violence. The series cemented among fans the <strong>'Ballon d'Or halo protection' theory</strong> around Ronaldo."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Neither the on-field referee nor VAR judged the action a red card. Opinions on the nature of the action differ between the refereeing community and the media; this file synthesises multiple public comments.</div>"],
-    tags:["飞踹","克拉尼奥","卡利亚里","出血","黄牌争议"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Neither the on-field referee nor VAR judged the action a red card. Opinions on the nature of the action differ between the refereeing community and the media; this file synthesises multiple public comments.</div>"],
+    tags:["飞踹","克拉尼奥","卡利亚里","出血","黄牌争议"],
+    tagsEn:["flying kick","Cragnotti","Cagliari","bleeding (loss)","yellow-card controversy"],
+    tagsEs:["patada voladora","Cragnotti","Cagliari","sangría (derrota)","polémica de amarilla"]
   },
   {
     id:8, cat:"violence", catLabel:"场内暴力", severity:3,
+    dateIso:"2017-01-01",
     title:"世预赛掌掴奥谢",
     titleEn:"Slap to O'Shea in World Cup Qualifier",
     titleEs: "Manotazo a O'Shea en clasificatorio mundialista",
@@ -1353,7 +422,8 @@ const events = [
       "<strong>Reacción:</strong> Muchos vieron el gesto como otra prueba de la poca deportividad y el ego descontrolado del portugués: un capitán pegando un manotazo a un rival por un balón.",
       "<strong>El patrón del «Penaldo»:</strong> El incidente ocurrió precisamente alrededor de un penalti, su especialidad — y el manotazo retrató su obsesión con el balón y su poca tolerancia a la mínima.",
       "<strong>Sanción:</strong> La acción no conllevó expulsión en el acto, pero las imágenes son claras: un manotazo descontrolado a un rival.",
-      "<strong>Conclusión:</strong> Un manotazo por un balón de penalti —una escena ridícula para un jugador de su talla— que se suma a la larga lista de salidas de tono de Cristiano."
+      "<strong>Conclusión:</strong> Un manotazo por un balón de penalti —una escena ridícula para un jugador de su talla— que se suma a la larga lista de salidas de tono de Cristiano.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> El manotazo no fue considerado sancionable ni por el árbitro del campo ni por el VAR, y Ronaldo no fue sancionado. Este expediente registra el incidente a partir de vídeo público y informes mediáticos; la fuerza y la naturaleza del manotazo se interpretan de forma distinta.</div>"
     ],
 
 
@@ -1374,6 +444,7 @@ const events = [
       "<strong>戏剧反转：</strong>更具讽刺意味的是，C罗随后<strong>主罚的点球被爱尔兰门将加文·巴祖努扑出</strong>——这是他国家队生涯罕见的点球失手。爱尔兰球迷戏称这是“掌掴的现世报”。直到第89分钟和第96分钟，C罗才连入两记头球完成逆转（2-1），打破进球纪录。掌掴事件因此被胜利叙事掩盖，但视频证据从未消失。",
       "<strong>奥谢其人：</strong>达拉·奥谢（生于1999年）并非球迷误传的老将约翰·奥谢，而是当时效力于西布朗的年轻中卫。他赛后没有大肆抱怨，但爱尔兰球迷和媒体长期铭记此事。奥谢此后与C罗结下“梁子”——2025年11月世预赛再遇时，正是奥谢被C罗肘击，导致C罗吃下国家队生涯首张红牌，可谓<em>四年恩怨的宿命闭环</em>。",
       "<strong>横向对比：</strong>同类掌掴动作在现代足球中几乎铁定红牌：2014年世界杯苏亚雷斯咬人被禁赛9场；2018年哥伦比亚球员同样因推搡对手面部被红牌罚下。C罗的掌掴发生在VAR时代，却被彻底无视，再次印证<strong>超级巨星在判罚上的系统性优待</strong>。",
+      "<strong>结论：</strong>为争一个点球而挥出的巴掌——对一个如此身价的球员而言是荒诞的一幕——并入了C罗失态举动的一长串清单。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>该掌掴动作未被当值裁判或VAR认定需处罚，C罗未被禁赛。本档案依据公开视频与媒体报道记录，掌掴力度与性质存在不同解读。</div>"
     ],
     detailEn:[
@@ -1384,11 +455,15 @@ const events = [
       "<strong>Who is O'Shea:</strong> Dara O'Shea (born 1999) was not, as some fans misreported, the veteran John O'Shea, but a young centre-back then at West Brom. He did not play up the incident afterwards, but Irish fans and media remembered it for years. He and Ronaldo thereafter developed a 'grudge' — when they met again in a November 2025 qualifier it was O'Shea whom Ronaldo elbowed, drawing Ronaldo's first national-team red — an <em>inevitable closing of a four-year loop</em>.",
       "<strong>Broad comparison:</strong> Comparable slap gestures in modern football are virtually always red: Suárez was banned 9 matches at the 2014 World Cup for the bite; in 2018 a Colombian was sent off for shoving an opponent's face. Ronaldo's slap came in the VAR era yet was entirely ignored — further proof of <strong>systematic preferential officiating of superstars</strong>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>The slap was not deemed punishable by the on-field referee or VAR, and Ronaldo was not banned. This file records the incident based on public video and media reports; the force and nature of the slap are read differently.</div>"],
-    tags:["掌掴","奥谢","爱尔兰","世预赛","冲动"]
+      "<strong>Conclusion:</strong> A swipe over a penalty-ball — a ridiculous scene for a player of his stature — added to Cristiano's long list of outbursts.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>The slap was not deemed punishable by the on-field referee or VAR, and Ronaldo was not banned. This file records the incident based on public video and media reports; the force and nature of the slap are read differently.</div>"],
+    tags:["掌掴","奥谢","爱尔兰","世预赛","冲动"],
+    tagsEn:["slap","O'Shea","Ireland","World Cup qualifier","impulsiveness"],
+    tagsEs:["manotazo","O'Shea","Irlanda","eliminatoria mundialista","impulsividad"]
   },
   {
     id:9, cat:"violence", catLabel:"场内暴力", severity:4,
+    dateIso:"2004-01-01",
     title:"14张红牌 — 暴力生涯总账",
     titleEn:"14 Red Cards — A Career of Violence",
     titleEs: "14 tarjetas rojas — toda una carrera de violencia",
@@ -1404,7 +479,8 @@ const events = [
       "<strong>La primera con Portugal:</strong> Sorprendentemente, no vio la roja con la selección hasta 2025, en un clasificatorio mundialista contra Irlanda, ya con 40 años — la 14.ª de su carrera.",
       "<strong>Patrón psicológico:</strong> Para los analistas, las 14 rojas retratan un patrón claro: cuando las cosas van mal, Cristiano «se va de la cabeza» y recurre a la agresión. La violencia como válvula de escape de su ego herido.",
       "<strong>Citas y comparativas:</strong> «14 tarjetas rojas, una cada 200 partidos más o menos. Así es como es el 1.º, 2.º y 3.º mejor de la historia», bromearon en OPTA.",
-      "<strong>Balance:</strong> 14 rojas — una colección de momentos de violencia que ensucian su palmarés. Lo que para sus fans es «carácter», para el resto es falta de autocontrol."
+      "<strong>Balance:</strong> 14 rojas — una colección de momentos de violencia que ensucian su palmarés. Lo que para sus fans es «carácter», para el resto es falta de autocontrol.",
+      "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> Las estadísticas de tarjetas rojas siguen a medios autorizados como ESPN; las distintas fuentes difieren ligeramente en algunos partidos y los totales oscilan entre 12 y 14. Este expediente toma como referencia la cifra de 14 publicada por ESPN en noviembre de 2025.</div>"
     ],
 
 
@@ -1427,6 +503,7 @@ const events = [
       "<strong>梅西对比：</strong>梅西生涯红牌仅<strong>3张</strong>（部分统计含国家队为4张），其中最著名的是2005年阿根廷首秀vs匈牙利，登场仅<em>43秒</em>即被红牌罚下。两人同处一个时代、同踢进攻核心位置，红牌数却相差10张以上。Planet Football的纪律数据对比显示，梅西的黄牌数也显著低于C罗。这种纪律差距是“梅罗之争”中被反复引用的论据。",
       "<strong>红牌分布特征：</strong>分析C罗14张红牌可见明显规律——多发生在<em>高压关键战</em>（德比、决赛、世预赛）、多涉及<em>暴力或挑衅行为</em>（肘击、推搡、拳击）、且常有<em>追加禁赛</em>。每张红牌背后都是一次情绪管理的彻底崩盘。",
       "<strong>辩护与反思：</strong>C罗阵营常以“好胜心强”“被对手挑衅”为其开脱，前皇马主帅齐达内、葡萄牙主帅马丁内斯均公开维护其“为团队而战”。但批评者指出，<strong>好胜不应等同于暴力</strong>，14张红牌的客观数字无法美化。",
+      "<strong>总评：</strong>14张红牌——一堆玷污他荣誉簿的暴力瞬间。在粉丝眼中是「血性」，在旁人看来则是缺乏自控。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>红牌统计依据ESPN等权威媒体，不同数据源对部分比赛的统计口径略有差异，总数在12-14张之间浮动。本档案以ESPN 2025年11月公布的14张为准。</div>"
     ],
     detailEn:[
@@ -1439,12 +516,16 @@ const events = [
       "<strong>Distribution pattern:</strong> Analysis of Ronaldo's 14 reds reveals clear patterns — most came in <em>high-pressure big matches</em> (derbies, finals, qualifiers), most involved <em>violence or provocation</em> (elbows, shoves, punches), and many drew <em>extended bans</em>. Behind every red card was a total collapse of emotional control.",
       "<strong>Defence and reflection:</strong> Ronaldo's camp invariably pleads 'competitiveness' or 'provocation', with former Real coach Zidane and Portugal coach Martínez publicly defending him as 'playing for the team'. But critics point out that <strong>competitiveness should not equal violence</strong>, and the objective figure of 14 red cards cannot be airbrushed."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Red-card stats follow authoritative outlets such as ESPN; different data sources vary slightly on some matches, with totals floating between 12 and 14. This file uses ESPN's November 2025 figure of 14.</div>"],
+      "<strong>Verdict:</strong> 14 red cards — a collection of violent moments that stain his trophy cabinet. What his fans call «character», the rest see as a lack of self-control.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Red-card stats follow authoritative outlets such as ESPN; different data sources vary slightly on some matches, with totals floating between 12 and 14. This file uses ESPN's November 2025 figure of 14.</div>"],
     quote:{text:"无论是面对球迷、记者、裁判、对手，无论是20多岁还是39岁，C罗都容易'上头'，做出一些'傻事儿'。", textEn:"Whether facing fans, journalists, referees or opponents, whether in his twenties or at thirty-nine, Ronaldo tends to lose his head and do foolish things.", author:"腾讯体育评论", authorEn:"Tencent Sports commentary", textEs:"Sea ante aficionados, periodistas, árbitros o rivales, ya sea con veintitantos o a los treinta y nueve, a Cristiano le suele ir la cabeza y hacer tonterías.", authorEs:"Comentario de Tencent Sports"},
-    tags:["14张红牌","生涯总账","曼联4","皇马6","暴力史"]
+    tags:["14张红牌","生涯总账","曼联4","皇马6","暴力史"],
+    tagsEn:["14 red cards","career reckoning","Man United 4","Real Madrid 6","history of violence"],
+    tagsEs:["14 tarjetas rojas","balance de carrera","Man United 4","Real Madrid 6","historial violento"]
   },
   {
     id:10, cat:"violence", catLabel:"场内暴力", severity:3,
+    dateIso:"2025-01-01",
     title:"2025世预赛国家队首红",
     titleEn:"First National-Team Red Card — 2025 Qualifier",
     titleEs: "Primera roja con la selección — clasificatorio 2025",
@@ -1494,11 +575,14 @@ const events = [
       "<strong>Match result:</strong> Down to ten men, Portugal crashed to a 0-2 upset, with Irish striker Troy Parrott scoring twice. It was Portugal's first defeat of this qualifying campaign. Next up was a home game against Armenia, where a win would seal their World Cup spot, but the star's ban clouded the picture — <strong>one elbow wrecking the team's rhythm</strong>.",
       "<strong>Historical significance:</strong> At 40 years and several months old, Ronaldo finally filled in the 'national-team red card' puzzle piece at the end of his career. ESPN wrote: 'The zero-red run across 226 international matches is over — <em>perhaps the only record he never wanted to own</em>.' With this, his career red-card tally reached 14, the contrast with Messi's 3-4 all the more glaring."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>The red card and any potential ban are subject to FIFA's final ruling. This file is compiled from ESPN, Sky Sports and other media; views on the action (elbow vs normal shrug-off) differ by standpoint.</div>"],
-    tags:["国家队首红","第14红","40岁","爱尔兰","世预赛"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>The red card and any potential ban are subject to FIFA's final ruling. This file is compiled from ESPN, Sky Sports and other media; views on the action (elbow vs normal shrug-off) differ by standpoint.</div>"],
+    tags:["国家队首红","第14红","40岁","爱尔兰","世预赛"],
+    tagsEn:["first national-team red","14th red card","age 40","Ireland","World Cup qualifier"],
+    tagsEs:["primera roja en selección","14.ª roja","40 años","Irlanda","eliminatoria mundialista"]
   },
   {
     id:11, cat:"offpitch", catLabel:"场外失态", severity:5,
+    dateIso:"2022-04-09",
     title:"摔碎自闭症小球迷手机",
     titleEn:"Smashed Autistic Fan's Phone",
     titleEs: "Le rompe el móvil al fan autista",
@@ -1545,12 +629,15 @@ const events = [
       "<strong>The FA's heavy fine:</strong> In September 2022 the FA formally charged Ronaldo with 'improper/violent conduct'. After nearly two months of hearings the FA fined him <strong>£50,000 and banned him for two matches</strong>. Worth noting: by this point Ronaldo had already done the Morgan interview blasting the club, his relationship with United was utterly broken, and the ban became a dark footnote to his Red Devils career.",
       "<strong>Public effect:</strong> The incident caused global uproar; #Ronaldo trending dominated for days. Autism charities condemned it and some sponsors faced public pressure. Critics noted that when <strong>a child's dignity counts for nothing</strong>, the so-called 'role model' is just a packaged persona. The case is a perennial fixture near the top of Ronaldo's 'dark history' list."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting by the UK's Mirror, Liverpool Echo, Manchester Evening News and ESPN. The police ultimately closed the case with a caution; no court conviction followed. Witness statements and media reports may differ — please refer to authoritative sources for details.</div>"],
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting by the UK's Mirror, Liverpool Echo, Manchester Evening News and ESPN. The police ultimately closed the case with a caution; no court conviction followed. Witness statements and media reports may differ — please refer to authoritative sources for details.</div>"],
     quote:{text:"在困难时刻，情绪失控是很难避免的。我为我的行为道歉。", textEn:"In difficult moments, it is hard to keep emotions under control. I apologize for my behavior.", author:"C罗，Instagram道歉文", authorEn:"Cristiano Ronaldo, Instagram apology post", textEs:"En los momentos difíciles cuesta controlar las emociones. Pido perdón por mi comportamiento.", authorEs:"Cristiano Ronaldo, publicación de disculpa en Instagram"},
-    tags:["摔手机","自闭症","埃弗顿","警方警告","道歉","Jacob Harding"]
+    tags:["摔手机","自闭症","埃弗顿","警方警告","道歉","Jacob Harding"],
+    tagsEn:["smashed phone","autism (fan)","Everton","police warning","apology","Jacob Harding"],
+    tagsEs:["rompe un teléfono","autismo (aficionado)","Everton","aviso policial","disculpa","Jacob Harding"]
   },
   {
     id:12, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2016-06-01",
     title:"抢记者麦克风扔进湖里",
     titleEn:"Snatched Reporter's Mic, Threw It in the Lake",
     titleEs: "Le quita el micrófono al periodista y lo tira al lago",
@@ -1585,6 +672,7 @@ const events = [
       "<strong>记者回应：</strong>Bankowski事后接受采访时颇为淡定，表示自己理解C罗的怒火，并直言“这就是CMTV长期报道他的结果”。他甚至半开玩笑地表示麦克风已“光荣殉职”。这一回应某种程度上<strong>坐实了双方长期不和</strong>的事实，也让事件更多了一层戏剧性。",
       "<strong>舆论两极：</strong>视频在网络疯传后，舆论呈两极分化。粉丝盛赞C罗“真性情、敢做敢当”，认为媒体活该；批评者则指出，<em>毁坏他人物品、羞辱记者</em>本身就是失格行为，与“职业球员”身份极不相称。BBC、Guardian等主流媒体均撰文质疑其职业素养。",
       "<strong>后续反转：</strong>颇具讽刺意味的是，C罗随后对匈牙利梅开二度，包括一脚惊艳的脚后跟进球，带队3比3惊险出线，并最终捧起欧洲杯。媒体的批评声被胜利冲淡，<strong>“抛麦门”反而成了传奇叙事的注脚</strong>。这种结果导向的舆论逻辑，也被批评者视为对不当行为的纵容。",
+      "<strong>总评：</strong>抢走记者麦克风扔进湖里——对一个如此级别的职业球员而言是荒诞的一幕，折射出他与不为他鼓掌的媒体之间扭曲的关系。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本条目依据BBC、The Guardian、Reuters、Sky Sports等2016年公开报道整理。事件细节与记者身份以当时媒体报道为准，CMTV与C罗之间的具体纠纷细节部分源自记者单方陈述。</div>"
     ],
     detailEn:[
@@ -1595,11 +683,15 @@ const events = [
       "<strong>Polarised public:</strong> The clip went viral and opinion split hard. Fans hailed Ronaldo's 'authenticity' and argued the media had it coming; critics pointed out that <em>destroying someone else's property and humiliating a reporter</em> was itself unbecoming, badly mismatching his status as a 'professional footballer'. BBC, The Guardian and other mainstream outlets questioned his professionalism.",
       "<strong>Ironic reversal:</strong> Most ironically, Ronaldo then scored twice against Hungary, including a stunning backheel, led Portugal to a 3-3 escape, and went on to lift the trophy. The criticism was drowned by victory — <strong>'mic-toss-gate' instead became a footnote of the legend</strong>. Outcome-oriented narrative logic like this was criticised as indulging bad behaviour."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from 2016 public reporting by the BBC, The Guardian, Reuters, Sky Sports and others. Event details and the reporter's identity follow contemporaneous media reports; specific details of the CMTV-Ronaldo dispute partly draw on the reporter's one-sided account.</div>"],
-    tags:["扔麦克风","2016欧洲杯","记者","迪奥戈-托雷斯","湖"]
+      "<strong>Verdict:</strong> Snatching a reporter's microphone and tossing it into a lake — a ridiculous scene for a professional of his stature, exposing his toxic relationship with any press that doesn't applaud him.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from 2016 public reporting by the BBC, The Guardian, Reuters, Sky Sports and others. Event details and the reporter's identity follow contemporaneous media reports; specific details of the CMTV-Ronaldo dispute partly draw on the reporter's one-sided account.</div>"],
+    tags:["扔麦克风","2016欧洲杯","记者","迪奥戈-托雷斯","湖"],
+    tagsEn:["threw the mic","Euro 2016","journalist","Diogo Torres","the lake"],
+    tagsEs:["tiró el micrófono","Eurocopa 2016","periodista","Diogo Torres","el lago"]
   },
   {
     id:13, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2021-03-01",
     title:"两次摔队长袖标",
     titleEn:"Threw the Armband — Twice",
     titleEs: "Tira el brazalete de capitán — dos veces",
@@ -1646,11 +738,14 @@ const events = [
       "<strong>Euro repeat:</strong> On 27 June that year, in the Euro round of 16, Portugal were knocked out 0-1 by Belgium. Ronaldo again lost control, <strong>throwing the captain's armband to the ground and kicking it away</strong> as he trudged down the tunnel. Two armband tosses in three months drew wave after wave of criticism: the 'sore loser' tag stuck hard, and even Portuguese legends publicly voiced disappointment.",
       "<strong>Broad comparison:</strong> Compared with Messi's restraint after Argentina defeats, or Modrić's composure after losing a World Cup final, Ronaldo's repeated <strong>'armband-toss'</strong> outbursts were widely seen as a shortfall in mental maturity. Supporters plead competitive will; critics argued that a true leader steadies the ship in adversity, <em>not leading the collapse</em>. It is a stain on his character file that won't wash out."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from 2021 public reporting by the BBC, The Guardian, ESPN, Goal.com and others. The armband auction amount and the assisted infant's condition follow Serbian state television and authoritative media reports.</div>"],
-    tags:["摔袖标","队长","塞尔维亚","欧洲杯","不尊重国家"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from 2021 public reporting by the BBC, The Guardian, ESPN, Goal.com and others. The armband auction amount and the assisted infant's condition follow Serbian state television and authoritative media reports.</div>"],
+    tags:["摔袖标","队长","塞尔维亚","欧洲杯","不尊重国家"],
+    tagsEn:["threw armband","captain","Serbia","Euros","disrespects nation"],
+    tagsEs:["tira el brazalete","capitán","Serbia","Eurocopa","falta de respeto al país"]
   },
   {
     id:14, cat:"offpitch", catLabel:"场外失态", severity:4,
+    dateIso:"2024-02-01",
     title:"对球迷做不雅动作 + 围巾塞裤裆",
     titleEn:"Obscene Gesture + Scarf Stuffed in Pants",
     titleEs: "Gesto obsceno + bufanda en el pantalón",
@@ -1685,6 +780,7 @@ const events = [
       "<strong>重罚落地：</strong>2024年2月28日，沙特足协纪律与道德委员会宣布处罚：C罗被<strong>禁赛1场，并处罚款共计3万里亚尔</strong>（1万上缴足协、2万支付给Al Shabab作为投诉费，约合8000美元）。委员会强调该裁决<strong>不可上诉</strong>，态度强硬。",
       "<strong>舆论哗然：</strong>事件经Reuters、ABC、Guardian等国际媒体广泛报道，沙特国内批评声尤为尖锐。作为沙特联赛“头号招牌”和旅游形象大使，C罗此举被视为对东道主文化的不敬——在<strong>极为注重体面与宗教礼仪</strong>的沙特社会，下体动作几乎是不可触碰的禁忌，影响远超球场。",
       "<strong>形象反噬：</strong>讽刺的是，C罗当初以天价年薪（据报约2亿欧元/年）加盟沙特，本被寄予“提升联赛国际形象”的厚望。然而从摸裆、不雅手势到后续沙特超级杯的<strong>肘击红牌</strong>，一系列失格行为反而令沙特联赛频频以负面姿态登上全球头条，所谓“形象工程”大打折扣。",
+      "<strong>惯犯模式：</strong>累犯不改：当球迷口号触动他时，C罗不以场上表现回应，而是诉诸下流手势与挑衅。对一个「全球偶像」而言极不专业。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本条目依据ESPN、Reuters、ABC News、The Athletic及The Guardian等2024年公开报道整理。罚款金额与禁赛场次以沙特足协纪律委员会官方公告为准；现场手势的具体指向因视频角度不同存在不同解读。</div>"
     ],
     detailEn:[
@@ -1695,11 +791,15 @@ const events = [
       "<strong>Public outcry:</strong> The incident was widely covered by Reuters, ABC, The Guardian and other international outlets; criticism inside Saudi Arabia was sharpest. As the Pro League's top billboard star and a tourism ambassador, Ronaldo's behaviour was seen as disrespecting the host culture — in a society <strong>extremely sensitive to propriety and religious etiquette</strong>, crotch gestures are an untouchable taboo, far graver than a football matter.",
       "<strong>Image blowback:</strong> Ironically, Ronaldo joined Saudi on a record salary (reportedly about €200M a year) tasked with 'lifting the league's global image'. Yet from the crotch-grab to the obscene gesture to the subsequent Saudi Super Cup <strong>elbow-red</strong>, a string of indiscretions has repeatedly put the Saudi league on global headlines for the wrong reasons — a major discount on the 'image project'."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from 2024 public reporting by ESPN, Reuters, ABC News, The Athletic and The Guardian. The fine amount and ban matches follow the official announcement of the Saudi FA's disciplinary committee; the specific meaning of the on-site gesture is read differently depending on camera angle.</div>"],
-    tags:["不雅动作","围巾塞裤裆","沙特联赛","梅西","利雅得德比","停赛"]
+      "<strong>The pattern:</strong> Add it to the pile: rather than answering on the pitch, Cristiano resorts to obscene gestures and provocations whenever the chants get to him. Hardly professional for a «global idol».",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from 2024 public reporting by ESPN, Reuters, ABC News, The Athletic and The Guardian. The fine amount and ban matches follow the official announcement of the Saudi FA's disciplinary committee; the specific meaning of the on-site gesture is read differently depending on camera angle.</div>"],
+    tags:["不雅动作","围巾塞裤裆","沙特联赛","梅西","利雅得德比","停赛"],
+    tagsEn:["obscene gesture","scarf stuffed in pants","Saudi Pro League","Messi","Riyadh derby","suspension"],
+    tagsEs:["gesto obsceno","bufanda en el pantalón","Liga saudí","Messi","derbi de Riad","sanción"]
   },
   {
     id:15, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2010-01-01",
     title:"场上“小动作”合集",
     titleEn:"On-Pitch 'Dark Arts' Compilation",
     titleEs: "Recopilación de «artes oscuras» sobre el césped",
@@ -1734,6 +834,7 @@ const events = [
       "<strong>夸张倒地：</strong>从曼联早期到皇马鼎盛期，C罗长期背负<strong>“假摔”“佩纳尔多（Penaldo）”</strong>的戏称。最著名的争议包括2006年世界杯“眨眼门”（怂恿裁判罚下俱乐部队友鲁尼）、多次在禁区内夸张倒地索要点球。ESPN评论员Ale Moreno曾直言其某些倒地“根本不该判点球”。",
       "<strong>拖延与施压：</strong>C罗也是<strong>围攻裁判、拖延比赛时间</strong>的老手：领先时倒地不起、失球后冲裁判咆哮、投诉对手犯规时夸张地比划动作。这些被英媒归入“dark arts（黑魔法）”的行为，虽不至吃牌，却严重影响比赛流畅度，被视为<strong>缺乏体育精神</strong>的表现。",
       "<strong>对比与辩护：</strong>辩护者常以“C罗早期在英超遭对手野蛮犯规（如2006年被踢断腿险情）”为由，认为其强硬作风是被环境逼出来的，且其球技远大于小动作。但批评者反问：梅西、伊涅斯塔同样屡遭侵犯，却<strong>极少以肘击、踩踏回敬</strong>——品格高下，自有公论。<em>伟大不等于无可指摘。</em>",
+      "<strong>总评：</strong>一锅「黑武功」大杂烩，勾勒出进球之外的C罗：假摔者、抢功者、索牌者、凌驾全队庆祝者——偶像的B面。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本条目为综述性整理，所列事件分散于多家媒体多年报道，部分慢镜头判罚（如是否故意）存在争议。红牌与处罚以各赛事官方纪律委员会公告为准；对球员品格的评价属媒体与公众观点，不代表本馆立场。</div>"
     ],
     detailEn:[
@@ -1744,11 +845,15 @@ const events = [
       "<strong>Time-wasting and pressure:</strong> Ronaldo is also a veteran of <strong>swarming the referee and time-wasting</strong>: going down injured when ahead, roaring at the referee after conceding, gesturing wildly when appealing fouls. These behaviours, classed by the English press as 'dark arts', don't always draw cards but seriously disrupt match flow — proof of <strong>a lack of sportsmanship</strong>.",
       "<strong>Comparison and defence:</strong> Defenders argue Ronaldo's early years in England saw brutal fouls (in 2006 he was nearly leg-broken), so his toughness was forced on him, and his actual play outweighs the dark arts. Critics counter that Messi, Iniesta and others were also regularly fouled but <strong>rarely retaliated with elbows or stamps</strong> — character is character. <em>Greatness is not the same as spotlessness.</em>"
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is a synthesis; the listed events are scattered across years of multi-outlet coverage, and some slow-motion verdicts (e.g. intent) are disputed. Red cards and punishments follow the official disciplinary committee announcements of each competition; judgements on the player's character reflect media and public opinion, not this archive's position.</div>"],
-    tags:["小动作","头发丝","跳水","假摔","脱衣","抢进球"]
+      "<strong>Verdict:</strong> A medley of «dark arts» that paints the Cristiano beyond the goals: the diver, the goal-thief, the card-claimer, the one who celebrates above the team. The B-side of the idol.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is a synthesis; the listed events are scattered across years of multi-outlet coverage, and some slow-motion verdicts (e.g. intent) are disputed. Red cards and punishments follow the official disciplinary committee announcements of each competition; judgements on the player's character reflect media and public opinion, not this archive's position.</div>"],
+    tags:["小动作","头发丝","跳水","假摔","脱衣","抢进球"],
+    tagsEn:["dark arts","tip-in goal theft","diving","diving","shirt-off stunt","goal theft"],
+    tagsEs:["artes oscuras","gol robado de peinada","simulación","simulación","se quitó la camiseta","robo de gol"]
   },
   {
     id:16, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2021-06-14",
     title:"欧洲杯移走可口可乐 致市值蒸发40亿美元",
     titleEn:"Removed Coca-Cola at the Euros — $40B Wiped Off Market Cap",
     titleEs: "Aparta la Coca-Cola en la Euro — 40.000 M$ borrados de la bolsa",
@@ -1783,6 +888,7 @@ const events = [
       "<strong>球星效仿：</strong>C罗此举引发连锁反应：法国球星博格巴在随后的发布会上移走面前的<strong>喜力啤酒</strong>（他作为穆斯林不饮酒）；意大利的洛卡特利同样把可乐瓶挪走。一时间“移瓶”成了欧洲杯的另类风潮，<em>赞助商们提心吊胆</em>，欧足联不得不反复重申赞助权益。",
       "<strong>商业反讽：</strong>颇具反讽的是，C罗本人是<strong>多项含糖/高热量品牌的代言人</strong>，其个人商业帝国同样依赖赞助体系。批评者指出，他对可口可乐的“道德审判”多少有些<em>双重标准</em>——当利益在自己这边时，所谓“健康倡导”便不再那么旗帜鲜明。",
       "<strong>真假归因：</strong>财经分析师指出，40亿美元市值波动并非全部归因于C罗——当日大盘整体下行、可口可乐基本面承压，<strong>股价波动是多重因素叠加</strong>的结果。但媒体显然更青睐“巨星一指，蒸发40亿”的戏剧化叙事，事实与传闻在传播中被反复重构，真相早已面目模糊。",
+      "<strong>代价：</strong>一句「喝水」，就让某赞助商的市值蒸发400亿美元。把搞垮足球合伙人的傲慢，量化成了一个数字。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本条目依据Yahoo、Business Insider、Marketing Edge等2021年公开报道整理。“40亿美元”为媒体广泛引用的估算数字，实际市值波动受多重市场因素影响，并非全部由C罗举动导致，请读者审慎甄别。</div>"
     ],
     detailEn:[
@@ -1793,12 +899,16 @@ const events = [
       "<strong>Commercial irony:</strong> Most ironically, Ronaldo himself is a <strong>spokesperson for several sugary or high-calorie brands</strong>, and his personal business empire depends on the very sponsorship system. Critics pointed out that his 'moral judgement' on Coca-Cola was somewhat <em>double-standard</em> — when the interest is on his side, the 'health advocacy' no longer flies so flag-like.",
       "<strong>Truth of attribution:</strong> Financial analysts noted that the $4 billion swing was not all down to Ronaldo — the broader market was down that day and Coca-Cola's fundamentals were under pressure, so the <strong>share-price move was a multi-factor outcome</strong>. But the media clearly preferred the dramatic narrative of 'a superstar's finger evaporating $4 billion', and truth and rumour got repeatedly reshaped in transit until all was blurred."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from 2021 public reporting by Yahoo, Business Insider, Marketing Edge and others. The '$4 billion' figure is a widely-quoted media estimate; the actual market-cap move was driven by multiple market factors and was not solely caused by Ronaldo's action — readers should judge carefully.</div>"],
+      "<strong>The cost:</strong> A single phrase, «drink water», and $40 billion wiped off a sponsor's market cap. The arrogance with which he sank a football partner, rendered as a figure.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from 2021 public reporting by Yahoo, Business Insider, Marketing Edge and others. The '$4 billion' figure is a widely-quoted media estimate; the actual market-cap move was driven by multiple market factors and was not solely caused by Ronaldo's action — readers should judge carefully.</div>"],
     quote:{text:"喝水，不要可乐。", textEn:"Drink water, not Coca-Cola.", author:"C罗，2021欧洲杯发布会", authorEn:"Cristiano Ronaldo, UEFA Euro 2020 press conference", textEs:"Bebe agua, no Coca-Cola.", authorEs:"Cristiano Ronaldo, rueda de prensa de la UEFA Euro 2020"},
-    tags:["可口可乐","40亿美元","市值蒸发","赞助商","自律人设","欧洲杯"]
+    tags:["可口可乐","40亿美元","市值蒸发","赞助商","自律人设","欧洲杯"],
+    tagsEn:["Coca-Cola","$40 billion","market cap wiped","sponsor","discipline persona","Euros"],
+    tagsEs:["Coca-Cola","40.000 millones de dólares","caída de capitalización","patrocinador","imagen de disciplina","Eurocopa"]
   },
   {
     id:17, cat:"persona", catLabel:"人设争议", severity:4,
+    dateIso:"2010-01-01",
     title:"自设“环球足球奖”颁给自己",
     titleEn:"Self-Founded 'Globe Soccer Awards' Handed to Himself",
     titleEs: "Autofundó los «Globe Soccer Awards» y se los da a sí mismo",
@@ -1833,6 +943,7 @@ const events = [
       "<strong>自颁争议：</strong>因门德斯与C罗的深度绑定，媒体与球迷毫不留情地嘲讽该奖为<strong>“C罗自颁奖”</strong>。梅西粉丝群体尤为不屑，制作大量“迪拜自助餐”梗图。Wikipedia专门收录了该奖“被指偏袒门德斯系球员”的批评条目，其公信力在主流足坛评价中始终处于<strong>尴尬的灰色地带</strong>。",
       "<strong>扩张与营销：</strong>近年来，环球足球奖不断增设新奖项（如“球迷奖”“中东最佳”等），并大幅扩展参赛地区。2025年颁奖礼定于迪拜<strong>亚特兰蒂斯皇家酒店</strong>举办，C罗依然稳居候选名单。批评者认为，这是在<strong>用地区性奖项为某位球员量身定制荣誉</strong>，商业逻辑凌驾于体育公正之上。",
       "<strong>横向对比：</strong>与历史悠久的金球奖（1956年创立）、FIFA最佳（前身可追溯至1991年）相比，环球足球奖<strong>缺乏透明的投票机制与广泛的国际记者/队长/主帅参与</strong>，评委构成长期不透明。一个由经纪人深度参与、为其客户反复加冕的奖项，<em>注定只能是一场自娱自乐的秀</em>。",
+      "<strong>总评：</strong>在迪拜创办一个奖项年复一年颁给自己——一场利己主义的杰作。金球不够，就自己办一个。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本条目依据Wikipedia、Gulf News、ESPN、beIN Sports等公开资料整理。门德斯与环球足球奖的具体股权关系，不同信源表述存在差异，本馆以“被广泛报道/质疑”的表述呈现，最终归属以官方工商登记为准。</div>"
     ],
     detailEn:[
@@ -1843,11 +954,15 @@ const events = [
       "<strong>Expansion and marketing:</strong> In recent years the awards have constantly added new categories ('Fans' Award', 'Best Middle East', etc.) and broadened their regional reach. The 2025 edition was slated for Dubai's <strong>Atlantis The Royal</strong> hotel, with Ronaldo still firmly on the shortlist. Critics see it as <strong>tailoring regional awards for a particular player</strong>, with commercial logic overriding sporting fairness.",
       "<strong>Broad comparison:</strong> Versus the historic Ballon d'Or (founded 1956) and FIFA Best (roots back to 1991), the Globe Soccer Awards <strong>lack a transparent voting mechanism and broad participation by international journalists, captains and coaches</strong>; the make-up of its electorate has long been opaque. An award deeply entangled with an agent and repeatedly crowning his client can <em>only ever be a self-entertaining show</em>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public sources including Wikipedia, Gulf News, ESPN, beIN Sports and others. The specific equity relationship between Mendes and the Globe Soccer Awards is phrased differently across sources; this archive uses the 'widely reported / questioned' formulation — final ownership follows official commercial registrations.</div>"],
-    tags:["环球足球奖","门德斯","自我营销","迪拜","自设奖项"]
+      "<strong>Verdict:</strong> Founding an award in Dubai to hand it to yourself year after year — a masterpiece of ego. When the Ballons d'Or aren't enough, you simply mint your own.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public sources including Wikipedia, Gulf News, ESPN, beIN Sports and others. The specific equity relationship between Mendes and the Globe Soccer Awards is phrased differently across sources; this archive uses the 'widely reported / questioned' formulation — final ownership follows official commercial registrations.</div>"],
+    tags:["环球足球奖","门德斯","自我营销","迪拜","自设奖项"],
+    tagsEn:["Globe Soccer Awards","Mendes","self-promotion","Dubai","self-founded award"],
+    tagsEs:["Globe Soccer Awards","Mendes","autopromoción","Dubái","premio autopropuesto"]
   },
   {
     id:18, cat:"persona", catLabel:"人设争议", severity:5,
+    dateIso:"2013-01-01",
     title:"2013金球奖延期“偷”里贝里",
     titleEn:"2013 Ballon d'Or Vote Extended to 'Steal' It from Ribéry",
     titleEs: "Balón de Oro 2013 — prorrogaron la votación para «robárselo» a Ribéry",
@@ -1882,6 +997,7 @@ const events = [
       "<strong>瑞典戴帽：</strong>延期窗口期内，世预赛附加赛葡萄牙对阵瑞典，C罗上演<strong>史诗级帽子戏法</strong>，单骑淘汰伊布。这场荡气回肠的表演恰好在新的投票截止日之前上演，瞬间改变了评委风向。<em>没有延期，就没有这场逆转的舞台</em>——时机的“巧合”令人生疑。",
       "<strong>结果与哗然：</strong>最终C罗逆转获奖，里贝里仅列第三（第二名是梅西）。结果公布后舆论哗然，德国《图片报》、法国《队报》连篇炮轰，里贝里本人多次在采访中表达不甘，直言<strong>“我被抢走了金球奖”</strong>。拜仁高层鲁梅尼格、海因克斯也公开质疑FIFA的公正性，此事成为金球奖史上最大的争议之一。",
       "<strong>历史定位：</strong>2013金球奖被视为<strong>“程序不公损害结果正当性”</strong>的教科书案例：里贝里凭团队荣誉理应问鼎，却因规则临时改动与布拉特的“道歉式补偿”被逆转。CNN评论一针见血：“先嘲讽他，再夸奖他，最后把奖杯递给他”——<em>一场闹剧，三个动作，彻底败坏了一个奖项的声誉</em>。",
+      "<strong>总评：</strong>一次「量身定制」的延期改写了2013年金球奖的历史。C罗捧走奖项，里贝里一无所获，国际足联则被怀疑的阴影笼罩。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本条目依据The Guardian、ESPN、CNN、The National、CBC Sports等2013年公开报道整理。投票延期、布拉特言论及获奖结果均有据可查；对“延期为C罗量身定制”的指控属当时舆论与媒体评论，FIFA官方解释为“投票率过低”，本馆并存两说，供读者判断。</div>"
     ],
     detailEn:[
@@ -1892,12 +1008,16 @@ const events = [
       "<strong>Result and outcry:</strong> Ronaldo won in the end; Ribéry could only finish third (behind Messi). The result set off a media firestorm, with Germany's Bild and France's L'Équipe thundering; Ribéry himself repeatedly said in interviews <strong>'I was robbed of the Ballon d'Or'</strong>. Bayern bosses Rummenigge and Heynckes publicly questioned FIFA's fairness, making this one of the Ballon d'Or's all-time controversies.",
       "<strong>Historical significance:</strong> The 2013 Ballon d'Or is a textbook case of <strong>'procedural unfairness undermining the legitimacy of the outcome'</strong>: Ribéry deserved it on team honours, only to be overturned by an ad-hoc rule change and Blatter's 'apology-compensation'. CNN nailed it: 'Mock him, then praise him, then hand him the trophy' — <em>a farce in three acts that thoroughly broke an award's reputation</em>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from 2013 public reporting by The Guardian, ESPN, CNN, The National, CBC Sports and others. The voting extension, Blatter's remarks and the result are all on record; the accusation that 'the extension was tailor-made for Ronaldo' reflects contemporaneous opinion and media commentary, while FIFA's official explanation was 'low turnout' — this archive presents both for the reader to judge.</div>"],
+      "<strong>Verdict:</strong> A «tailor-made» extension rewrote the history of the 2013 Ballon d'Or. Cristiano took the prize, Ribéry walked away empty-handed, and FIFA was left marked by suspicion.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from 2013 public reporting by The Guardian, ESPN, CNN, The National, CBC Sports and others. The voting extension, Blatter's remarks and the result are all on record; the accusation that 'the extension was tailor-made for Ronaldo' reflects contemporaneous opinion and media commentary, while FIFA's official explanation was 'low turnout' — this archive presents both for the reader to judge.</div>"],
     quote:{text:"2013年是破坏了规则，而2010年在规则之内。", textEn:"In 2013 the rules were bent; in 2010 everything stayed within the rules.", author:"知乎足球评论，对比梅西2010金球争议", authorEn:"Zhihu football commentary, comparing Messi's 2010 Ballon d'Or controversy", textEs:"En 2013 se doblaron las reglas; en 2010 todo fue dentro de las reglas.", authorEs:"Comentario de fútbol en Zhihu, comparando la polémica del Balón de Oro de Messi en 2010"},
-    tags:["金球奖","延期投票","里贝里","四大皆空","布拉特","门德斯","丑闻"]
+    tags:["金球奖","延期投票","里贝里","四大皆空","布拉特","门德斯","丑闻"],
+    tagsEn:["Ballon d'Or","vote extension","Ribéry","trophyless season","Blatter","Mendes","scandal"],
+    tagsEs:["Balón de Oro","prórroga de votación","Ribéry","temporada en blanco","Blatter","Mendes","escándalo"]
   },
   {
     id:19, cat:"club", catLabel:"俱乐部与法律", severity:5,
+    dateIso:"2022-11-16",
     title:"皮尔斯·摩根采访炮轰曼联",
     titleEn:"Piers Morgan Interview — Blasting Manchester United",
     titleEs: "Entrevista con Piers Morgan — destroza al Manchester United",
@@ -1944,12 +1064,15 @@ const events = [
       "<strong>Contract termination:</strong> After the interview aired United struck back hard. On 22 November 2022 the club announced that Ronaldo would <strong>'leave Manchester United by mutual agreement with immediate effect'</strong>, his contract terminated. It was a rare 'sacking' of a superstar in United history, and Ronaldo went into the World Cup as <em>the only football megastar without a club</em>.",
       "<strong>Burning his own bridges:</strong> After the World Cup no elite club came for him; he eventually left for Al Nassr in Saudi. The interview is widely regarded as the worst PR disaster of Ronaldo's career — it ended his Old Trafford story and left European football deeply doubting his professionalism and EQ, <em>laying the groundwork for his slide from European elite to Middle East cash-grab</em>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"我感到被背叛了。曼联的人——教练、高层——他们背叛了我。", textEn:"I feel betrayed. The people at Manchester United—the manager, the hierarchy—they betrayed me.", author:"C罗，皮尔斯·摩根采访", authorEn:"Cristiano Ronaldo, Piers Morgan interview", textEs:"Me siento traicionado. La gente del Manchester United —el entrenador, la directiva— me ha traicionado.", authorEs:"Cristiano Ronaldo, entrevista con Piers Morgan"},
-    tags:["皮尔斯摩根","炮轰曼联","滕哈格","鲁尼","解约","TalkTV","被背叛"]
+    tags:["皮尔斯摩根","炮轰曼联","滕哈格","鲁尼","解约","TalkTV","被背叛"],
+    tagsEn:["Piers Morgan","blasted Man United","Ten Hag","Rooney","contract terminated","TalkTV","betrayed"],
+    tagsEs:["Piers Morgan","ataca a United","Ten Hag","Rooney","rescisión de contrato","TalkTV","traicionado"]
   },
   {
     id:20, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2022-07-01",
     title:"2022夏窗转会闹剧",
     titleEn:"2022 Summer Transfer Farce",
     titleEs: "Circo del fichaje del verano 2022",
@@ -1986,6 +1109,7 @@ const events = [
       "<strong>多特巴黎齐拒：</strong>多特蒙德嫌弃其高龄与高薪，明确表示不感兴趣；巴黎圣日耳曼拥有梅西内马尔姆巴佩，对C罗更是<strong>敬谢不敏</strong>。再加上巴萨因财政和形象考量同样拒绝，门德斯跑遍欧洲豪门，竟无一家愿意接手，<em>场面之冷清堪称足坛奇观</em>。",
       "<strong>尴尬留队：</strong>转会窗关闭日，C罗只能灰溜溜<strong>留在曼联</strong>，赛季初几度沦为替补、提前离场闹剧不断。这位自诩“历史最佳”的巨星，沦为全欧豪门集体避之不及的烫手山芋，<em>从天之骄子跌落为无人问津的尴尬存在</em>，反差之大令人唏嘘。",
       "<strong>出走沙特：</strong>夏窗闹剧的最终结局，是同年11月摩根专访引爆后曼联提前解约，C罗在12月以天价加盟沙特利雅得胜利。从<strong>死守欧冠梦想到屈居亚洲联赛</strong>，这场转会闹剧以最不体面的方式收场，成了足坛年度最大笑柄。",
+      "<strong>总评：</strong>一个夏天里，六家豪门都对他说「不」。2022年的转会闹剧，成了市场不再追逐C罗的终极证据。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开报道整理，仅供参考。</div>"
     ],
     detailEn:[
@@ -1997,11 +1121,15 @@ const events = [
       "<strong>Forced to stay:</strong> On transfer-deadline day Ronaldo had to slink back and <strong>stay at United</strong>, reduced to a substitute several times early in the season with early-exit antics piling up. The self-proclaimed 'best in history' had become a hot potato every elite club avoided, <em>plummeting from darling to a pariah</em> — a contrast breathtaking in its speed.",
       "<strong>Off to Saudi:</strong> The transfer farce ended in November when the Morgan interview blew up, United terminated his deal, and in December Ronaldo signed for Saudi Arabia's Al Nassr on a mega-deal. From <strong>clinging to the UCL dream to slumming it in an Asian league</strong>, the saga closed in the most graceless way possible — football's joke of the year."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["转会闹剧","切尔西","拜仁","马竞","欧冠","被拒绝","门德斯"]
+      "<strong>Verdict:</strong> Six elite clubs told him «no» in a single summer. The 2022 transfer circus stands as definitive proof that the market had stopped chasing Cristiano.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["转会闹剧","切尔西","拜仁","马竞","欧冠","被拒绝","门德斯"],
+    tagsEn:["transfer farce","Chelsea","Bayern","Atlético Madrid","Champions League","rejected","Mendes"],
+    tagsEs:["circo de fichaje","Chelsea","Bayern","Atlético de Madrid","Champions League","rechazado","Mendes"]
   },
   {
     id:21, cat:"club", catLabel:"俱乐部与法律", severity:4,
+    dateIso:"2018-01-01",
     title:"废队友废教练 — 尤文与曼联的衰退",
     titleEn:"Ruining Teammates & Coaches — Juve & United Decline",
     titleEs: "Rompeequipos y entrenadores — decadencia en la Juve y el United",
@@ -2036,6 +1164,7 @@ const events = [
       "<strong>回归曼联：</strong>2021年夏C罗回归曼联，结果同样灾难。索尔斯克亚因无法适配他的战术下课，球队从上赛季<strong>英超第二滑落至第六</strong>，再次无缘欧冠。C罗个人数据尚可，但曼联整体攻防失衡、更衣室分裂，<strong>有他反而更弱</strong>成了不争的事实。",
       "<strong>拖垮体系：</strong>无论尤文还是曼联，C罗加盟后的共同特征是：全队必须围绕他踢，进攻节奏放慢、防守少一人、年轻球员发展受限。教练被迫为巨星<strong>牺牲整体</strong>，<em>体系为他让路却得不到回报</em>，这被批评者称为典型的“球星依赖症”。",
       "<strong>反噬自身：</strong>更具讽刺意味的是，C罗所到之处<strong>俱乐部战绩集体滑坡</strong>——尤文从统治意甲到争四艰难，曼联从争冠到争六。所谓“自带1比0”的神话被现实击碎，<em>巨星效应最终反噬了球队</em>，这段“废队友”的黑历史也成为质疑他历史地位的有力论据。",
+      "<strong>「C罗效应」：</strong>在批评者看来，规律清晰可辨：C罗所到之处，队友状态下滑、账目失衡、俱乐部结局更糟。「球队破坏者」在行动。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开报道整理，仅供参考。</div>"
     ],
     detailEn:[
@@ -2046,12 +1175,16 @@ const events = [
       "<strong>Dragging down systems:</strong> Whether at Juve or United, the common feature of Ronaldo's arrival was: the whole team had to play around him, the attacking tempo slowed, defending effectively with ten, and young players' development was stunted. The manager was forced to <strong>sacrifice the collective</strong>, <em>the system gave way for him with no payback</em> — what critics call textbook 'superstar-dependency syndrome'.",
       "<strong>Blowback on himself:</strong> Most ironically, wherever Ronaldo went <strong>the club's results collectively slumped</strong> — Juventus went from ruling Serie A to scrambling for top-four, United from title contenders to sixth-place. The myth that he 'brought a 1-0 lead' was shattered, <em>and the superstar effect ultimately backfired on the team</em>. This 'team-wrecker' dark history remains a powerful exhibit against his historical standing."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<strong>The Cristiano factor:</strong> For the critics, the pattern is clear: Cristiano arrives, teammates suffer, the books unravel, and the club ends up worse than before. The «team-breaker» in action.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"C罗没能力展现其它进攻技能，也只能是进球数据还不错。", textEn:"Ronaldo can't show any other attacking skills; all he really has is decent goal-scoring numbers.", author:"知乎足球分析", authorEn:"Zhihu football analysis", textEs:"Cristiano no sabe mostrar otras habilidades ofensivas; lo único que de verdad tiene son números goleadores decentes.", authorEs:"Análisis de fútbol en Zhihu"},
-    tags:["废队友","废教练","尤文图斯","曼联","意甲连冠终结","联赛第六","团队破坏者"]
+    tags:["废队友","废教练","尤文图斯","曼联","意甲连冠终结","联赛第六","团队破坏者"],
+    tagsEn:["teammate-killer","coach-killer","Juventus","Man United","Serie A dynasty ended","finished 6th","team-breaker"],
+    tagsEs:["compañero-mata","entrenador-mata","Juventus","Man United","fin de la dinastía en Serie A","sexto en la liga","rompeequipos"]
   },
   {
     id:22, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2016-07-01",
     title:"2016欧洲杯决赛“躺冠”被营销成第一功臣",
     titleEn:"Euro 2016 Final — 'Carried' to the Title, Marketed as the Hero",
     titleEs: "Final de la Euro 2016 — «llevado» al título, vendido como héroe",
@@ -2098,11 +1231,14 @@ const events = [
       "<strong>The numbers tell the truth:</strong> Objectively Ronaldo contributed 3 goals at these Euros, but he played just 25 minutes of the final. Portugal drew <strong>all three group matches</strong> and squeaked through as one of the best third-placed sides, the path to the title not particularly glittering. To attribute all glory to a player who went off injured early is <strong>plainly unfair</strong>, yet the commercial narrative locked it in.",
       "<strong>The 'carried' controversy:</strong> This final is therefore a recurring 'dark-history' entry for Ronaldo — when a player <strong>wins a title without really playing</strong> and still claims all the credit, that 'leadership aura' looks awfully cheap. The moth-on-face photo has become almost the most biting footnote to this <strong>'carried-title marketing'</strong>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["2016欧洲杯","躺冠","埃德尔","佩佩","纳尼","门德斯营销","MVP第七"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["2016欧洲杯","躺冠","埃德尔","佩佩","纳尼","门德斯营销","MVP第七"],
+    tagsEn:["Euro 2016","carried to the title","Éder","Pepe","Nani","Mendes marketing","7th-place MVP"],
+    tagsEs:["Eurocopa 2016","título de prestado","Éder","Pepe","Nani","marketing de Mendes","MVP en 7.º lugar"]
   },
   {
     id:23, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2006-01-01",
     title:"世界杯淘汰赛20年进球荒",
     titleEn:"20-Year World Cup Knockout Goal Drought",
     titleEs: "20 años de sequía goleadora en eliminatorias del Mundial",
@@ -2149,11 +1285,14 @@ const events = [
       "<strong>The Messi yardstick:</strong> On the same stage Messi's World Cup numbers are far more dazzling — multiple knockout goals and assists, and the 2022 title to seal his GOAT case. The <strong>gulf between the two</strong> in World Cup knockouts has long been a core exhibit in the Messi-Ronaldo debate. <em>Unmatched at bullying weaker sides in the groups; a totally different player in World Cup knockouts</em> — Ronaldo's enduring weakness.",
       "<strong>Record correction:</strong> To be fair, at the 2026 World Cup a 41-year-old Ronaldo finally scored in a knockout, <strong>ending the 20-year drought</strong>. But objectively that goal came at the very tail of his career, <em>and cannot fully wipe away the prior history of 0 goals and 0 assists in 8 knockout matches</em>; the dark ledger still has its page."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["世界杯","淘汰赛","0球0助","五届","大赛软脚","对比梅西"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["世界杯","淘汰赛","0球0助","五届","大赛软脚","对比梅西"],
+    tagsEn:["World Cup","knockout stage","0 goals 0 assists","five editions","chokes in big games","vs Messi"],
+    tagsEs:["Mundial","fase final","0 goles 0 asistencias","cinco ediciones","se desinfla en grandes citas","vs Messi"]
   },
   {
     id:24, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2010-01-01",
     title:"国家队“营销”与数据注水争议",
     titleEn:"National-Team 'Marketing' & Stat-Padding Controversy",
     titleEs: "«Marketing» con la selección y polémica por inflar stats",
@@ -2200,11 +1339,14 @@ const events = [
       "<strong>The credibility question:</strong> Even sitting top with 130+ international goals, the <strong>'quality'</strong> of those goals is a perpetual doubt. When more than half come against opponents ranked outside the top 100, is the all-time record a measure of ability, or <em>a product of format and fixtures?</em> The debate in the Messi-Ronaldo rivalry never settles.",
       "<strong>Whitewash logic:</strong> Supporters invariably defend him with 'scoring against weak sides is his job', but the issue is: when the data is used to <strong>measure historical standing</strong>, the strength of opponents has to be considered. A record padded with 11 goals against Luxembourg and frequent blanks against top sides <em>can hardly hold up the heavy crown of 'best in history'</em>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["营销","一己之力","数据注水","友谊赛刷球","门德斯","9248"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["营销","一己之力","数据注水","友谊赛刷球","门德斯","9248"],
+    tagsEn:["marketing","one-man show","inflated stats","stat-padding in friendlies","Mendes","9248"],
+    tagsEs:["marketing","espectáculo en solitario","estadísticas infladas","inflar datos en amistosos","Mendes","9248"]
   },
   {
     id:25, cat:"persona", catLabel:"人设争议", severity:4,
+    dateIso:"2003-01-01",
     title:"背弃祖姓 — 抛弃 Aveiro 改用 Ronaldo",
     titleEn:"Abandoned His Surname — Dropped Aveiro, Stole 'Ronaldo'",
     titleEs: "Abandonó su apellido — tiró Aveiro, robó «Ronaldo»",
@@ -2251,12 +1393,15 @@ const events = [
       "<strong>Family estrangement:</strong> A deeper reading is that Ronaldo's ties to his paternal family were never strong — his father died of alcoholism when he was 20 and family relations were complicated. Going by his middle name also <strong>diluted the link to the Aveiro bloodline</strong>; <em>the naming choice refracts a subtle family attitude</em>.",
       "<strong>Name versus reality:</strong> When a superstar's real name and public perception <strong>point in opposite directions</strong> — the world calls the 'surname' that is actually a middle name, the real surname is barely known, and the abbreviation CA7 is recognised by no one — this identity marketing is a marvel of modern sports business. <em>Being called the wrong name by the whole world, and enjoying it</em>, is itself a 'dark-history' footnote worth pondering."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"把阿韦罗这个父姓给彻底扔了，除了蹭热度并且想要掩盖事实以外，实在是没觉得有什么别的可能。", textEn:"Dropping the surname Aveiro altogether—aside from chasing attention and trying to cover up the facts—I really can't see any other reason.", author:"知乎足球评论", authorEn:"Zhihu football commentary", textEs:"Tirar el apellido Aveiro por completo —además de perseguir atención e intentar tapar los hechos— de verdad no le veo otra explicación.", authorEs:"Comentario de fútbol en Zhihu"},
-    tags:["背弃祖姓","Aveiro","Ronaldo","自我营销","蹭热度","中间名","葡萄牙命名"]
+    tags:["背弃祖姓","Aveiro","Ronaldo","自我营销","蹭热度","中间名","葡萄牙命名"],
+    tagsEn:["dropped family surname","Aveiro","Ronaldo","self-promotion","clout-chasing","middle name","Portuguese naming"],
+    tagsEs:["renunció al apellido","Aveiro","Ronaldo","autopromoción","buscando protagonismo","segundo nombre","onomástica portuguesa"]
   },
   {
     id:27, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2003-01-01",
     title:"12任女友 · 5个孩子3个妈 — 风流情史",
     titleEn:"12 Girlfriends · 5 Kids, 3 Moms — A Romantic Saga",
     titleEs: "12 novias · 5 hijos, 3 madres — una saga romántica",
@@ -2305,11 +1450,14 @@ const events = [
       "<strong>Five kids, three mums:</strong> Most controversial is that Ronaldo's <strong>5 children appear to come from 3 mothers</strong>: eldest son Cristiano Jr (2010) has a still-mysterious mother, rumoured to be a surrogate; the 2017 twins Mateo and Eva were also via surrogate, by another surrogate mother; while Alana (2017) and Bella (2022) were borne by Georgina. <em>The three-mum, five-kid configuration is jaw-dropping</em>.",
       "<strong>Privacy and controversy:</strong> Surrogacy rumours, the lifetime NDA signed by Cristiano Jr's mother, multiple seamless relationships… Ronaldo's private life is forever <strong>shrouded in money and NDAs</strong>. The media paints him as a 'life winner', but the complicated history of <strong>12 girlfriends, 5 kids and 3 mums</strong> keeps interrogating the 'good man', 'good father' image, <em>controversy hard to talk about behind the glory</em>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["12任女友","5娃3妈","迷你罗生母","代孕","乔治娜","未婚","风流","私生活"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["12任女友","5娃3妈","迷你罗生母","代孕","乔治娜","未婚","风流","私生活"],
+    tagsEn:["12 girlfriends","5 kids 3 moms","Cristiano Jr's mother","surrogacy","Georgina","unmarried","womaniser","private life"],
+    tagsEs:["12 novias","5 hijos 3 madres","madre de Cristiano Jr","gestación subrogada","Georgina","soltero","mujeriego","vida privada"]
   },
   {
     id:28, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2010-06-01",
     title:"迷你罗生母身份成谜 — 代孕封口疑云",
     titleEn:"Cristiano Jr's Mother — Surrogacy & Hush-Money Cloud",
     titleEs: "La madre de Cristiano Jr — la sombra de la subrogación y el dinero",
@@ -2355,11 +1503,14 @@ const events = [
       "<strong>Paparazzi on the trail:</strong> For over a decade Britain's The Sun and Portuguese outlets chased the story, throwing out versions involving 'a British student', 'an American waitress', 'a Mexican surrogate', none ever confirmed. The mother's identity remains <em>football's greatest unsolved mystery</em>, more tangled than any transfer rumour.",
       "<strong>Questions as the child grows:</strong> Cristiano Jr is now around fifteen; reportedly he has pressed his father about his mother's identity, only to be told 'I will tell you when the time is right'. A child not even allowed to know where he came from, his childhood <em>held hostage</em> by his father's obsession with privacy — how cruel."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["迷你罗","生母成谜","代孕","保密协议","封口费","美国出生","抚养权"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["迷你罗","生母成谜","代孕","保密协议","封口费","美国出生","抚养权"],
+    tagsEn:["Cristiano Jr","mother's identity mystery","surrogacy","NDA","hush money","US-born","custody"],
+    tagsEs:["Cristiano Jr","misterio de la madre","gestación subrogada","acuerdo de confidencialidad","dinero de silencio","nacido en EE.UU.","custodia"]
   },
   {
     id:29, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2004-01-01",
     title:"抢点球 · 抢任意球 · 自私独狼行为",
     titleEn:"Hogging Penalties & Free-Kicks — The Lone-Wolf Selfishness",
     titleEs: "Acapara penales y faltas — el ego del lobo solitario",
@@ -2405,11 +1556,14 @@ const events = [
       "<strong>Continued at Portugal:</strong> At international level Ronaldo likewise monopolised penalties and free-kicks. At the 2022 World Cup he missed a penalty that disrupted Portugal's rhythm; at Euro 2024 he missed a penalty and <em>wept on the pitch</em>, placing personal pride above the team as teammates had to come and comfort him.",
       "<strong>The price of selfishness:</strong> When a player puts 'my goals' above 'our wins', so-called leadership becomes a fig leaf for autocracy. Bale eventually chose to leave, Benzema shouldered the blame for years, and the BBC trio's breakup was not unconnected to this <strong>monopoly on resources</strong>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["抢点球","抢任意球","B费","自私","独狼","不传球","头发丝","个人数据"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["抢点球","抢任意球","B费","自私","独狼","不传球","头发丝","个人数据"],
+    tagsEn:["penalty theft","free-kick theft","Bruno Fernandes","selfishness","lone wolf","won't pass","tip-in goal theft","personal stats"],
+    tagsEs:["robo de penalti","robo de tiro libre","Bruno Fernandes","egoísmo","lobo solitario","no pasa el balón","gol robado de peinada","estadísticas personales"]
   },
   {
     id:30, cat:"persona", catLabel:"人设争议", severity:2,
+    dateIso:"2004-01-01",
     title:"绰号“水罗” — 假摔编年史",
     titleEn:"Nickname 'Penaldo' — A Chronology of Dives",
     titleEs: "El apodo «Penaldo» — una cronología de piscinas",
@@ -2455,12 +1609,15 @@ const events = [
       "<strong>The Saudi-era 'old hand':</strong> Approaching 40 in Saudi, Ronaldo's diving did not let up. In a 2023 league match his diving header-style fall in the box was caught by VAR; the referee showed a yellow without hesitation and <strong>the veteran's professionalism</strong> was collectively mocked by local media.",
       "<strong>The diving legacy:</strong> From the Premier League to the World Cup, from La Liga to Saudi Arabia, over twenty years Ronaldo turned 'diving' into an art. His exaggerated rolls and face-clutching have become an <strong>iconic symbol of football's dark side</strong>, more deeply etched in memory than any goal compilation."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"罗纳尔多已经不假摔了。", textEn:"Ronaldo doesn't dive anymore.", author:"弗格森，2007年口误", authorEn:"Alex Ferguson, 2007 slip of the tongue", textEs:"Ronaldo ya no se tira.", authorEs:"Alex Ferguson, metedura de pata en 2007"},
-    tags:["水罗","假摔","跳水","世界杯","法国","米堡","弗格森口误","鲁尼红牌","眨眼"]
+    tags:["水罗","假摔","跳水","世界杯","法国","米堡","弗格森口误","鲁尼红牌","眨眼"],
+    tagsEn:["Dive-ldo","diving","diving","World Cup","France","Middlesbrough","Ferguson slip","Rooney red card","the wink"],
+    tagsEs:["Penaldo simulador","simulación","simulación","Mundial","Francia","Middlesbrough","lapsus de Ferguson","roja a Rooney","el guiño"]
   },
   {
     id:31, cat:"persona", catLabel:"人设争议", severity:2,
+    dateIso:"2004-01-01",
     title:"绰号“花罗” — 华而不实的花活期",
     titleEn:"Nickname 'Showboat' — The Flashy-Stepovers Era",
     titleEs: "El apodo «Showboat» — la era de los stepovers farolillo",
@@ -2494,6 +1651,7 @@ const events = [
       "<strong>弗格森的“驯化”：</strong>爵爷花了整整三年，才把C罗从“踩单车杂技演员”改造成高效射手。弗格森明确要求他减少无效盘带、增加终结能力，否则这棵苗子可能永远停留在<em>花瓶阶段</em>。",
       "<strong>进球荒期的回归：</strong>有趣的是，每当年岁渐长、效率下降，C罗又会不自觉地捡起老本行。2021年回归曼联后，他在某些场次重现踩单车，却被新一代球迷嘲笑“<strong>老戏骨</strong>重出江湖”，效果适得其反。",
       "<strong>花活的本质：</strong>踩单车本无原罪，问题在于C罗早期把它当成炫技工具而非过人手段。当花哨凌驾于实用之上，足球便沦为<em>个人秀场</em>，这也为他日后“个人数据至上”的行事风格埋下伏笔。",
+      "<strong>演变：</strong>随着年岁渐长，C罗打磨了风格，剔除了大量华而不实的炫技。但「Showboat（炫技者）」的绰号与踩单车的形象，仍作为他青春期的印记留存。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开报道整理，仅供参考。</div>"
     ],
     detailEn:[
@@ -2504,11 +1662,15 @@ const events = [
       "<strong>Relapse in the goal drought:</strong> Amusingly, as age rose and efficiency dipped, Ronaldo would unconsciously reach for his old bag of tricks. After his 2021 return to United he revived stepovers in patches, only for new-generation fans to mock the '<strong>old ham</strong> on comeback', with counter-productive effect.",
       "<strong>The essence of showboating:</strong> Stepovers are not sinful in themselves — the issue was that early Ronaldo used them as a showing-off tool rather than a take-on weapon. When flash overrides substance, football degenerates into a <em>personal show</em>, planting the seeds of his later 'stats above all' style."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["花罗","SHOWBOAT","花活","盘带","范尼冲突","斯科尔斯","华而不实","曼联早期"]
+      "<strong>The evolution:</strong> Over the years, Cristiano refined his style and shed much of the sterile showboating. But the «Showboat» nickname and the stepover image stuck as the hallmark of his youth.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["花罗","SHOWBOAT","花活","盘带","范尼冲突","斯科尔斯","华而不实","曼联早期"],
+    tagsEn:["Showboat Cristiano","SHOWBOAT","showboating","dribbling","Van Nistelrooy clash","Scholes","all flash no substance","early United years"],
+    tagsEs:["Cristiano exhibicionista","SHOWBOAT","exhibicionismo","regate","bronca con Van Nistelrooy","Scholes","puro espectáculo","primeros años en United"]
   },
   {
     id:34, cat:"persona", catLabel:"人设争议", severity:2,
+    dateIso:"2018-01-01",
     title:"“鸡你太美”式网络梗 — C罗的球迷文化反噬",
     titleEn:"'Factos'-style Memes — Fan-Culture Backlash",
     titleEs: "Memes estilo «Factos» — el boomerang de la cultura de fans",
@@ -2554,11 +1716,14 @@ const events = [
       "<strong>Victim of 'abstract culture':</strong> From 'siu' to the 'noodle-slice', from 'Lyu Qi You Ren' to the 'Ronaldo three-kick', virtually every Ronaldo move is turned into stickers and parody videos. He is both the engagement algorithm and the <strong>biggest sacrificial offering of 'abstract culture'</strong>, his personal image dismembered in the carnival.",
       "<strong>The price of blowback:</strong> When a legend is reduced to whole-nation parody material, his historical standing is quietly diluted in laughter. Ronaldo probably never imagined that his most 'enduring' legacy would be immortality <em>in the meme library of the Chinese internet</em>, rather than on the pitch."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["网络梗","罗三票","一己之力","天神下凡","siuuu","自律人设","欧冠之王","球迷文化","反噬"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["网络梗","罗三票","一己之力","天神下凡","siuuu","自律人设","欧冠之王","球迷文化","反噬"],
+    tagsEn:["internet meme","Three-Vote Ronaldo","one-man show","god-mode claim","siuuu","discipline persona","King of the UCL","fan culture","backlash"],
+    tagsEs:["meme de internet","Cristiano Tres Votos","espectáculo en solitario","presunción de divinidad","siuuu","imagen de disciplina","Rey de la Champions","cultura de afición","reacción negativa"]
   },
   {
     id:35, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2006-01-01",
     title:"CR7商业帝国 — 自恋式个人品牌",
     titleEn:"CR7 Business Empire — A Narcissistic Personal Brand",
     titleEs: "El imperio comercial CR7 — una marca personal narcisista",
@@ -2607,12 +1772,15 @@ const events = [
       "<strong>Private island and film studio:</strong> According to The Sun, Ronaldo also owns a private island, a film studio, a cricket ground and other assets, with the 7EGEND image company managing his image rights. A player who has turned himself into a <em>multinational conglomerate</em>, with football almost a side hustle.",
       "<strong>The shadow on the empire:</strong> When an athlete pours this much energy into business, his sporting form inevitably suffers. After returning to United in 2021 Ronaldo's off-pitch endorsements, documentaries and Instagram updates were more frequent than his goals, criticised for '<strong>putting the cart before the horse</strong>' and turning the pitch into a commercial showcase."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"除了在球场上拼搏之外，场下C罗也一直在打造着属于自己的CR7系列，渗入到了衣饰、香水、酒店等多种行业。", textEn:"Beyond fighting on the pitch, off it Ronaldo has kept building his CR7 line, branching into clothing, fragrances, hotels and more.", author:"肆客足球", authorEn:"Sike Football commentary", textEs:"Además de luchar en el campo, fuera de él Cristiano no ha parado de construir su línea CR7, ramificando en moda, fragancias, hoteles y más.", authorEs:"Comentario de Sike Football"},
-    tags:["CR7","商业帝国","自恋品牌","酒店","内衣","香水","背弃祖姓","蹭热度","Aveiro"]
+    tags:["CR7","商业帝国","自恋品牌","酒店","内衣","香水","背弃祖姓","蹭热度","Aveiro"],
+    tagsEn:["CR7","business empire","narcissistic brand","hotel","underwear","fragrance","dropped family surname","clout-chasing","Aveiro"],
+    tagsEs:["CR7","imperio empresarial","marca narcisista","hotel","ropa interior","perfume","renunció al apellido","buscando protagonismo","Aveiro"]
   },
   {
     id:36, cat:"club", catLabel:"俱乐部与法律", severity:4,
+    dateIso:"2023-01-01",
     title:"沙漠骆驼 — 4年才拿1个沙特冠军",
     titleEn:"Desert Camel — 4 Years for 1 Saudi Title",
     titleEs: "El Camello del Desierto — 4 años para 1 título saudí",
@@ -2658,12 +1826,15 @@ const events = [
       "<strong>The strange celebration gesture:</strong> At the title celebrations Ronaldo reeled off a string of abstract gestures Chinese fans dubbed the 'noodle-slicing move', once again turning himself into meme material. A title he had waited four years for brought not respect but <em>a fresh wave of parody videos</em> — how ironic.",
       "<strong>The desert truth:</strong> The so-called 'Saudi title' was won in a league of limited standard and only after the rivals stepped aside. Ronaldo's four years proved not greatness but <strong>a hero in his twilight</strong> — barely salvaging the last shred of face amid a chorus of doubt."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"来到沙特快4年！C罗，终于在联赛夺冠了！", textEn:"Almost 4 years in Saudi Arabia! Ronaldo finally wins the league title!", author:"澎湃新闻2026年5月22日报道标题", authorEn:"The Paper, May 22, 2026 headline", textEs:"¡Casi 4 años en Arabia Saudí! ¡Cristiano por fin gana la liga!", authorEs:"Titular de The Paper, 22 de mayo de 2026"},
-    tags:["沙漠骆驼","沙特联赛","利雅得胜利","4年1冠","逃避欧洲","养老","2亿年薪","利雅得新月"]
+    tags:["沙漠骆驼","沙特联赛","利雅得胜利","4年1冠","逃避欧洲","养老","2亿年薪","利雅得新月"],
+    tagsEn:["desert camel","Saudi Pro League","Al Nassr","4 years 1 title","fleeing Europe","retirement league","€200M yearly wage","Al Hilal"],
+    tagsEs:["camello del desierto","Liga saudí","Al Nassr","4 años 1 título","huida de Europa","liga de retiro","200 M€ de sueldo anual","Al Hilal"]
   },
   {
     id:38, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2024-01-01",
     title:"“刀削面”动作 + 怪异行为合集",
     titleEn:"'Noodle-Slicing' Move + Bizarre Antics Compilation",
     titleEs: "El gesto «corta-fideos» + recopilación de payasadas",
@@ -2709,11 +1880,14 @@ const events = [
       "<strong>The Siu celebration goes sour:</strong> Even the once-signature 'Siu' celebration has been played out. In some matches Ronaldo deliberately cut back on the Siu and switched to other weird moves, only for the new move to be parodied in turn — trapping him in a '<em>the more low-key he tries to be, the more attention he gets</em>' vicious circle, stuck either way.",
       "<strong>The essence of bizarre behaviour:</strong> From the noodle-slice to the shush gestures, these 'bizarre behaviours' refract a veteran in decline trying to maintain presence through <em>attention-seeking</em>. When a legend can only stay relevant through his actions, his football value is largely spent."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["刀削面","怪异行为","抽象","B站","抖音","恶搞","30大抽象行为","挑衅球迷","手势"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["刀削面","怪异行为","抽象","B站","抖音","恶搞","30大抽象行为","挑衅球迷","手势"],
+    tagsEn:["noodle-slice","bizarre antics","absurdist","Bilibili","Douyin (TikTok)","parody","30 absurd acts","provoking fans","gesture"],
+    tagsEs:["tiro de fideo","actitudes raras","absurdo","Bilibili","Douyin (TikTok)","parodia","30 actos absurdos","provoca a la afición","gesto"]
   },
   {
     id:39, cat:"offpitch", catLabel:"场外失态", severity:4,
+    dateIso:"2025-11-01",
     title:"采访神语录 — “世界杯不是我的梦想”",
     titleEn:"Quote Madness — 'The World Cup Is Not My Dream'",
     titleEs: "Locura de frases — «El Mundial no es mi sueño»",
@@ -2759,12 +1933,15 @@ const events = [
       "<strong>Brazil and others push back:</strong> Brazilian media and legends from the football kingdom weighed in to stress that the World Cup is 'every player's ultimate dream'. With the legacies of Pelé and Ronaldo (R9) staring him down, Ronaldo's 'it doesn't matter' looked both ignorant and arrogant at the level of <strong>football culture</strong>.",
       "<strong>The interview's blowback:</strong> Morgan presumably meant to 'rehabilitate' Ronaldo; it backfired. ESPN, the BBC and other mainstream outlets unanimously criticised; fans mocked his 'stubbornness'. The interview did not reshape his image — instead it cemented Ronaldo's '<em>sore loser who still fronts</em>' persona even deeper."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"世界杯不是我的梦想。我就是历史第一、第二、第三。", textEn:"The World Cup is not my dream. I am the first, second and third best in history.", author:"C罗，2025年11月皮尔斯·摩根专访", authorEn:"Cristiano, Nov 2025 Piers Morgan interview", textEs:"El Mundial no es mi sueño. Soy el primero, segundo y tercero mejor de la historia.", authorEs:"Cristiano, entrevista con Piers Morgan, noviembre de 2025"},
-    tags:["摩根专访","世界杯不是梦想","历史最佳","GOAT","梅罗对立","酸葡萄","反复无常","B费反驳"]
+    tags:["摩根专访","世界杯不是梦想","历史最佳","GOAT","梅罗对立","酸葡萄","反复无常","B费反驳"],
+    tagsEn:["Piers Morgan interview","World Cup not my dream","all-time great","GOAT","Messi-CR7 rivalry","sour grapes","inconstancy","Bruno F. rebuts"],
+    tagsEs:["entrevista con Piers Morgan","el Mundial no es mi sueño","mejor de la historia","GOAT","rivalidad Messi-CR7","uvas verdes","inconstancia","réplica de Bruno F."]
   },
   {
     id:40, cat:"persona", catLabel:"人设争议", severity:2,
+    dateIso:"2024-01-01",
     title:"“吕七优人” — C罗的日文恶搞名",
     titleEn:"'Lyu Qi You Ren' — A Japanese-Style Meme Name",
     titleEs: "«Lyu Qi You Ren» — un nombre en clave estilo japonés",
@@ -2810,11 +1987,14 @@ const events = [
       "<strong>Versus 'Xi Luo' / 'Cristiano':</strong> Ronaldo's previous Chinese monikers — 'C Luo', 'Xi Luo', 'Cristiano' — were relatively proper. The emergence of 'Lyu Qi You Ren' thoroughly entertainment-ised his Chinese nicknames, alongside 'Aveiro' and 'Ronaldo three-kick' as parody handles.",
       "<strong>A textbook case of cultural blowback:</strong> A calligraphy gift meant as tribute was deconstructed into a nonsensical symbol on the Chinese internet, refracting fan culture's <strong>carnival of deconstruction</strong>. Ronaldo's 'international image' has been remade beyond recognition through one cross-cultural misreading after another."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["吕七优人","CR7","日文恶搞","谐音梗","B站","网络梗","日本行","自我品牌","阿先生"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["吕七优人","CR7","日文恶搞","谐音梗","B站","网络梗","日本行","自我品牌","阿先生"],
+    tagsEn:["Lyu-Qi-You-Ren meme","CR7","Japanese parody","pun meme","Bilibili","internet meme","Japan tour","self-brand","Ah-Wei (meme)"],
+    tagsEs:["meme japonés Lyu-Qi","CR7","parodia japonesa","juego de palabras","Bilibili","meme de internet","gira por Japón","marca personal","Ah-Wei (meme)"]
   },
   {
     id:41, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2010-01-01",
     title:"点球依赖症 + 任意球“念咒”蒙人墙",
     titleEn:"Penalty Dependency & Free-Kick 'Incantation'",
     titleEs: "Dependencia de penales y «conjuro» de falta",
@@ -2860,11 +2040,14 @@ const events = [
       "<strong>Teammate frustration:</strong> Bale complained that he was more accurate on free-kicks in training but never got the call in matches. Benzema, B. Fernandes and other teammates all had solid penalty and free-kick numbers, yet all had to 'give way' to Ronaldo — this <em>resource tilt</em> long poisoned the team's ecology.",
       "<strong>Ritual versus reality:</strong> When the 'incantation stance' becomes a joke and penalties are the staple, Ronaldo's goal 'quality' is inevitably questioned. A legend sustained by <strong>penalty handouts</strong> and free-kick 'posing' — his greatness surely merits a giant question mark."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["点球依赖","点球大户","任意球","念咒","做法","蒙人墙","命中率暴跌","射门癖","主罚权"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["点球依赖","点球大户","任意球","念咒","做法","蒙人墙","命中率暴跌","射门癖","主罚权"],
+    tagsEn:["penalty reliance","penalty merchant","free kick","free-kick chant","antics","blocked teammate's goal","conversion-rate crash","shot hog","free-kick/penalty monopoly"],
+    tagsEs:["dependencia de penaltis","especialista en penaltis","tiro libre","cántico del tiro libre","actitudes","taponó gol de compañero","caída de efectividad","adicto a rematar","monopolio de tiros"]
   },
   {
     id:42, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2010-01-01",
     title:"“总裁找裁判” — 永远在抱怨的队长",
     titleEn:"'Always Chasing the Ref' — The Complaining Captain",
     titleEs: "«Siempre detrás del árbitro» — el capitán quejica",
@@ -2910,11 +2093,14 @@ const events = [
       "<strong>The price of obscene gestures:</strong> For making a provocative gesture at fans, Ronaldo was <strong>banned one match</strong> by the Saudi FA. He claimed a 'misunderstanding' afterwards, but officials ruled his behaviour improper and the punishment stood — the complaint culture finally blowing back on himself.",
       "<strong>The eternal 'innocent' self-image:</strong> In Ronaldo's worldview the wrongdoer is always someone else: referee unfair, teammates insufficient, coach clueless, media biased. This <strong>eternal-victim</strong> mentality puts him further and further from 'leadership', leaving only the silhouette of an angry, lonely superstar."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
-    tags:["总裁找裁判","抱怨裁判","举双手","摊手","摇头","追裁判","抱怨队友","队长担当","表情包"]
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
+    tags:["总裁找裁判","抱怨裁判","举双手","摊手","摇头","追裁判","抱怨队友","队长担当","表情包"],
+    tagsEn:["bossing the ref","complaining to ref","both hands raised","throws hands up","head shake","chasing the ref","complaining at teammates","captain's burden","memes"],
+    tagsEs:["peleando al árbitro","quejas al árbitro","brazos en alto","brazos en alto","negación con la cabeza","persigue al árbitro","quejas a compañeros","peso del capitanato","memes"]
   },
   {
     id:43, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2022-01-01",
     title:"公开引发梅罗对立 — “梅西夺冠后我心态崩了”",
     titleEn:"Stoking the Messi–Ronaldo Rift — 'I Cracked After Messi's World Cup Win'",
     titleEs: "Atizando la rivalidad Messi–Cristiano — «Me rompí tras el Mundial de Messi»",
@@ -2950,6 +2136,7 @@ const events = [
       "<strong>2026世界杯的重新激活：</strong>2026年美加墨世界杯，梅西与C罗双双参赛，让本已“盖棺定论”的争论<strong>死灰复燃</strong>。两人每次触球、每个进球，都会被粉丝拿来对比、拉踩，比赛本身反而成了配角。",
       "<strong>阿根廷爱梅西vs葡萄牙疑C罗：</strong>《第一邮报》指出一个耐人寻味的现象：阿根廷举国worship梅西，而葡萄牙国内对C罗的<em>质疑声</em>却越来越多——角色定位、团队贡献、是否该退役，争论不断。同为国民英雄，待遇天壤之别。",
       "<strong>对立的代价：</strong>当两位伟大球员被粉丝绑架成“圣战”符号，足球之美便在<em>无休止的拉踩</em>中被消耗殆尽。C罗或许没想到，他与梅西的对立，最终成就的不是谁更伟大，而是<strong>球迷文化的内耗</strong>与撕裂。",
+      "<strong>总评：</strong>多年来滋养GOAT之争的梅西—C罗 rivalry，在2022年世界杯后倒向阿根廷一方。C罗的反应远非大度接受，而是否认。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开报道整理，仅供参考。</div>"
     ],
     detailEn:[
@@ -2961,12 +2148,16 @@ const events = [
       "<strong>Argentina loves Messi vs Portugal doubts CR7:</strong> First Post notes a striking asymmetry: Argentina universally worships Messi, while inside Portugal the <em>doubts</em> over Ronaldo have been growing — his role, his contribution, whether he should retire. Both national heroes, but the treatment is night and day.",
       "<strong>The cost of the rivalry:</strong> When two great players are hijacked by their fans into symbols of 'holy war', football's beauty is consumed by <em>endless point-scoring</em>. Ronaldo probably never imagined that his rivalry with Messi would ultimately produce not who was greater, but the <strong>internal attrition</strong> and tearing apart of fan culture."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and is for reference only.</div>"],
+      "<strong>Verdict:</strong> The Messi–Cristiano rivalry that for years fuelled the GOAT debate tilted Argentina's way with the 2022 World Cup. Cristiano's reaction, far from accepting it graciously, has been one of denial.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and is for reference only.</div>"],
     quote:{text:"自从阿根廷夺得2022年世界杯冠军之后，C罗的心态发生了巨变。", textEn:"Ever since Argentina won the 2022 World Cup, Ronaldo's mindset has changed dramatically.", author:"网易体育评论", authorEn:"NetEase Sports commentary", textEs:"Desde que Argentina ganó el Mundial de 2022, la actitud de Cristiano ha cambiado drásticamente.", authorEs:"Comentario de NetEase Sports"},
-    tags:["梅罗对立","梅西","世界杯","酸葡萄","GOAT之争","大罗排名","B费","公关煽动","2022卡塔尔"]
+    tags:["梅罗对立","梅西","世界杯","酸葡萄","GOAT之争","大罗排名","B费","公关煽动","2022卡塔尔"],
+    tagsEn:["Messi-CR7 rivalry","Messi","World Cup","sour grapes","GOAT debate","Ronaldo ranking","Bruno Fernandes","PR stoking","Qatar 2022"],
+    tagsEs:["rivalidad Messi-CR7","Messi","Mundial","uvas verdes","debate GOAT","ranking de Ronaldo","Bruno Fernandes","manipulación mediática","Catar 2022"]
   },
   {
     id:45, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2005-01-01",
     title:"范尼冲突 — \“滚去找你爸爸哭去吧\”",
     titleEn:"Van Nistelrooy Clash — 'Go Cry to Your Daddy'",
     titleEs: "Bronca con Van Nistelrooy — «ve a llorarle a tu padre»",
@@ -2999,6 +2190,7 @@ const events = [
       "<strong>弗格森的抉择：</strong>这场冲突成为曼联更衣室权力的拐点。<strong>弗格森爵士</strong>（Sir Alex Ferguson）在权衡之后，认定少年C罗的天花板远高于年过而立的范尼，遂在2006年夏天将范尼以区区1400万欧元贱卖至皇马。老爵爷用行动表态：曼联的未来属于这个被骂哭的葡萄牙小子。",
       "<strong>范尼事后认错：</strong>多年后范尼本人也承认，自己当年的言行“不合时宜、确实过分”。但认错归认错，那句“找你爸哭去”已成为足坛更衣室霸凌的经典案例，也侧面印证了C罗早年并非“天选之子”，而是在嘲笑与撕裂中咬牙爬上神坛。",
       "<strong>丧父背景的讽刺：</strong>更令人唏嘘的是，C罗职业生涯最持久的动力之一正是对亡父的思念——他无数次进球后指天告慰父亲。范尼恰恰戳中了他最深的伤疤，这场冲突也就超越了普通队友矛盾，成为一段带有悲剧色彩的<em>人性撕扯</em>。",
+      "<strong>总评：</strong>与范尼斯特鲁伊的冲突是C罗生涯中最激烈的事件之一。数年后，这位荷兰人公开为当年对待年轻葡萄牙小将的方式致歉。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开报道与当事人回忆整理，仅供参考。</div>"
     ],
     detailEn:[
@@ -3009,12 +2201,16 @@ const events = [
       "<strong>Van Nistelrooy's later regret:</strong> Years later Van Nistelrooy himself admitted his behaviour was 'inappropriate and over the line'. An apology is an apology, but the line 'go cry to your daddy' has become a textbook case of dressing-room bullying — also reminding us that Ronaldo in his early years was no 'chosen one', but climbed to the throne amid mockery and tears.",
       "<strong>The sad irony of the father's death:</strong> More poignantly, one of Ronaldo's most enduring career motivations has been missing his late father — he has pointed to the sky to comfort his father after countless goals. Van Nistelrooy jabbed exactly his deepest wound, and this clash therefore transcended ordinary teammate conflict, becoming a <em>tearing of human fibre</em> with tragic undertones."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting and the parties' recollections, and is for reference only.</div>"],
+      "<strong>Verdict:</strong> The clash with Van Nistelrooy is one of the hardest episodes of Cristiano's career. Years later, the Dutchman publicly apologised for how he had treated the young Portuguese.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting and the parties' recollections, and is for reference only.</div>"],
     quote:{text:"那时候我太执着于进球，对年轻球员缺乏耐心，我的确做得有些过分。", textEn:"Back then I was too obsessed with scoring, too impatient with the younger players—I did go a bit too far.", author:"范尼，事后公开道歉", authorEn:"Ruud van Nistelrooy, public apology afterwards", textEs:"Entonces estaba demasiado obsesionado con marcar goles, demasiado impaciente con los jugadores jóvenes — me pasé un poco de la raya.", authorEs:"Ruud van Nistelrooy, disculpa pública posterior"},
-    tags:["范尼","训练场冲突","找你爸爸","丧父","弗格森抉择","董方卓","奎罗斯","曼联更衣室","踩单车"]
+    tags:["范尼","训练场冲突","找你爸爸","丧父","弗格森抉择","董方卓","奎罗斯","曼联更衣室","踩单车"],
+    tagsEn:["Van Nistelrooy","training-ground clash","go cry to your daddy","father's death","Ferguson's call","Dong Fangzhuo","Queiroz","United dressing room","stepovers"],
+    tagsEs:["Van Nistelrooy","pelea en entrenamiento","llora a tu papá","muerte del padre","decisión de Ferguson","Dong Fangzhuo","Queiroz","vestuario de United","bicicleta"]
   },
   {
     id:46, cat:"national", catLabel:"国家队争议", severity:4,
+    dateIso:"2022-12-01",
     title:"2022世界杯被替补 — 与桑托斯十年恩怨决裂",
     titleEn:"Benched at the 2022 World Cup — Ten-Year Feud with Santos",
     titleEs: "Suplente en el Mundial 2022 — diez años de tirria con Santos",
@@ -3047,6 +2243,7 @@ const events = [
       "<strong>离场时的落寞：</strong>比赛结束后，C罗独自一人先行走向球员通道，队友在场上狂欢庆祝，他却头也不回地<em>快步离场</em>。这一幕被镜头全程捕捉，那张孤独的背影迅速刷屏，成为他与国家队关系破裂的最直观注脚。",
       "<strong>妹妹的“最后一舞”：</strong>其姐卡蒂娅在社交媒体发文暗示这可能是C罗国家队的“最后一舞”，进一步将内部矛盾公开化。家族式表态让本就紧张的更衣室雪上加霜，也暴露了C罗团队对舆论的强烈干预欲。",
       "<strong>与桑托斯彻底决裂：</strong>赛事结束后不久，桑托斯离任，C罗与其再无往来。这段师徒关系以最不体面的方式收场——一个被认为“用完即弃”，一个被认为“倚老卖老”。所谓<strong>国家队图腾</strong>，终究敌不过岁月与战术革新的现实。",
+      "<strong>十年嫌隙：</strong>C罗与桑托斯的关系早自2014年起便持续恶化。卡塔尔世界杯的替补，只是队长与主帅十年 tensions 的终点。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开报道整理，仅反映事件多方说法，不代表定论。</div>"
     ],
     detailEn:[
@@ -3057,12 +2254,16 @@ const events = [
       "<strong>Sister's 'last dance':</strong> His sister Katia posted on social media hinting this could be Ronaldo's 'last dance' for Portugal, further exposing the internal friction to the public. The family-style statement piled pressure onto an already-tense dressing room and revealed the Ronaldo camp's intense desire to control the narrative.",
       "<strong>A clean break with Santos:</strong> Soon after the tournament Santos left his post and Ronaldo never spoke to him again. The master-pupil relationship ended in the most graceless way — one deemed 'used and discarded', the other 'trading on seniority'. So much for the <strong>national-team totem</strong>, beaten by age and tactical renewal."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public reporting, only reflecting multiple parties' accounts, and does not represent a final verdict.</div>"],
+      "<strong>Ten years of bad blood:</strong> The Cristiano–Santos relationship had been deteriorating for years (since 2014). The Qatar bench was merely the endpoint of a decade of tension between captain and coach.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public reporting, only reflecting multiple parties' accounts, and does not represent a final verdict.</div>"],
     quote:{text:"从2022年世界杯结束以后，自己就再也没有跟C罗说过任何一句话。", textEn:"Since the 2022 World Cup ended, I haven't spoken a single word to Ronaldo.", author:"桑托斯，2026年6月25日采访", authorEn:"Fernando Santos, interview on June 25, 2026", textEs:"Desde que terminó el Mundial 2022, no he vuelto a hablar ni una sola palabra con Cristiano.", authorEs:"Fernando Santos, entrevista del 25 de junio de 2026"},
-    tags:["2022世界杯","桑托斯","替补","摩洛哥","落泪","决裂","贡萨洛拉莫斯","10年恩怨","卡塔尔","被淘汰"]
+    tags:["2022世界杯","桑托斯","替补","摩洛哥","落泪","决裂","贡萨洛拉莫斯","10年恩怨","卡塔尔","被淘汰"],
+    tagsEn:["2022 World Cup","Santos","benched","Morocco","in tears","falling-out","Gonçalo Ramos","10-year feud","Qatar","eliminated"],
+    tagsEs:["Mundial 2022","Santos","al banquillo","Marruecos","lágrimas","ruptura","Gonçalo Ramos","rivalidad de 10 años","Catar","eliminado"]
   },
   {
     id:47, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2026-06-01",
     title:"2026世界杯被本国球迷狂嘘 — \“C罗！C罗！\”的讽刺",
     titleEn:"Jeered by Home Fans at the 2026 World Cup",
     titleEs: "Abucheado por los fans locales en el Mundial 2026",
@@ -3095,6 +2296,7 @@ const events = [
       "<strong>连续六届破门纪录：</strong>凭借此球，C罗成为史上首位在<strong>六届世界杯</strong>均有进球的球员，并以41岁147天成为世界杯淘汰赛最年长进球者，超越梅西。这些纪录本身确实辉煌，但与场上实际统治力的下滑形成尴尬反差。",
       "<strong>“赢了数据输了场面”：</strong>比赛最终由贡萨洛·拉莫斯补时绝杀，葡萄牙晋级，但赛后舆论焦点并不在C罗的纪录上，而在于他依旧霸占核心位置是否合理。<em>个人里程碑</em>与团队胜利的张力，在这一夜被无限放大。",
       "<strong>图腾与包袱的双重身份：</strong>这场比赛浓缩了C罗晚年的全部悖论——他既是葡萄牙足球最伟大的象征，也是战术体系中最沉重的包袱。本国球迷的嘘，并非忘恩负义，而是一种痛苦而清醒的<strong>集体割舍</strong>。",
+      "<strong>总评：</strong>被自家球迷嘘、却被主教练力挺。在许多人看来，嘘声标志了终结的开始：连 traditionally 最死忠的拥趸都已无法忍受C罗的闹剧。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文基于公开赛事报道整理，观点仅代表舆论倾向，不代表本平台立场。</div>"
     ],
     detailEn:[
@@ -3105,12 +2307,16 @@ const events = [
       "<strong>'Won the stat, lost the optics':</strong> The match was ultimately decided by Gonçalo Ramos's stoppage-time winner, sending Portugal through, but the post-match focus was not Ronaldo's records but whether he should still be the centrepiece. The tension between <em>personal milestones</em> and the collective win was magnified that night.",
       "<strong>Totem and burden at once:</strong> The match condensed all the paradoxes of Ronaldo's late career — at once Portugal's greatest symbol and the heaviest tactical burden. The boos from his own fans were not ingratitude but a painful, clear-eyed <strong>collective letting go</strong>."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public match reporting; the views reflect public-opinion trends only, not this platform's position.</div>"],
+      "<strong>Verdict:</strong> Booed by his own fans, defended by his coach. For many, the jeers marked the beginning of the end: even his traditionally devoted supporters can no longer stomach the Cristiano circus.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public match reporting; the views reflect public-opinion trends only, not this platform's position.</div>"],
     quote:{text:"41岁138天的C罗，成为世界杯史上最年长的梅开二度球员，连续6届世界杯破门——这是独一份的纪录。", textEn:"At 41 years and 138 days, Ronaldo became the oldest player to score twice in a single World Cup match, finding the net in six consecutive World Cups—a one-of-a-kind record.", author:"央视新闻2026年6月24日报道", authorEn:"CCTV News, June 24, 2026 report", textEs:"Con 41 años y 138 días, Cristiano se convirtió en el jugador más longevo en marcar dos goles en un mismo partido del Mundial, marcando en seis Mundiales consecutivos — un récord único.", authorEs:"CCTV News, informe del 24 de junio de 2026"},
-    tags:["2026世界杯","被嘘","本国球迷","马丁内斯","接受替补","连续6届","最年长梅开二度","莫德里奇","克罗地亚","siuuu"]
+    tags:["2026世界杯","被嘘","本国球迷","马丁内斯","接受替补","连续6届","最年长梅开二度","莫德里奇","克罗地亚","siuuu"],
+    tagsEn:["2026 World Cup","booed","home fans","Martínez","accepted the bench","six in a row","oldest brace record","Modrić","Croatia","siuuu"],
+    tagsEs:["Mundial 2026","abucheado","afición local","Martínez","aceptó el banquillo","seis seguidos","doblete más longevo","Modrić","Croacia","siuuu"]
   },
   {
     id:48, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2023-01-01",
     title:"拒绝合影 + 推开球迷 — \“高人一等\”的傲慢",
     titleEn:"Refusing Selfies, Shoving Fans — 'Above It All' Arrogance",
     titleEs: "Rechazando selfies, empujando fans — la arrogancia «por encima de todo»",
@@ -3143,6 +2349,7 @@ const events = [
       "<strong>与梅西的鲜明对比：</strong>舆论几乎本能地将其与梅西对照——梅西面对合影请求几乎来者不拒，甚至会主动停下脚步配合小球迷。这种反差被反复传播，进一步坐实了C罗“难伺候”的刻板印象。",
       "<strong>安保借口难服众：</strong>支持者以“自我保护”“安保风险”为其辩护，但批评者指出：真正的大牌球星懂得用微笑与简短配合化解尴尬，而非用暴力推开。把每一次靠近都视为威胁，本身即是<strong>过度防御</strong>的傲慢。",
       "<strong>人设的裂缝：</strong>一边是CR7品牌营销中“亲民、励志、感恩”的形象，一边是现实中屡屡推搡球迷的冷脸，这种割裂让“偶像滤镜”不断碎裂。当一个球星把粉丝视为麻烦而非衣食父母，<em>反噬</em>迟早会来。",
+      "<strong>总评：</strong>推搡、拒绝自拍、鄙夷普通球迷。批评者认为，C罗「凌驾一切」的傲慢，恰恰与他广告中贩卖的亲民形象相悖。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文内容基于公开视频与媒体报道整理，事件细节可能存在不同说法，仅供参考。</div>"
     ],
     detailEn:[
@@ -3153,11 +2360,15 @@ const events = [
       "<strong>The security excuse won't wash:</strong> Supporters plead 'self-protection' or 'security risk', but critics argue: real big stars know how to smile and offer brief cooperation to defuse awkwardness, not shove. Treating every approach as a threat is itself an <strong>over-defensive</strong> arrogance.",
       "<strong>Cracks in the persona:</strong> On one hand the CR7 brand markets 'approachable, inspiring, grateful'; on the other, the recurring cold-shoulder to fans. That split keeps shattering the 'idol filter'. When a star treats supporters as a nuisance rather than the source of his livelihood, the <em>blowback</em> is only a matter of time."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public video and media reporting; event details may vary across accounts, and it is for reference only.</div>"],
-    tags:["推开球迷","拒绝合影","拒绝签名","2023夺冠","公关人设","傲慢","高人一等","对比梅西","亲民假象"]
+      "<strong>Verdict:</strong> Shoves, rejected selfies, contempt for the ordinary fan. For the critics, Cristiano's «above-it-all» arrogance contradicts the approachable image he sells in his adverts.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public video and media reporting; event details may vary across accounts, and it is for reference only.</div>"],
+    tags:["推开球迷","拒绝合影","拒绝签名","2023夺冠","公关人设","傲慢","高人一等","对比梅西","亲民假象"],
+    tagsEn:["shoved a fan","refused selfie","refused autograph","2023 title","PR persona","arrogance","above it all","vs Messi","faux-relatable image"],
+    tagsEs:["empuja a un aficionado","rechaza selfie","rechaza autógrafo","título 2023","imagen de relaciones públicas","arrogancia","por encima de todo","vs Messi","falsa imagen cercana"]
   },
   {
     id:49, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2010-01-01",
     title:"“自律典范”人设崩塌 — 汉堡可乐样样来",
     titleEn:"'Discipline Icon' Persona Cracks — Burgers & Coke Galore",
     titleEs: "Se resquebraja el personaje «icono de disciplina» — hamburguesas y Coca-Cola",
@@ -3190,6 +2401,7 @@ const events = [
       "<strong>商业反讽：</strong>一个私下也喝可乐的人，却靠“抵制可乐”收割健康人设红利，这种操作堪称足坛<strong>最具讽刺意味的营销</strong>。可口可乐作为欧洲杯官方赞助商被当场羞辱，而当事人本身却是其产品的潜在消费者。",
       "<strong>人设崩塌的连锁：</strong>当“自律神话”与现实行为产生落差，公众信任便会塌方。C罗的肌肉与体魄确实值得敬佩，但将其神化为“从不碰垃圾食品的圣徒”，本身就是一种<strong>过度营销</strong>，迟早会被细节戳破。",
       "<strong>偶像经济的通病：</strong>这并非C罗独有问题，而是整个体育偶像工业的缩影——把球员塑造成无瑕疵的超人，再用一个汉堡、一瓶可乐将其击碎。<em>造神与毁神</em>，本就是同一套流量逻辑的两面。",
+      "<strong>总评：</strong>「纪律偶像」是一个经不起推敲的商业人设——C罗当着镜头大嚼垃圾食品、出入派对的画面便是明证。一个宣讲努力、却活得像个散漫亿万富翁的布道者。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>饮食细节多源于二手爆料，可能与事实有出入，本文仅作舆论现象梳理。</div>"
     ],
     detailEn:[
@@ -3200,11 +2412,15 @@ const events = [
       "<strong>The domino effect of persona collapse:</strong> When the 'discipline myth' clashes with real behaviour, public trust collapses. Ronaldo's muscles and physique are genuinely admirable, but raising him to a 'saint who never touches junk food' is itself a form of <strong>over-marketing</strong> that sooner or later gets punctured by details.",
       "<strong>The idol economy's common failing:</strong> This is not Ronaldo's problem alone but the whole sports-idol industry's: moulding players into flawless supermen, then watching a single burger or bottle of Coke bring them down. <em>Building gods and tearing them down</em> are two sides of the same traffic logic."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Dietary details mostly come from second-hand leaks and may not match reality; this entry only surveys the public-opinion phenomenon.</div>"],
-    tags:["自律人设","汉堡","可乐","深夜派对","酒精","人设崩塌","公关营销","CR7品牌"]
+      "<strong>Verdict:</strong> The «discipline icon» is a commercial persona that doesn't hold up against images of Cristiano with junk food and at parties. A preacher of effort who lives like a dissipated billionaire.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Dietary details mostly come from second-hand leaks and may not match reality; this entry only surveys the public-opinion phenomenon.</div>"],
+    tags:["自律人设","汉堡","可乐","深夜派对","酒精","人设崩塌","公关营销","CR7品牌"],
+    tagsEn:["discipline persona","Hamburg","Coca-Cola","late-night party","alcohol","persona collapse","PR marketing","CR7 brand"],
+    tagsEs:["imagen de disciplina","Hamburgo","Coca-Cola","fiesta nocturna","alcohol","caída de la imagen","marketing de relaciones públicas","marca CR7"]
   },
   {
     id:50, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2010-01-01",
     title:"“慈善”作秀争议 — 捐款拍照一条龙",
     titleEn:"'Charity Show' Controversy — Donate, Pose, Post",
     titleEs: "Polémica del «espectáculo benéfico» — dona, posa, publica",
@@ -3237,6 +2453,7 @@ const events = [
       "<strong>血库献血的真诚？：</strong>支持者常以C罗定期献血、不纹身以保血液纯净为例反驳。但即便是这一善举，也被反复纳入个人宣传素材，<em>善意与营销</em>的边界始终模糊不清。",
       "<strong>“最慈善运动员”头衔：</strong>他曾被某机构评为“全球最慈善运动员”，但该榜单的评选标准与数据来源长期遭受质疑。当慈善变成<strong>排名竞赛</strong>，其本真性便不可避免地打折扣。",
       "<strong>真心与作秀的辩证：</strong>客观而言，无论动机如何，受助者确实得到了帮助。但当公益行为被持续工具化为形象工程，公众的质疑便有其合理性。<strong>慈善不该是流量生意</strong>，这是C罗式公益留给世人的最大反思。",
+      "<strong>总评：</strong>捐赠、摆拍、发布。批评者认为，C罗的慈善更像一场秀，而非慷慨之举。数字上确实慷慨，自我营销也同样慷慨。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>慈善行为细节多源于公开报道，动机评判主观性强，本文仅呈现多方观点。</div>"
     ],
     detailEn:[
@@ -3247,11 +2464,15 @@ const events = [
       "<strong>The 'most charitable athlete' title:</strong> He was once named 'the world's most charitable athlete' by a body, but the criteria and data behind the ranking have long been questioned. When charity becomes a <strong>ranking contest</strong>, its authenticity inevitably takes a discount.",
       "<strong>Sincerity versus performance:</strong> Objectively, regardless of motive, the recipients did get help. But when philanthropy is consistently weaponised as image-building, public scepticism has its legitimacy. <strong>Charity should not be a traffic business</strong> — that is the greatest reflection Ronaldo-style giving leaves to the world."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Details of the charitable acts mostly come from public reporting; judging motive is highly subjective, and this entry only presents multiple viewpoints.</div>"],
-    tags:["慈善作秀","捐款拍照","高调行善","献血营销","慈善赛","对比梅西","UNICEF","公关素材"]
+      "<strong>Verdict:</strong> He donates, poses, posts. For the critics, Cristiano's charity is spectacle more than generosity. Generous in figures, yes — but equally generous in self-promotion.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Details of the charitable acts mostly come from public reporting; judging motive is highly subjective, and this entry only presents multiple viewpoints.</div>"],
+    tags:["慈善作秀","捐款拍照","高调行善","献血营销","慈善赛","对比梅西","UNICEF","公关素材"],
+    tagsEn:["charity stunt","donate-and-pose","loud charity","blood-donation PR","charity match","vs Messi","UNICEF","PR material"],
+    tagsEs:["caridad como espectáculo","donar y posar","caridad ostentosa","donación de sangre como marketing","partido benéfico","vs Messi","UNICEF","material de relaciones públicas"]
   },
   {
     id:51, cat:"violence", catLabel:"场内暴力", severity:3,
+    dateIso:"2010-01-01",
     title:"竖中指 + 场上侮辱手势合集",
     titleEn:"Middle Finger + On-Pitch Insulting Gestures",
     titleEs: "Dedo corazón + gestos insultantes en el campo",
@@ -3284,6 +2505,7 @@ const events = [
       "<strong>侮辱手势合集：</strong>竖中指并非孤例。职业生涯中，C罗多次被拍到对球迷、对手甚至裁判做出争议手势——从最经典的“<em>calma calma</em>”到肘击、踢人、摔队长袖标，场上情绪管理一直是他的<strong>软肋</strong>。",
       "<strong>双重标准的庇护：</strong>耐人寻味的是，这些行为若是其他球员所为，早已被舆论口诛笔伐、追加禁赛；而C罗往往能凭借巨星身份获得相对宽容的处理。<em>名气成了免罪金牌</em>，这本身就是一种不公。",
       "<strong>情绪管理的失分项：</strong>技术与体能或许可登峰造极，但情绪智力的短板，让C罗在“完美偶像”的赛道上始终差最后一步。<strong>控制不了中指的人</strong>，也难以完全控制自己的历史评价。",
+      "<strong>总评：</strong>比心、做出「冷静」手势、挑衅看台：C罗积累了一整套侮辱性手势目录，折射出他对批评的低容忍，以及在受挑衅时极低的体育风度。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本文基于公开赛事画面与处罚公告整理，行为性质存在不同解读，仅供参考。</div>"
     ],
     detailEn:[
@@ -3294,11 +2516,15 @@ const events = [
       "<strong>Double-standard protection:</strong> Tellingly, when other players do these things they are dragged through the press and hit with extended bans, while Ronaldo repeatedly enjoys relatively lenient treatment thanks to his superstar status. <em>Fame as a get-out-of-jail card</em> is itself a form of unfairness.",
       "<strong>Emotional IQ as the missing grade:</strong> Technique and fitness can peak, but the shortfall in emotional intelligence leaves Ronaldo forever one step short on the 'perfect idol' track. <strong>A man who cannot control his middle finger</strong> can hardly fully control his own historical verdict."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This entry is compiled from public match footage and punishment notices; the nature of the behaviour is read differently, and it is for reference only.</div>"],
-    tags:["竖中指","马竞球迷","你疯了","摊手","翻白眼","闭嘴手势","挑衅","侮辱裁判","向下欺凌"]
+      "<strong>Verdict:</strong> Heart gestures, «calm» signals, provocations aimed at the stands: Cristiano has amassed a catalogue of insulting gestures that reveal his low tolerance for criticism and scant sportsmanship when provoked.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This entry is compiled from public match footage and punishment notices; the nature of the behaviour is read differently, and it is for reference only.</div>"],
+    tags:["竖中指","马竞球迷","你疯了","摊手","翻白眼","闭嘴手势","挑衅","侮辱裁判","向下欺凌"],
+    tagsEn:["middle finger","Atlético fans","you're crazy","throws hands up","eye-roll","silence gesture","provocation","insulting the ref","punching down"],
+    tagsEs:["dedo corazón","afición del Atlético","estás loco","brazos en alto","poniendo los ojos en blanco","gesto de silencio","provocación","insulto al árbitro","abusar del débil"]
   },
   {
     id:52, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2018-06-15",
     title:"2018世界杯帽子戏法后的狂妄庆祝",
     titleEn:"Arrogant Celebration After 2018 World Cup Hat-Trick",
     titleEs: "Celebración arrogante tras el hat-trick del Mundial 2018",
@@ -3331,6 +2557,7 @@ const events = [
       "<strong>个人英雄 vs 团队出局：</strong>讽刺的是，尽管这场帽子戏法被封神，葡萄牙当届世界杯依然<strong>止步16强</strong>。一个人的高光掩盖不了团队的平庸，“历史最佳”的表演，终究换不来一座大力神杯。",
       "<strong>与梅西的镜像对照：</strong>媒体不可避免地将其与梅西对比——后者同年世界杯同样表现出色却更显内敛。C罗式的张扬被部分球迷视为真性情，也被另一部分视为<strong>过度自我中心</strong>的病态。",
       "<strong>“我即历史”的危险：</strong>当一个运动员把“历史最佳”挂在嘴边、写在庆祝动作里，他实际上是在<em>强行绑架历史评价</em>。真正的伟大往往由后人定义，而非自我盖章。C罗的傲慢，恰恰是这类巨星的通病与软肋。",
+      "<strong>总评：</strong>对西班牙的帽子戏法固然精彩，却伴随着张扬的庆祝，尽显C罗失控的自我。尽管开局进球，2018年世界杯终究是一场集体失败。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>庆祝动作的解读存在主观性，“狂妄”评价仅为舆论倾向之一，不代表定论。</div>"
     ],
     detailEn:[
@@ -3341,11 +2568,15 @@ const events = [
       "<strong>Messi mirror image:</strong> The media inevitably compared him to Messi, who was equally outstanding at that year's World Cup but far more restrained. Some fans read Ronaldo's bravado as authenticity; others as the pathology of <strong>excessive self-centredness</strong>.",
       "<strong>The danger of 'I am history':</strong> When an athlete wears 'best in history' on his sleeve and bakes it into his celebrations, he is in effect <em>kidnapping historical judgement</em>. True greatness is usually defined by future generations, not self-stamped. Ronaldo's arrogance is precisely the common failing and weakness of this kind of superstar."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>The reading of the celebration involves subjectivity; the 'arrogant' verdict is only one of the public-opinion trends, not a final word.</div>"],
-    tags:["2018世界杯","帽子戏法","西班牙","siuuu","狂妄庆祝","16强出局","一己之力营销","对比梅西","淘汰赛0球"]
+      "<strong>Verdict:</strong> A spectacular hat-trick against Spain, yes, but paired with cocky celebrations that laid bare Cristiano's runaway ego. The 2018 World Cup ended as a collective failure, despite the goal-laden opener.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>The reading of the celebration involves subjectivity; the 'arrogant' verdict is only one of the public-opinion trends, not a final word.</div>"],
+    tags:["2018世界杯","帽子戏法","西班牙","siuuu","狂妄庆祝","16强出局","一己之力营销","对比梅西","淘汰赛0球"],
+    tagsEn:["2018 World Cup","hat-trick","Spain","siuuu","arrogant celebration","Round of 16 exit","one-man marketing","vs Messi","0 knockout goals"],
+    tagsEs:["Mundial 2018","hat-trick","España","siuuu","celebración arrogante","eliminado en octavos","marketing en solitario","vs Messi","0 goles en eliminatorias"]
   },
   {
     id:53, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2018-01-01",
     title:"尤文图斯更衣室孤立 + 被队友嫌弃",
     titleEn:"Juventus Dressing-Room Isolation — Shunned by Teammates",
     titleEs: "Aislamiento en el vestuario de la Juventus — marginado por los compañeros",
@@ -3379,6 +2610,8 @@ const events = [
       "<strong>《孤注一掷》的曝光：</strong>亚马逊纪录片《All or Nothing》更将矛盾搬上屏幕——C罗在更衣室对队友<strong>爆粗怒骂</strong>，与夸德拉多在场上发生激烈争执。这些画面坐实了“难以共事”的标签，并非媒体杜撰。",
       "<strong>基耶利尼的尴尬：</strong>作为队长，基耶利尼不得不在维护C罗面子与照顾本土球员情绪之间<strong>艰难走钢丝</strong>。一次对阵AC米兰赛后，他与C罗的合影事件更暴露了队内微妙的权力失衡，<em>大哥变成配角</em>。",
       "<strong>团队战绩的代价：</strong>C罗个人数据依旧耀眼，但尤文在欧冠始终无法突破，意甲统治力也逐年下滑。当一支球队围绕一个“特权孤岛”运转，<strong>集体战斗力</strong>必然受损——这是尤文三年实验最沉痛的教训。",
+      "<strong>账目丑闻：</strong>C罗的离队恰逢尤文账目丑闻（plusvalenze，虚增资本案）爆发，其中葡萄牙人的薪水也扮演了角色。事后看来，这笔签约在经济与竞技层面都是一场灾难。",
+      "<strong>总评：</strong>三年孤立、边缘化队友（迪巴拉、皮亚尼奇）、丢掉意甲王朝、欧冠零冠。在批评者眼中，C罗的尤文时代正是「球队破坏者」的铁证。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>更衣室内部情况多源于媒体报道与纪录片片段，可能与当事人视角有出入，仅供参考。</div>"
     ],
     detailEn:[
@@ -3389,11 +2622,16 @@ const events = [
       "<strong>Chiellini's awkwardness:</strong> As captain, Chiellini had to <strong>walk a tightrope</strong> between preserving Ronaldo's face and looking after the local players' feelings. After one AC Milan match a photo-op incident between him and Ronaldo further exposed the dressing-room's delicate power imbalance, <em>the big brother reduced to a supporting role</em>.",
       "<strong>The collective cost:</strong> Ronaldo's personal numbers remained glittering, but Juventus could not break through in the Champions League and their Serie A dominance eroded year by year. When a team is built around a 'privileged island', <strong>collective combat power</strong> inevitably suffers — Juve's three-year experiment's bitterest lesson."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Inside-dressing-room details mostly come from media reporting and documentary clips, and may differ from the parties' perspectives; for reference only.</div>"],
-    tags:["尤文","更衣室孤立","迪巴拉","皮亚尼奇","基耶利尼","萨里","皮尔洛","无限开火权","特权","逃离"]
+      "<strong>The accounting scandal:</strong> Cristiano's departure coincided with the explosion of Juve's accounting scandal (plusvalenze), in which the Portuguese star's wages played their part. In hindsight, the signing was an economic and sporting disaster.",
+      "<strong>Verdict:</strong> Three years of isolation, marginalised teammates (Dybala, Pjanić), a lost Serie A dynasty and no Champions League title. For the critics, the Cristiano era at Juve was proof positive of the «team-breaker».",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Inside-dressing-room details mostly come from media reporting and documentary clips, and may differ from the parties' perspectives; for reference only.</div>"],
+    tags:["尤文","更衣室孤立","迪巴拉","皮亚尼奇","基耶利尼","萨里","皮尔洛","无限开火权","特权","逃离"],
+    tagsEn:["Juve","dressing-room isolation","Dybala","Pjanić","Chiellini","Sarri","Pirlo","unlimited shooting license","privilege","flight"],
+    tagsEs:["Juve","aislamiento en vestuario","Dybala","Pjanić","Chiellini","Sarri","Pirlo","licencia infinita para tirar","privilegio","huida"]
   },
   {
     id:54, cat:"offpitch", catLabel:"场外失态", severity:3,
+    dateIso:"2015-01-01",
     title:"社交媒体买粉 + 数据注水",
     titleEn:"Social-Media Fake Followers & Inflated Numbers",
     titleEs: "Seguidores falsos en redes y números inflados",
@@ -3426,6 +2664,7 @@ const events = [
       "<strong>商业估值的水分：</strong>凭借庞大的粉丝基数，C罗每条赞助帖报价高达数百万美元。但若剔除假粉，其单条帖子的真实触达价值将大打折扣。换句话说，<em>品牌方在为空气买单</em>，这是整个网红经济的水分缩影。",
       "<strong>与梅西的共同困境：</strong>公平地说，假粉问题并非C罗独有，梅西、内马尔等顶流同样受困。但C罗作为粉丝数最多的运动员，其<strong>绝对水分体量</strong>也最为惊人，自然成为众矢之的。",
       "<strong>数据造神的反思：</strong>当“全球最火运动员”的桂冠建立在数千万机器人之上，所谓的影响力排名便沦为<strong>数字游戏</strong>。CR7商业帝国的辉煌，或许需要打上一个相当大的折扣来理解。",
+      "<strong>总评：</strong>6亿粉丝，确实，但其中相当一部分是虚假账号。在黑粉眼中，C罗社交平台上「注水的数字」恰是其生涯的完美隐喻：数字惊人，现实却略逊一筹。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>假粉比例数据因统计工具不同而异，本文采用公开报道数字，仅供参考。</div>"
     ],
     detailEn:[
@@ -3436,11 +2675,15 @@ const events = [
       "<strong>Messi shares the problem:</strong> To be fair, fake-follower issues are not Ronaldo's alone — Messi, Neymar and other megastars all suffer them. But as the most-followed athlete on the planet, Ronaldo's <strong>absolute water content</strong> is also the most staggering, naturally making him the lightning rod.",
       "<strong>Reflecting on data-driven myth-making:</strong> When the crown of 'world's most-followed athlete' is built on tens of millions of bots, the so-called influence ranking becomes a <strong>numbers game</strong>. The glories of the CR7 business empire may need to be read with a sizeable discount."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Fake-follower percentages vary with the statistical tool used; this entry uses publicly reported figures and is for reference only.</div>"],
-    tags:["买粉","6亿粉丝","Instagram","僵尸粉","机器人","互动率","门德斯","对比梅西","数据注水"]
+      "<strong>Verdict:</strong> 600 million followers, yes, but with a sizeable share of fake accounts. For the haters, Cristiano's «inflated numbers» on social media are the perfect metaphor for his career: colossal figures, a somewhat humbler reality.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Fake-follower percentages vary with the statistical tool used; this entry uses publicly reported figures and is for reference only.</div>"],
+    tags:["买粉","6亿粉丝","Instagram","僵尸粉","机器人","互动率","门德斯","对比梅西","数据注水"],
+    tagsEn:["bought followers","600M followers","Instagram","fake followers","bots","engagement rate","Mendes","vs Messi","inflated stats"],
+    tagsEs:["seguidores comprados","600 M de seguidores","Instagram","seguidores falsos","bots","tasa de interacción","Mendes","vs Messi","estadísticas infladas"]
   },
   {
     id:55, cat:"persona", catLabel:"人设争议", severity:3,
+    dateIso:"2018-01-01",
     title:"球迷“结晶化” — C罗粉丝的极端化现象",
     titleEn:"'Crystallised' Fans — The Extremism of Ronaldo Stans",
     titleEs: "Fans «cristalizados» — el extremismo de los fans de Cristiano",
@@ -3473,6 +2716,7 @@ const events = [
       "<strong>主播煽动的骂战：</strong>知名主播如“李老八”一句“梅西技术碾压C罗”，便能引发双方粉丝的<strong>大规模对线</strong>。流量主播刻意制造对立以收割情绪，粉丝们则心甘情愿沦为被收割的<em>情绪韭菜</em>。",
       "<strong>理性声音的微弱：</strong>豆瓣、Reddit等平台上也有球迷呼吁“别变得跟罗结晶一样NC饭圈”，承认C罗的优秀并不等于必须贬低梅西。但在极端声浪的裹挟下，<strong>理性声音</strong>往往被迅速淹没。",
       "<strong>偶像失格的连带：</strong>粉丝是偶像的镜子。C罗本人多次在公开场合流露出的傲慢、对梅西的明嘲暗讽，无形中为极端粉丝提供了<strong>行为示范</strong>。当偶像本身不克制，指望粉丝理性便是一种奢望。",
+      "<strong>总评：</strong>一支好斗而激进的拥趸群体，在批评者眼中勾勒出「C罗现象」的暗面：一个几乎引发宗教式狂热的偶像，其粉丝随时准备攻击任何质疑者。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>粉丝群体行为不能代表全体C罗球迷，“结晶”为网络戏称，本文仅讨论饭圈化现象。</div>"
     ],
     detailEn:[
@@ -3483,12 +2727,16 @@ const events = [
       "<strong>Weak rational voices:</strong> On Douban, Reddit and elsewhere there are also fans urging 'don't be like the Ronaldo-crystals, an NC fandom', conceding Ronaldo's greatness does not require diminishing Messi. But under extremist noise, <strong>rational voices</strong> are quickly drowned out.",
       "<strong>Idol misconduct ricochets:</strong> Fans are mirrors of their idols. Ronaldo's repeated public arrogance and veiled digs at Messi have implicitly provided <strong>behavioural templates</strong> for his extremist fans. When the idol himself does not restrain himself, expecting fans to be rational is wishful thinking."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Fan-group behaviour cannot represent all Ronaldo fans; 'crystal' is internet slang, and this entry only discusses the fan-cult phenomenon.</div>"],
-    tags:["结晶","极端粉丝","饭圈化","攻击梅西","洗白","水军","公关煽动","路人缘反噬","虎扑","贴吧"]
+      "<strong>Verdict:</strong> A militant, aggressive fandom that, for the critics, captures the dark side of the «Cristiano phenomenon»: an idol who inspires near-religious devotion, with fans ready to attack anyone who questions him.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Fan-group behaviour cannot represent all Ronaldo fans; 'crystal' is internet slang, and this entry only discusses the fan-cult phenomenon.</div>"],
+    tags:["结晶","极端粉丝","饭圈化","攻击梅西","洗白","水军","公关煽动","路人缘反噬","虎扑","贴吧"],
+    tagsEn:["crystallised (stans)","extremist fans","fandom radicalisation","attacking Messi","image rehab","astroturfing","PR stoking","public-image backlash","Hupu","Baidu Tieba"],
+    tagsEs:["cristalizados (fans)","fans extremistas","fans fanatizados","ataca a Messi","limpieza de imagen","comentarios comprados","manipulación mediática","rechazo del público","Hupu","Baidu Tieba"]
   },
   // ========== ↓↓↓ 续编新增（2026-07-03 ZCode） id:56+ ↓↓↓ ==========
   {
     id:56, cat:"national", catLabel:"国家队争议", severity:4,
+    dateIso:"2006-07-01",
     title:"2006世界杯「眨眼门」 — 坑哭鲁尼",
     titleEn:"2006 World Cup 'Wink-Gate' — Sank Rooney",
     titleEs: "«Guiñogate» del Mundial 2006 — hundió a Rooney",
@@ -3522,6 +2770,8 @@ const events = [
       "<strong>几乎断送曼联生涯：</strong>前曼联后卫韦斯·布朗透露，老特拉福德的更衣室一度因这件事<strong>濒临分裂</strong>。鲁尼与C罗的关系降至冰点，弗格森不得不亲自斡旋，才勉强将两人重新捏合到一起。",
       "<strong>鲁尼的多年耿耿：</strong>多年后鲁尼在自传与采访中仍耿耿于怀，直言“宁愿葡萄牙进不了世界杯”。即便两人后来公开和解，那记眨眼在英格兰人心中留下的<strong>背叛感</strong>，至今未消。",
       "<strong>心机与胜利的辩证：</strong>支持者辩称C罗只是“求胜欲强”，但用俱乐部情谊作为战术筹码，这种<strong>功利至上</strong>的做派，恰恰暴露了他为胜利可以不择手段的一面。<em>胜利至上，情谊靠边</em>，这是C罗性格中的冷酷底色。",
+      "<strong>与鲁尼和解：</strong>尽管发生了那件事，C罗与鲁尼此后仍继续在曼联并肩作战，并在多年后公开和解。但「眨眼门」始终是他生涯中的一道污点。",
+      "<strong>总评：</strong>那一记坑了鲁尼的眨眼，勾勒出C罗最工于心计的一面：为成全国家队利益，他不惜损害俱乐部队友。「眨眼门」至今仍是他最尴尬的画面之一。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>眨眼的具体含义当事人有不同解释，本文采用主流舆论解读，仅供参考。</div>"
     ],
     detailEn:[
@@ -3532,12 +2782,17 @@ const events = [
       "<strong>Rooney's lingering grudge:</strong> Years later Rooney still fumed in his autobiography and interviews, saying he 'would rather Portugal didn't qualify for the World Cup'. Even after the two publicly reconciled, the <strong>betrayer's sting</strong> of that wink still lingers in the English mind.",
       "<strong>Scheming versus winning:</strong> Supporters plead that Ronaldo was 'just ultra-competitive', but using club-mate bonds as a tactical chip is precisely that <strong>utilitarian-to-the-bone</strong> streak that exposes his willingness to do anything to win. <em>Winning above all, friendship aside</em> — the cold undertone of Ronaldo's character."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>The exact meaning of the wink is explained differently by those involved; this entry follows the mainstream media reading and is for reference only.</div>"],
+      "<strong>The Rooney reconciliation:</strong> Despite the incident, Cristiano and Rooney kept playing together at United and publicly reconciled over the years. But «Winkgate» remained a stain on his career.",
+      "<strong>Verdict:</strong> The wink that sank Rooney captured the most calculating side of Cristiano: a player willing to harm a club teammate if it benefited his national team. «Winkgate» remains one of his most embarrassing images.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>The exact meaning of the wink is explained differently by those involved; this entry follows the mainstream media reading and is for reference only.</div>"],
     quote:{text:"我只是对替补席眨眼说我们人数占优了，和鲁尼的红牌没关系。", textEn:"I just winked at the bench to say we were a man up—it had nothing to do with Rooney's red card.", author:"C罗，2006年赛后辩解", authorEn:"Cristiano Ronaldo, post-match explanation, 2006", textEs:"Solo le guiñé el ojo al banquillo para decir que teníamos un jugador de más; no tuvo nada que ver con la roja de Rooney.", authorEs:"Cristiano Ronaldo, explicación post-partido, 2006"},
-    tags:["眨眼门","2006世界杯","坑鲁尼","红牌","全英嘘声","每日镜报","背叛队友"]
+    tags:["眨眼门","2006世界杯","坑鲁尼","红牌","全英嘘声","每日镜报","背叛队友"],
+    tagsEn:["Winkgate","2006 World Cup","sank Rooney","red card","booed across England","Daily Mirror","betrayed teammates"],
+    tagsEs:["guiñogate","Mundial 2006","hundió a Rooney","tarjeta roja","abucheado en toda Inglaterra","Daily Mirror","traicionó a compañeros"]
   },
   {
     id:57, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2006-06-01",
     title:"第一次离队风波 — 弗格森「卖鲁尼留他」的抉择",
     titleEn:"First Exit Storm — Ferguson's 'Keep Him, Sell Rooney' Call",
     titleEs: "Primera tormenta de salida — el «quédatlo, vende a Rooney» de Ferguson",
@@ -3570,6 +2825,7 @@ const events = [
       "<strong>“至少再留一年”：</strong>BBC当时的报道记录了C罗的公开表态——“我至少会在曼联再留一年”。这句话背后，是教练权威与球员意愿的博弈，也是弗格森治军手腕的<em>经典案例</em>。",
       "<strong>留队换来的巅峰：</strong>被迫留守的C罗，反而在2007-08赛季迎来大爆发，率曼联豪夺英超与欧冠双冠，个人首夺金球奖。但这场“被迫的伟大”，也为2009年最终离队埋下了<strong>更深的伏笔</strong>。",
       "<strong>转会肥皂剧的开端：</strong>2006年的这场风波，开启了长达数年的“C罗转会皇马”连续剧。每年夏天都要上演一次离队传闻，俱乐部、球员、媒体三方合谋的<strong>流量盛宴</strong>，让红魔球迷疲惫不堪，也成为C罗“身在曹营心在汉”的早期证据。",
+      "<strong>总评：</strong>C罗首次离队风波以弗格森强硬挽留告终。那个赛季成为转折点，将他推向首座金球奖与最终的巨星之路。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>转会内幕多源于事后追溯报道，具体细节可能因当事人记忆有出入，仅供参考。</div>"
     ],
     detailEn:[
@@ -3580,11 +2836,15 @@ const events = [
       "<strong>The peak that staying produced:</strong> Forced to stay, Ronaldo exploded in the 2007-08 season, leading United to a Premier League + Champions League double and winning his first Ballon d'Or. But this 'forced greatness' also laid a <strong>deeper fuse</strong> for his eventual 2009 exit.",
       "<strong>The start of the soap opera:</strong> The 2006 storm kicked off the multi-year 'Ronaldo to Real' serial. Every summer produced another round of exit rumours; the <strong>traffic feast</strong> jointly orchestrated by club, player and media exhausted United fans — early evidence of Ronaldo's 'body at United, heart elsewhere'."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Transfer inside-information mostly comes from retrospective reporting; specific details may vary with the parties' memories and are for reference only.</div>"],
-    tags:["转会风波","弗格森","皇马","2006","留人","鲁尼芥蒂","更衣室"]
+      "<strong>Verdict:</strong> Cristiano's first exit storm ended with Ferguson digging in and keeping him. That season marked the turning point that propelled Cristiano to his first Ballon d'Or and definitive stardom.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Transfer inside-information mostly comes from retrospective reporting; specific details may vary with the parties' memories and are for reference only.</div>"],
+    tags:["转会风波","弗格森","皇马","2006","留人","鲁尼芥蒂","更衣室"],
+    tagsEn:["transfer saga","Ferguson","Real Madrid","2006","retention","Rooney grudge","dressing room"],
+    tagsEs:["telenovela de fichaje","Ferguson","Real Madrid","2006","retención","rencilla con Rooney","vestuario"]
   },
   {
     id:59, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2010-01-01",
     title:"欧冠「十六郎」时期 — 连续止步16强",
     titleEn:"The 'Last-16' Era — Stuck in the Champions League R16",
     titleEs: "La era «octavos» — atascado en los octavos de Champions",
@@ -3618,6 +2878,8 @@ const events = [
       "<strong>“皇马黑洞”的质疑：</strong>媒体与球迷开始质疑：是天价转会费与巨星政策失败了？还是C罗无法在欧冠关键战挺身而出？<strong>“皇马黑洞”</strong>的论调甚嚣尘上，C罗作为头牌，自然首当其冲。",
       "<strong>穆里尼奥时代的破局：</strong>直到2010年穆里尼奥入主，皇马才在2011/12赛季打破16强魔咒，连续三年闯入欧冠四强。但讽刺的是，破局的关键更多被归功于<strong>穆帅的战术革命</strong>，而非C罗一人之力。",
       "<strong>从十六郎到欧冠之王：</strong>当然，后来的C罗用四座欧冠奖杯洗刷了这段耻辱。但“十六郎”时期留下的教训是深刻的——<em>个人再强，无团队亦是空谈</em>。这段经历也提醒世人，C罗的“欧冠之王”神话，并非从第一天就成立。",
+      "<strong>安切洛蒂时代的转折：</strong>这一魔咒在2014年由卡尔洛·安切洛蒂打破：皇马捧起<strong>第十座</strong>欧冠（C罗的第一座），随后又在2014至2018年间连夺四冠。",
+      "<strong>总评：</strong>C罗在皇马的前几个赛季屡屡折戟于欧冠八强/半决赛，由此得名「十六郎」。这一魔咒直到2014年才被打破。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>历史战绩为客观事实，“十六郎”绰号源于球迷戏称，本文仅作历史回顾。</div>"
     ],
     detailEn:[
@@ -3628,11 +2890,16 @@ const events = [
       "<strong>Mourinho breaks the curse:</strong> Only with Mourinho's arrival in 2010 did Real escape the round-of-16 curse in 2011/12 and reach three straight UCL semi-finals. But ironically, the breakthrough was credited more to <strong>Mourinho's tactical revolution</strong> than to Ronaldo alone.",
       "<strong>From Mr Last-16 to UCL King:</strong> To be sure, later Ronaldo washed away this disgrace with four Champions League titles. But the lesson of the 'Mr Last-16' years is profound — <em>however great an individual is, without the collective it's all talk</em>. It is also a reminder that Ronaldo's 'UCL King' myth was not true from day one."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Historical results are objective facts; the 'Mr Last-16' nickname originated as a fan joke. This entry is purely a historical retrospective.</div>"],
-    tags:["欧冠","十六郎","皇马","2010-2013","里昂","拜仁","个人vs团队","罗三票"]
+      "<strong>The Ancelotti turning point:</strong> The curse was broken in 2014 under Carlo Ancelotti: Real Madrid lifted their <strong>tenth</strong> Champions League (Cristiano's first), and would go on to claim four titles between 2014 and 2018.",
+      "<strong>Verdict:</strong> Cristiano's first Real Madrid seasons were marked by recurring Champions League exits in the Round of 16 / semi-finals, earning him the «king of the last 16» tag. The curse was finally broken in 2014.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Historical results are objective facts; the 'Mr Last-16' nickname originated as a fan joke. This entry is purely a historical retrospective.</div>"],
+    tags:["欧冠","十六郎","皇马","2010-2013","里昂","拜仁","个人vs团队","罗三票"],
+    tagsEn:["Champions League","Mr. Round of 16","Real Madrid","2010-2013","Lyon","Bayern","individual vs team","Three-Vote Ronaldo"],
+    tagsEs:["Champions League","rey de octavos","Real Madrid","2010-2013","Lyon","Bayern","individual vs equipo","Cristiano Tres Votos"]
   },
   {
     id:60, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2014-06-01",
     title:"2014世界杯带伤出战 — 小组出局后落泪",
     titleEn:"2014 World Cup on One Knee — Out in Groups, in Tears",
     titleEs: "Mundial 2014 de rodillas — eliminado en fase de grupos, en lágrimas",
@@ -3665,6 +2932,7 @@ const events = [
       "<strong>“不怪伤病”的嘴硬：</strong>出局后，C罗公开表示<strong>“伤病不是借口”</strong>，不愿将失败归因于身体状态。这种嘴硬固然体现职业精神，却也掩盖了一个事实：明知伤重仍强行参赛，本身就是一种<strong>战术与医疗上的失策</strong>。",
       "<strong>与梅西夺冠的残酷反差：</strong>更具讽刺意味的是，同年梅西虽也无缘世界杯，却在俱乐部层面与个人荣誉上持续收割；而C罗的2014，则以<strong>带伤折戟</strong>收场。两人命运的对照，让这届世界杯成为C罗生涯的<em>至暗时刻</em>之一。",
       "<strong>短期荣誉 vs 长期健康的博弈：</strong>带伤出战或许赢得了“顽强拼搏”的虚名，却可能透支了职业生涯的健康储备。<strong>英雄主义与科学决策</strong>的冲突，在这届世界杯上暴露无遗，也是所有顶级运动员永恒的两难。",
+      "<strong>总评：</strong>一届该被遗忘的世界杯：带伤、表现平庸、小组赛出局。批评者认为，这再次印证了俱乐部C罗（势不可挡）与国家队C罗（起伏不定）之间的脱节。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>伤病情节基于公开医疗报道与媒体记录，本文仅作赛事回顾，不构成医疗判断。</div>"
     ],
     detailEn:[
@@ -3675,12 +2943,16 @@ const events = [
       "<strong>Cruel contrast with Messi:</strong> Most ironically, that same year Messi also missed out on a World Cup but kept racking up club and individual honours; Ronaldo's 2014 closed with <strong>injury and an early exit</strong>. The contrast in their destinies made this World Cup one of the <em>darker moments</em> of Ronaldo's career.",
       "<strong>Short-term glory versus long-term health:</strong> Playing injured may have earned a fleeting reputation for 'gritty determination', but it may also have overdrawn the health reserves of his career. The clash between <strong>heroism and scientific decision-making</strong> was laid bare at this World Cup — the eternal dilemma of every elite athlete."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>The injury details are based on public medical reporting and media records; this entry is purely a match retrospective and does not constitute medical advice.</div>"],
+      "<strong>Verdict:</strong> A World Cup to forget: injured, poor in performance, out at the group stage. For the critics, further proof of the disconnect between the club Cristiano (unstoppable) and the international Cristiano (inconsistent).",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>The injury details are based on public medical reporting and media records; this entry is purely a match retrospective and does not constitute medical advice.</div>"],
     quote:{text:"我想为国家队燃烧最后一滴，可惜身体不允许。", textEn:"I wanted to burn my last drop for the national team, but my body wouldn't allow it.", author:"C罗，2014世界杯赛后", authorEn:"Cristiano Ronaldo, after the 2014 World Cup", textEs:"Quería quemar mi última gota por la selección, pero mi cuerpo no me lo permitió.", authorEs:"Cristiano Ronaldo, tras el Mundial de 2014"},
-    tags:["2014世界杯","带伤","膝盖","落泪","小组出局","金球","梅罗对比"]
+    tags:["2014世界杯","带伤","膝盖","落泪","小组出局","金球","梅罗对比"],
+    tagsEn:["2014 World Cup","injured","knee","in tears","group-stage exit","Ballon d'Or","Messi vs CR7"],
+    tagsEs:["Mundial 2014","lesionado","rodilla","lágrimas","eliminado en fase de grupos","Balón de Oro","Messi vs CR7"]
   },
   {
     id:61, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2003-01-01",
     title:"球衣号码恩怨 — 抢7号、与拉莫斯的「传承」之争",
     titleEn:"Shirt Number Sagas — Seizing the No.7",
     titleEs: "Sagas del dorsal — adueñándose del n.º 7",
@@ -3713,6 +2985,7 @@ const events = [
       "<strong>尤文让号夸德拉多：</strong>转投尤文图斯后，C罗再度上演“夺号”戏码——原7号主人<strong>夸德拉多</strong>被迫让号，改穿其他号码。尽管哥伦比亚人表面“自愿”，但这种<em>巨星特权对老臣的挤压</em>，在更衣室引发了微妙的不满。",
       "<strong>“7号信仰”背后的自负：</strong>C罗对7号的执着，已超越普通球衣号码的范畴，成为一种<strong>近乎宗教式的信仰</strong>。但当一个数字变成个人图腾，要求他人为其让位，便难掩那份以自我为中心的<em>霸道</em>。",
       "<strong>号码帝国的商业逻辑：</strong>归根结底，CR7不仅是球衣号码，更是价值数十亿美元的商业品牌。每一次“夺号”，都是对品牌资产的保护性扩张。<strong>号码即生意</strong>，这或许才是C罗7号情结最底层的真实动机。",
+      "<strong>总评：</strong>C罗已将7号球衣变成个人与商业的标识。但他在每家俱乐部夺取7号的过程（尤其在尤文），折射出他对自身形象控制的偏执。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>球衣让号多为俱乐部内部事务，“逼宫”等说法属媒体推测，仅供参考。</div>"
     ],
     detailEn:[
@@ -3723,11 +2996,15 @@ const events = [
       "<strong>The narcissism behind the 'No.7 faith':</strong> Ronaldo's fixation on the 7 has long transcended an ordinary shirt number, becoming a <strong>near-religious faith</strong>. But when a digit turns into a personal totem and others must give way for it, the <em>overbearing</em> self-centredness is hard to hide.",
       "<strong>The commercial logic of the number empire:</strong> At root, CR7 is not just a shirt number but a multi-billion-dollar commercial brand. Every 'number-grab' is a protective expansion of brand assets. <strong>The number is the business</strong> — perhaps the truest underlying motive of Ronaldo's No.7 obsession."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Shirt-number handovers are mostly internal club matters; terms like 'forced out' are media speculation and are for reference only.</div>"],
-    tags:["7号","CR7","曼联","皇马","尤文","劳尔","夸德拉多","号码传承","商业品牌"]
+      "<strong>Verdict:</strong> Cristiano has turned the No. 7 shirt into his personal and commercial signature. But the lengths he went to seize the 7 at each club (Juventus above all) reveal an obsession with controlling his image.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Shirt-number handovers are mostly internal club matters; terms like 'forced out' are media speculation and are for reference only.</div>"],
+    tags:["7号","CR7","曼联","皇马","尤文","劳尔","夸德拉多","号码传承","商业品牌"],
+    tagsEn:["No. 7","CR7","Man United","Real Madrid","Juve","Raúl","Cuadrado","shirt-number saga","commercial brand"],
+    tagsEs:["dorsal 7","CR7","Man United","Real Madrid","Juve","Raúl","Cuadrado","saga del dorsal","marca comercial"]
   },
   {
     id:62, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2023-01-01",
     title:"沙特联赛点球占比 — 含金量争议",
     titleEn:"Saudi-League Penalty Share — 'Quality' Doubts",
     titleEs: "Porcentaje de penales en liga saudí — dudas sobre la «calidad»",
@@ -3761,6 +3038,8 @@ const events = [
       "<strong>与梅西迈阿密的对照：</strong>舆论不可避免地将其与梅西在迈阿密国际的表现对比。梅西在美职联同样数据亮眼，但更多依靠<strong>组织与运动战创造力</strong>，而非点球堆砌。这种反差，让“沙特射手王”的含金量大打折扣。",
       "<strong>“沙特联赛”的整体质疑：</strong>更深层的争议在于联赛本身。沙特联赛的水平、节奏、对抗强度，与五大联赛不可同日而语。在这样一个联赛刷数据，再与欧洲时期的数据简单相加，本身就有<strong>注水之嫌</strong>。",
       "<strong>纪录 vs 真实水准：</strong>C罗确实凭借沙特时期的数据，将职业生涯总进球推向惊人的高度。但当“历史射手王”的桂冠，有相当部分建立在<strong>点球与弱旅</strong>之上，这个头衔的<em>纯度</em>，便值得冷静审视。",
+      "<strong>「Penaldo」绰号：</strong>在沙特，「<strong>Penaldo</strong>」（点球罗）这一绰号进一步坐实：他的许多沙特进球都是他本人制造或垄断的点球。总数被点球与弱旅防线注水。",
+      "<strong>总评：</strong>在沙特进了很多球，确实，但点球占比高、防线孱弱。批评者认为，C罗的沙特「数据」正是 stat-padding 与进球含金量低下的明证。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>点球占比数据因统计口径不同而异，联赛水平评价存在主观性，本文仅呈现争议。</div>"
     ],
     detailEn:[
@@ -3771,12 +3050,17 @@ const events = [
       "<strong>The league-level question:</strong> The deeper controversy is the league itself. The Saudi Pro League's level, tempo and intensity cannot compare with Europe's top five. Padding stats in such a league, then simply adding them to his European totals, is itself <strong>suspect of inflation</strong>.",
       "<strong>Record versus actual level:</strong> Ronaldo has indeed used his Saudi-phase numbers to push his career goal tally to staggering heights. But when the 'all-time top scorer' crown is substantially built on <strong>penalties and weak opposition</strong>, the <em>purity</em> of that title deserves cool scrutiny."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>Penalty-share data varies with the statistical method used, and judgements of league quality are subjective; this entry only presents the controversy.</div>"],
-    tags:["沙特","点球","刷数据","含金量","利雅得胜利","4年1冠","梅西对比","塔利斯卡"]
+      "<strong>The «Penaldo» nickname:</strong> In Saudi Arabia, the «<strong>Penaldo</strong>» nickname has only consolidated: many of his Saudi goals are penalties he himself wins or monopolises. The overall tally, inflated by penalties and minor opposition.",
+      "<strong>Verdict:</strong> Plenty of goals in Saudi Arabia, yes, but with a high share of penalties and against weaker defences. For the critics, Cristiano's Saudi «records» are proof of stat-padding and the modest quality of his goals.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>Penalty-share data varies with the statistical method used, and judgements of league quality are subjective; this entry only presents the controversy.</div>"],
+    tags:["沙特","点球","刷数据","含金量","利雅得胜利","4年1冠","梅西对比","塔利斯卡"],
+    tagsEn:["Saudi","penalty","stat-padding","stat quality","Al Nassr","4 years 1 title","vs Messi","Talisca"],
+    tagsEs:["Arabia","penalti","inflar estadísticas","calidad de los registros","Al Nassr","4 años 1 título","vs Messi","Talisca"]
   },
   // ========== 🚨 BREAKING 2026-07-07：世界杯绝杀淘汰（深度长报道）==========
   {
-    id:63, cat:"national", catLabel:"国家队争议", severity:5,
+    id:63, slug:"six-world-cups-zero-trophies-tearful-farewell", cat:"national", catLabel:"国家队争议", severity:5,
+    dateIso:"2026-07-07",
     title:"【头条】六届世界杯0冠 — 西班牙补时绝杀，41岁CR7泪别最后一舞",
     titleEn:"[HEADLINE] Six World Cups, Zero Trophies — Spain's Stoppage Winner, 41-Year-Old CR7's Tearful Last Dance",
     titleEs: "[TITULAR] Seis Mundiales, cero títulos — gol de España en el descuento, última danza llorosa de CR7 a los 41",
@@ -3803,6 +3087,7 @@ const events = [
       "<strong>La última imagen:</strong> La imagen de Cristiano, de 41 años, llorando solo en la zona mixta tras la eliminación ante España, quedará como la última fotografía de su era mundialista: el genio que nunca levantó la copa.",
       "<strong>El récord, sí, pero sin copa:</strong> Cristiano marcó en seis Mundiales consecutivos (récord) y es uno de los máximos goleadores mundialistas. Pero el trofeo, el que de verdad importa, se le resistió siempre. La paradoja de su carrera.",
       "<strong>El epitafio:</strong> «Seis Mundiales, cero títulos» quedará como el epitafio mundialista de Cristiano. Un genio absoluto del fútbol que, en la cita más importante del deporte, nunca fue capaz de levantar el trofeo.",
+      "<figure class='modal-figure'><picture><source type='image/webp' srcset='assets/images/wc2026/wc2026-13.webp'><img src='assets/images/wc2026/wc2026-13.jpg' alt='Cristiano de espaldas' loading='lazy' decoding='async'></picture><figcaption><b>Figura 10</b> · De espaldas. Quizá, dentro de muchos años, la gente no recuerde el marcador, sino esta silueta caminando sola hacia el túnel — la de un hombre que persiguió sin descanso la Copa del Mundo y siempre quedó a un paso.<i>Fuente: midday</i></figcaption></figure>",
       "<div class='modal-disclaimer'><strong>⚠️ Aviso:</strong> La eliminación de Portugal contra España en octavos del Mundial 2026, el gol de Merino y la despedida llorosa de Cristiano son hechos verificables.</div>"
     ],
 
@@ -3861,11 +3146,14 @@ const events = [
       "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> This is an in-depth long-form report compiled from public coverage by CCTV.com, ESPN, Al Jazeera, NBC, Titan Sports, Phoenix, Times of India, LiveMint, Sina Sports and others. Ronaldo is an all-time football great; this archive only records the objective results of his World Cup journey and his public post-match remarks, all data verifiable. Image copyrights belong to AP, Sina Sports, Bolavip, midday and other agencies/media; this archive uses them only for fan-culture creative text-and-image reference and does not represent any official position. Content for entertainment only.</div>"
     ],
     quote:{text:"我已倾尽所有，问心无愧地离开。", textEn:"I gave everything I had. I leave with a clear conscience.", author:"C罗，2026世界杯1/8决赛被西班牙淘汰后，泪洒混采区", authorEn:"Cristiano Ronaldo, in tears in the mixed zone after being knocked out by Spain in the 2026 World Cup round of 16", textEs:"Lo di todo. Me voy con la conciencia tranquila.", authorEs:"Cristiano Ronaldo, llorando en la zona mixta tras la eliminación contra España en octavos del Mundial 2026"},
-    tags:["2026世界杯","西班牙","梅里诺","补时绝杀","41岁","最后一舞","问心无愧","六届0冠","泪洒赛场","1-0","十六强","AT&T体育场","头条","深度报道","亚马尔","伊比利亚德比"]
+    tags:["2026世界杯","西班牙","梅里诺","补时绝杀","41岁","最后一舞","问心无愧","六届0冠","泪洒赛场","1-0","十六强","AT&T体育场","头条","深度报道","亚马尔","伊比利亚德比"],
+    tagsEn:["2026 World Cup","Spain","Merino","stoppage winner","age 41","last dance","clear conscience","6 World Cups 0 titles","tears on the pitch","1-0","Round of 16","AT&T Stadium","headlined","in-depth report","Yamal","Iberian derby"],
+    tagsEs:["Mundial 2026","España","Merino","gol en el descuento","41 años","último baile","conciencia tranquila","6 Mundiales 0 títulos","lágrimas en el campo","1-0","octavos de final","Estadio AT&T","titular","reportaje extenso","Yamal","derbi ibérico"]
   },
   // ========== ↓↓↓ 续编（2026-07-08）三个新黑料档案，配图来自公开报道文章原图 ↓↓↓
   {
     id:64, cat:"club", catLabel:"俱乐部与法律", severity:5,
+    dateIso:"2022-06-01",
     title:"Binance 币圈 10 亿美元集体诉讼 — 割粉丝韭菜",
     titleEn:"Binance $1B Class Action — Harvesting His Own Fans",
     titleEs: "Demanda colectiva de 1.000 M$ contra Binance — cosechando a sus propios fans",
@@ -3900,6 +3188,7 @@ const events = [
       "<strong>SEC 的警告：</strong>SEC 主席 Gary Gensler 此前已多次点名：明星代言加密资产证券必须公开收了多少钱、替谁站台。C罗被指「<em>明知或应知 Binance 在出售未注册加密证券</em>」，却依旧为其背书。",
       "<strong>Binance 本身的污点：</strong>就在诉讼前两周，Binance 及其创始人赵长鹏（CZ）认罪，承认反洗钱违规并缴纳<strong>43亿美元</strong>罚金，CZ 辞职。C罗选在这个时候仍继续为这家已被定罪的交易所站台，被批「眼里只有代言费」。",
       "<strong>拒不收手：</strong>截至2024–2025年，C罗与 Binance 仍持续推出新 NFT 系列（如纪念950球的「#7heSelection」），并搞「拍得者可赴沙特见C罗」的营销。诉讼悬而未决，收割却一刻没停。",
+      "<strong>总评：</strong>一场超10亿美元的集体诉讼，起因是推广 NFT 而令其自家粉丝血本无归。批评者眼中，这是C罗生意版图中最具掠夺性的一面。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本档案依据 BBC、Guardian、Decrypt、ABC News 等公开报道与美国联邦法院诉讼文件整理。诉讼尚在进行中，C罗对所有指控均未承认，最终以法院判决为准。</div>"
     ],
     detailEn:[
@@ -3911,12 +3200,16 @@ const events = [
       "<strong>Binance's own stain:</strong> Just two weeks before the suit, Binance and its founder Changpeng Zhao (CZ) had pleaded guilty to anti-money-laundering violations and paid a <strong>$4.3 billion</strong> fine, with CZ stepping down. Ronaldo choosing this moment to keep fronting a convicted exchange was slammed as 'caring only about the endorsement fee'.",
       "<strong>Refusing to stop:</strong> Through 2024-2025 Ronaldo and Binance kept dropping new NFT series (such as the '#7heSelection' commemorating his 950th goal), even running a 'highest bidder wins a trip to Saudi Arabia to meet Cristiano' promo. The lawsuit hangs unresolved; the harvesting never pauses."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This file is compiled from public reporting by the BBC, Guardian, Decrypt, ABC News and others, and from US federal court filings. The lawsuit is ongoing; Ronaldo has not admitted any of the allegations, and the final outcome rests with the court's verdict.</div>"],
+      "<strong>Verdict:</strong> A class action of over $1 billion for promoting NFTs that sank his own fans. For the critics, proof of the most predatory side of the Cristiano business.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This file is compiled from public reporting by the BBC, Guardian, Decrypt, ABC News and others, and from US federal court filings. The lawsuit is ongoing; Ronaldo has not admitted any of the allegations, and the final outcome rests with the court's verdict.</div>"],
     quote:{text:"我们将改变 NFT 游戏，把足球带到下一个层次。", textEn:"We're going to change the NFT game and take football to the next level.", author:"C罗，2022年Binance代言官宣视频", authorEn:"Cristiano Ronaldo, 2022 Binance endorsement announcement video", textEs:"Vamos a cambiar el mundo de los NFT y a llevar el fútbol al siguiente nivel.", authorEs:"Cristiano Ronaldo, vídeo de presentación del patrocinio de Binance en 2022"},
-    tags:["Binance","NFT","加密货币","10亿美元","集体诉讼","SEC","割韭菜","佛罗里达","CR7","赵长鹏","未注册证券"]
+    tags:["Binance","NFT","加密货币","10亿美元","集体诉讼","SEC","割韭菜","佛罗里达","CR7","赵长鹏","未注册证券"],
+    tagsEn:["Binance","NFT","cryptocurrency","$1 billion","class action","SEC","fleecing fans","Florida","CR7","CZ (Zhao)","unregistered securities"],
+    tagsEs:["Binance","NFT","criptomoneda","1.000 millones de dólares","demanda colectiva","SEC","estafa a aficionados","Florida","CR7","CZ (Zhao)","valores no registrados"]
   },
   {
     id:65, cat:"offpitch", catLabel:"场外失态", severity:4,
+    dateIso:"2020-10-01",
     title:"新冠疫情两次违规 — 特权阶级的隔离",
     titleEn:"Two COVID-Rule Breaches — A Privileged Quarantine",
     titleEs: "Dos incumplimientos COVID — una cuarentena privilegiada",
@@ -3949,6 +3242,7 @@ const events = [
       "<strong>第二次违规（2021年1月）：</strong>疫情封城期间，都灵居民被禁止跨区出行。C罗却带女友 Georgina 前往<strong>100公里外的阿尔卑斯山山谷度假村</strong>庆生。警方以「涉嫌违反出行限制」立案调查，C罗后以「个人原因」辩解。",
       "<strong>C罗的回应：</strong>面对部长点名，C罗反驳「<em>我做了所有该做的事</em>」，并把锅推给尤文俱乐部和防疫部门。这种「我没错、是你们的规则有问题」的姿态，与他此后处理争议事件的话术如出一辙。",
       "<strong>横向对比：</strong>同期多位球星（如迪巴拉、拉什福德）感染后都严格遵守隔离。C罗两次顶风作案，被批评者视为「<strong>用商业价值绑架防疫</strong>」的典型——他需要的不是特例，而是觉得自己本就该有特例。",
+      "<strong>总评：</strong>两次公然违反新冠防疫规定、与部长吵架、一幅特权阶层的画面：像C罗这样的球星，可以肆意突破普通人必须遵守的限制。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本档案依据 CGTN、The Guardian、ESPN、Al Jazeera、Goal.com 等公开报道整理。两次违规均经意大利体育部长及警方公开确认/调查，C罗否认违规指控。</div>"
     ],
     detailEn:[
@@ -3959,12 +3253,16 @@ const events = [
       "<strong>Ronaldo's response:</strong> Confronted with the minister's call-out, Ronaldo countered that '<em>I did everything I was supposed to</em>' and deflected blame onto Juventus and the health authorities. That 'I did nothing wrong, your rules are the problem' posture mirrors how he has handled every controversy since.",
       "<strong>Broad comparison:</strong> In the same period several stars (e.g. Dybala, Rashford) strictly observed isolation after infection. Ronaldo's two breaches were seen by critics as a textbook case of '<strong>using commercial value to hold the pandemic rules hostage</strong>' — what he wanted was not an exception but a conviction that he deserved one by default."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This file is compiled from public reporting by CGTN, The Guardian, ESPN, Al Jazeera, Goal.com and others. Both breaches were publicly confirmed / investigated by Italy's sports minister and police; Ronaldo denies the breach allegations.</div>"],
+      "<strong>Verdict:</strong> Two public breaches of COVID rules, a row with a minister and a picture of privilege: stars like Cristiano could flout the restrictions the rest had to obey.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This file is compiled from public reporting by CGTN, The Guardian, ESPN, Al Jazeera, Goal.com and others. Both breaches were publicly confirmed / investigated by Italy's sports minister and police; Ronaldo denies the breach allegations.</div>"],
     quote:{text:"所有人都必须遵守防疫规定。", textEn:"Everyone must follow the pandemic-prevention rules.", author:"意大利体育部长 Spadafora，公开点名C罗", authorEn:"Vincenzo Spadafora, Italian Minister for Sport, publicly calling out Ronaldo", textEs:"Todo el mundo debe respetar las normas de prevención de la pandemia.", authorEs:"Vincenzo Spadafora, ministro italiano de Deporte, recriminando públicamente a Cristiano"},
-    tags:["新冠","疫情违规","特权阶级","Spadafora","尤文图斯","葡萄牙","阿尔卑斯","隔离","警方调查","2020","2021"]
+    tags:["新冠","疫情违规","特权阶级","Spadafora","尤文图斯","葡萄牙","阿尔卑斯","隔离","警方调查","2020","2021"],
+    tagsEn:["COVID","COVID-rule breach","privileged class","Spadafora","Juventus","Portugal","Juventus (Alps)","quarantine","police investigation","2020","2021"],
+    tagsEs:["COVID","incumplimiento COVID","clase privilegiada","Spadafora","Juventus","Portugal","Juventus (Alpes)","cuarentena","investigación policial","2020","2021"]
   },
   {
     id:66, cat:"national", catLabel:"国家队争议", severity:3,
+    dateIso:"2024-07-01",
     title:"2024欧洲杯罚丢点球痛哭 — 自我救赎还是抢戏？",
     titleEn:"Euro 2024 Penalty Miss & Tears — Redemption or Scene-Stealing?",
     titleEs: "Penal fallado y lágrimas en la Euro 2024 — ¿redención o robo de protagonismo?",
@@ -3999,6 +3297,7 @@ const events = [
       "<strong>「抢戏」的争议：</strong>批评者指出：晋级功劳应归于扑出三粒点球的科斯塔，但C罗的眼泪、C罗的救赎、C罗的「第一罚」抢走了全部叙事。媒体称之为「<em>The Cristiano Ronaldo Show</em>」——无论成败，主角永远只能是他。",
       "<strong>「整届赛事0球」的尴尬：</strong>39岁的C罗整届欧洲杯<strong>颗粒无收（0进球1助攻）</strong>，成为队史最年长却也是最沉寂的核心。罚丢点球不过是这种衰退的集中爆发——那个曾经凭一己之力决定比赛的男人，正在被时间一点点剥夺主角光环。",
       "<strong>主教练的力挺与反讽：</strong>主帅马丁内斯赛后力挺：「他是我们的榜样……错过点球后主动第一个罚，是典范。」但这番「力挺」本身也充满反讽——一个需要教练反复强调「他很重要」的核心，恰恰说明他的重要性已经需要被论证了。",
+      "<strong>总评：</strong>一粒罚失的点球、场上的泪水、点球大战后晋级、以及一场失度的庆祝。批评者认为，C罗在2024欧洲杯的这场比赛，尽显他无法在不出风头的情况下承担失误。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本档案依据 ESPN、CNN、Sky Sports 等公开报道整理。比赛结果与数据均可查证，对叙事主角的讨论属媒体评论。</div>"
     ],
     detailEn:[
@@ -4010,13 +3309,17 @@ const events = [
       "<strong>The '0 goals for the tournament' awkwardness:</strong> The 39-year-old Ronaldo finished the Euros <strong>goalless (0 goals, 1 assist)</strong>, the oldest but also quietest focal point in Portugal's history. The penalty miss was simply the concentrated eruption of this decline — the man who once decided matches alone is being slowly stripped of his leading-man halo by time.",
       "<strong>The manager's backing, and the irony:</strong> Manager Martínez backed him afterwards: 'He is our role model… to take the first penalty after missing shows his character.' But the 'backing' itself is steeped in irony — a core who needs the coach to keep insisting 'he matters' is precisely a sign that his importance now has to be argued."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This file is compiled from public reporting by ESPN, CNN, Sky Sports and others. Match results and data are all verifiable; discussion of the narrative protagonist reflects media commentary.</div>"],
+      "<strong>Verdict:</strong> A missed penalty, tears on the pitch, qualification via the shootout and a disproportionate celebration. For the critics, Cristiano's Euro 2024 match laid bare his inability to own a mistake without hogging the spotlight.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This file is compiled from public reporting by ESPN, CNN, Sky Sports and others. Match results and data are all verifiable; discussion of the narrative protagonist reflects media commentary.</div>"],
     quote:{text:"开场的悲伤，是结尾的喜悦。这就是足球——不可思议的瞬间。", textEn:"The sorrow of the opening is the joy of the ending. That's football—unbelievable moments.", author:"C罗，2024欧洲杯1/8决赛点球大战后采访", authorEn:"Cristiano Ronaldo, interview after the UEFA Euro 2024 round-of-16 penalty shootout", textEs:"La tristeza del principio es la alegría del final. Esto es el fútbol: momentos increíbles.", authorEs:"Cristiano Ronaldo, entrevista tras la tanda de penales de los octavos de la Euro 2024"},
-    tags:["2024欧洲杯","斯洛文尼亚","奥布拉克","罚丢点球","痛哭","39岁","0进球","自我救赎","抢戏","法兰克福","科斯塔","点球大战"]
+    tags:["2024欧洲杯","斯洛文尼亚","奥布拉克","罚丢点球","痛哭","39岁","0进球","自我救赎","抢戏","法兰克福","科斯塔","点球大战"],
+    tagsEn:["Euro 2024","Slovenia","Oblak","missed penalty","in tears","age 39","0 goals","self-redemption","scene-stealing","Frankfurt","Costa","penalty shootout"],
+    tagsEs:["Eurocopa 2024","Eslovenia","Oblak","penalti fallado","llorando","39 años","0 goles","autorredención","robar el protagonismo","Fráncfort","Costa","tanda de penales"]
   },
   // ========== ↓↓↓ 续编（2026-07-08）伊瓜因被抢单刀事件，配图来自 Bleacher Report 文章原图（AP） ↓↓↓
   {
     id:67, cat:"club", catLabel:"俱乐部与法律", severity:3,
+    dateIso:"2009-01-01",
     title:"抢单刀废队友 — 伊瓜因空门被C罗挡出",
     titleEn:"Snatching the Breakaway — Blocked Higuaín's Open Goal",
     titleEs: "Robando el contraataque — le taponó el gol a bocajarro a Higuaín",
@@ -4051,6 +3354,7 @@ const events = [
       "<strong>离开皇马的导火索之一：</strong>伊瓜因 2013 年以 3700 万欧元转投那不勒斯，外界普遍认为他与C罗的球权之争、以及在皇马被迫给C罗让位的压抑，是离队的重要诱因之一。他本人在不同场合暗示过，皇马的战术「一切围绕C罗」，前锋队友只是配角。",
       "<strong>尤文时期的二次挤压：</strong>命运弄人——2018 年 C罗 转投尤文图斯，而伊瓜因当时正是尤文前锋。C罗一来，伊瓜因立刻被外租（先后至 AC 米兰、切尔西），彻底失去位置。尤文与米兰一役中，伊瓜因情绪彻底崩溃：<strong>骂裁判、怼C罗、吼基耶利尼，最终红牌罚下</strong>——多年积压的怨气，在重逢「老队友」时一齐爆发。",
       "<strong>本泽马的「自我牺牲」对照：</strong>同样与C罗共事的本泽马走了相反的路——主动化身「绿叶」，做支点、做策应、把射门权让给C罗。本泽马多次公开为C罗辩护「他不是自私」，但这恰恰反向证明：和C罗共存的前提是<strong>你必须自我牺牲</strong>，否则就是伊瓜因的下场。",
+      "<strong>总评：</strong>封堵队友的进球、好让自己射门，是C罗自私本性的完美写照。对伊瓜因的这次「拦截」，勾勒出「我优先于球队」这一葡萄牙人的底色。",
       "<div class='modal-disclaimer'><strong>⚠️ 免责声明：</strong>本档案依据 Bleacher Report、Mirror、Sport、懂球帝、知乎专栏等公开报道整理。伊瓜因「炮轰C罗」的采访那不勒斯俱乐部曾否认其真实性；场上「挡空门」一事为流传视频，具体赛事场次有待进一步核实。内容仅供娱乐。</div>"
     ],
     detailEn:[
@@ -4062,9 +3366,12 @@ const events = [
       "<strong>Squeezed again at Juve:</strong> Cruelly, in 2018 Ronaldo moved to Juventus — where Higuaín was the striker. The moment Ronaldo arrived, Higuaín was loaned out (to AC Milan, then Chelsea) and lost his place entirely. In a Juve-Milan match Higuaín completely melted down: <strong>cursing the referee, squaring up to Ronaldo, bellowing at Chiellini, and finally getting sent off</strong> — years of pent-up resentment erupting at the reunion with the 'old teammate'.",
       "<strong>Benzema's 'self-sacrifice' contrast:</strong> Benzema, who also played with Ronaldo, took the opposite path — actively becoming the 'supporting leaf', holding up the play, providing the link, ceding the finishing to Ronaldo. Benzema publicly defended Ronaldo multiple times as 'not selfish', but that itself inversely proves: the price of coexisting with Ronaldo is <strong>you have to sacrifice yourself</strong> — otherwise you get the Higuaín treatment."
     ,
-      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong> </strong>This file is compiled from public reporting by Bleacher Report, Mirror, Sport, Dongqiudi, Zhihu columns and others. Napoli once denied the authenticity of the interview in which Higuaín 'blasted Ronaldo'; the 'blocked open goal' moment is a circulating video whose specific fixture awaits further verification. Content for entertainment only.</div>"],
+      "<strong>Verdict:</strong> Blocking a teammate's goal-bound effort to try scoring yourself is the perfect picture of Cristiano's selfishness. The Higuaín incident captured the «me ahead of the team» that defines the Portuguese.",
+      "<div class='modal-disclaimer'><strong>⚠️ Disclaimer:</strong>This file is compiled from public reporting by Bleacher Report, Mirror, Sport, Dongqiudi, Zhihu columns and others. Napoli once denied the authenticity of the interview in which Higuaín 'blasted Ronaldo'; the 'blocked open goal' moment is a circulating video whose specific fixture awaits further verification. Content for entertainment only.</div>"],
     quote:{text:"他太自负了。你不夸他是最好的，他就不是你朋友。我跟梅西共用过更衣室，两个人完全不一样。", textEn:"He's too full of himself. If you don't call him the best, he's not your friend. I shared a dressing room with Messi—they're two completely different people.", author:"伊瓜因，据《Don Balon》杂志报道（那不勒斯事后否认）", authorEn:"Gonzalo Higuaín, per Don Balón magazine (later denied by Napoli)", textEs:"Es demasiado egocéntrico. Si no le dices que es el mejor, no es tu amigo. Compartí vestuario con Messi y son dos personas completamente distintas.", authorEs:"Gonzalo Higuaín, según la revista Don Balón (luego negado por el Napoli)"},
-    tags:["伊瓜因","抢点球","抢单刀","废队友","自私","皇马","尤文","本泽马","Don Balon","更衣室矛盾","球权独占"]
+    tags:["伊瓜因","抢点球","抢单刀","废队友","自私","皇马","尤文","本泽马","Don Balon","更衣室矛盾","球权独占"],
+    tagsEn:["Higuaín","penalty theft","one-on-one theft","teammate-killer","selfishness","Real Madrid","Juve","Benzema","Don Balon","dressing-room rift","ball hog"],
+    tagsEs:["Higuaín","robo de penalti","robo de mano a mano","compañero-mata","egoísmo","Real Madrid","Juve","Benzema","Don Balon","conflicto en vestuario","acapara el balón"]
   },
 ];
 

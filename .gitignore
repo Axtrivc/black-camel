@@ -2,6 +2,7 @@ node_modules/
 .playwright-mcp/
 *.log
 .DS_Store
+i18n_export.json
 Thumbs.db
 .env
 .env.local

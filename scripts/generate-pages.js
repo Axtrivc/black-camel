@@ -42,7 +42,7 @@ function loadData() {
   const wrapped =
     "(function(){\n" +
     src +
-    "\n;this.__exports = { events, catConfig, i18nDict };\n}).call(globalThis);";
+    "\n;this.__exports = { events, catConfig };\n}).call(globalThis);";
   const sandbox = { window: {}, self: {}, localStorage: { getItem: () => null } };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
@@ -180,17 +180,31 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
   const detailEs = ev.detailEs && ev.detailEs.length ? ev.detailEs : detailEn;
 
   // JSON-LD 结构化数据（NewsArticle）
+  // datePublished/dateModified 用合法 ISO 日期（dateIso），保证 Google 富结果校验通过
+  const dateIso = ev.dateIso || undefined;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: titleEn,
     description: desc,
     image: [ogImage],
-    datePublished: dateTextEn || undefined,
+    datePublished: dateIso,
+    dateModified: dateIso,
     author: { "@type": "Organization", name: "Axtrivc" },
     publisher: { "@type": "Organization", name: "The Aveiro Files" },
     mainEntityOfPage: { "@type": "WebPage", "@id": thisUrl },
     articleSection: catLabelEn,
+  };
+
+  // JSON-LD 面包屑（Home → Archive → 当前事件）
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_ORIGIN}/` },
+      { "@type": "ListItem", position: 2, name: "Archive", item: `${SITE_ORIGIN}/#archive` },
+      { "@type": "ListItem", position: 3, name: titleEn, item: thisUrl },
+    ],
   };
 
   // 上一/下一内链（slug 与标题，三语均备）
@@ -203,9 +217,16 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
   const prevTitleEs = prev ? (prev.titleEs || prev.titleEn || prev.title) : null;
   const nextTitleEs = next ? (next.titleEs || next.titleEn || next.title) : null;
 
-  // 标签（保持中文；与首页一致）
-  const tagsHtml = (ev.tags || [])
-    .map((tk) => `<span class="modal-tag">${escText(tk)}</span>`)
+  // 标签：按索引对齐三语（zh/en/es），静态默认英文，运行时由 incident-page.js 切换
+  const tagsZh = ev.tags || [];
+  const tagsEn = ev.tagsEn || tagsZh;
+  const tagsEs = ev.tagsEs || tagsEn;
+  const tagsHtml = tagsZh
+    .map((tk, i) => {
+      const en = tagsEn[i] !== undefined ? tagsEn[i] : tk;
+      const es = tagsEs[i] !== undefined ? tagsEs[i] : en;
+      return `<span class="modal-tag" data-en="${escAttr(en)}" data-es="${escAttr(es)}" data-zh="${escAttr(tk)}">${escText(en)}</span>`;
+    })
     .join("");
 
   // 引言（三语）
@@ -260,13 +281,13 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
 <meta name="twitter:description" content="${escAttr(desc)}">
 <meta name="twitter:image" content="${escAttr(ogImage)}">
 
-<!-- 结构化数据 -->
+<!-- 结构化数据：NewsArticle + BreadcrumbList -->
 <script type="application/ld+json">
 ${JSON.stringify(jsonLd, null, 2)}
 </script>
-
-<!-- 首屏内容（默认英文静态渲染，爬虫直接可读） -->
-<link rel="prerender" href="${escAttr(thisUrl)}">
+<script type="application/ld+json">
+${JSON.stringify(jsonLdBreadcrumb, null, 2)}
+</script>
 </head>
 <body class="incident-page">
 
@@ -302,7 +323,7 @@ ${JSON.stringify(jsonLd, null, 2)}
       <div class="modal-date"
            data-en="${escAttr(dateTextEn)}"
            data-es="${escAttr(dateTextEs)}"
-           data-zh="${escAttr(dateTextZh)}">${escText(dateTextEn)}</div>
+           data-zh="${escAttr(dateTextZh)}"><time datetime="${escAttr(dateIso || "")}">${escText(dateTextEn)}</time></div>
 
       <h1 class="modal-title"
           data-en="${escAttr(titleEn)}"
@@ -350,12 +371,12 @@ ${JSON.stringify(jsonLd, null, 2)}
     <a class="ip-pager-link ip-prev" href="${escAttr(prevUrl)}" rel="prev">
       <span class="ip-pager-dir" data-i18n="incident.prev">← Previous incident</span>
       <span class="ip-pager-title" data-en="${escAttr(prevTitleEn)}" data-es="${escAttr(prevTitleEs)}" data-zh="${escAttr(prevTitleZh)}">${escText(prevTitleEn)}</span>
-    </a>` : `<span class="ip-pager-link ip-prev ip-disabled"></span>`}
+    </a>` : `<span class="ip-pager-link ip-prev ip-disabled ip-placeholder" aria-hidden="true"></span>`}
     ${next ? `
     <a class="ip-pager-link ip-next" href="${escAttr(nextUrl)}" rel="next">
       <span class="ip-pager-dir" data-i18n="incident.next">Next incident →</span>
       <span class="ip-pager-title" data-en="${escAttr(nextTitleEn)}" data-es="${escAttr(nextTitleEs)}" data-zh="${escAttr(nextTitleZh)}">${escText(nextTitleEn)}</span>
-    </a>` : `<span class="ip-pager-link ip-next ip-disabled"></span>`}
+    </a>` : `<span class="ip-pager-link ip-next ip-disabled ip-placeholder" aria-hidden="true"></span>`}
   </nav>` : ""}
 
   <!-- 返回档案库 -->
@@ -376,7 +397,7 @@ ${JSON.stringify(jsonLd, null, 2)}
     hasEsDetail: ${detailEs && detailEs.length ? "true" : "false"}
   };
 </script>
-<script src="${absDepth}assets/js/data.js"></script>
+<script src="${absDepth}assets/js/i18n-dict.js"></script>
 <script src="${absDepth}assets/js/incident-page.js"></script>
 </body>
 </html>
@@ -384,18 +405,20 @@ ${JSON.stringify(jsonLd, null, 2)}
 }
 
 // -------------------- sitemap --------------------
-function buildSitemap(events) {
+function buildSitemap(events, dataMtime) {
   const urls = [];
-  // 首页
+  // 首页：lastmod 取 data.js 最近修改时间
   urls.push({
     loc: `${SITE_ORIGIN}/`,
+    lastmod: dataMtime,
     changefreq: "weekly",
     priority: "1.0",
   });
-  // 各事件页
+  // 各事件页：lastmod 取事件 dateIso（事件内容日期，比文件 mtime 更具语义）
   events.forEach((ev) => {
     urls.push({
       loc: `${SITE_ORIGIN}/incident/${ev._slug}/`,
+      lastmod: ev.dateIso || dataMtime,
       changefreq: "monthly",
       priority: "0.8",
     });
@@ -405,6 +428,7 @@ function buildSitemap(events) {
     .map(
       (u) => `  <url>
     <loc>${escAttr(u.loc)}</loc>
+    <lastmod>${u.lastmod}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
     <priority>${u.priority}</priority>
   </url>`
@@ -424,16 +448,26 @@ function main() {
   const { events, catConfig } = loadData();
   console.log(`[generate-pages] 载入 ${events.length} 个事件`);
 
+  // data.js 最近修改时间（ISO 日期），供 sitemap 首页 lastmod
+  const dataMtime = fs.statSync(DATA_JS).mtime.toISOString();
+
   // 1) 计算 slug（事件自带 > titleEn 生成），去重
   const used = new Set();
+  // 记录带自定义 slug 的事件及其「旧 slug」（基于 titleEn 截断生成），用于生成过渡页
+  const redirects = [];
   events.forEach((ev) => {
-    let s = ev.slug ? slugify(ev.slug) : slugify(ev.titleEn || ev.title || `incident-${ev.id}`);
+    const fromTitle = slugify(ev.titleEn || ev.title || `incident-${ev.id}`);
+    let s = ev.slug ? slugify(ev.slug) : fromTitle;
     if (!s) s = `incident-${ev.id}`;
     let base = s,
       n = 2;
     while (used.has(s)) s = `${base}-${n++}`;
     used.add(s);
     ev._slug = s;
+    // 自定义 slug 且与旧 slug 不同 → 生成旧 URL → 新 URL 的过渡页
+    if (ev.slug && fromTitle && fromTitle !== s) {
+      redirects.push({ oldSlug: fromTitle, newSlug: s, id: ev.id });
+    }
   });
 
   // 2) 清理旧的 incident/ 目录（避免删事件后残留孤儿页）
@@ -443,13 +477,44 @@ function main() {
   ensureDir(OUT_DIR);
 
   // 3) 逐个生成子页面
-  events.forEach((ev, i) => {
-    const prev = events[i - 1] || null; // 首条无 prev（保持顺序内链，不循环）
-    const next = events[i + 1] || null; // 末条无 next
+  // 翻页内链按 dateIso 时间序：构造一份按时间排序的索引，取相邻事件作 prev/next。
+  const chrono = [...events].sort((a, b) => {
+    const da = a.dateIso || "0000-01-01";
+    const db = b.dateIso || "0000-01-01";
+    if (da !== db) return da.localeCompare(db);
+    return a.id - b.id;
+  });
+  events.forEach((ev) => {
+    const i = chrono.indexOf(ev);
+    const prev = chrono[i - 1] || null; // 时间最早的无 prev
+    const next = chrono[i + 1] || null; // 时间最晚的无 next
     const html = buildIncidentHtml(ev, prev, next, catConfig);
     const dir = path.join(OUT_DIR, ev._slug);
     writeFile(path.join(dir, "index.html"), html);
   });
+
+  // 3b) 旧 slug → 新 slug 过渡页（<meta refresh> + canonical，便于旧外链/索引过渡）
+  redirects.forEach((r) => {
+    const newUrl = `${SITE_ORIGIN}/incident/${r.newSlug}/`;
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=${escAttr(newUrl)}">
+<link rel="canonical" href="${escAttr(newUrl)}">
+<title>Moved — The Aveiro Files</title>
+<meta name="robots" content="noindex">
+</head>
+<body>
+<p>This page has moved to <a href="${escAttr(newUrl)}">${escText(newUrl)}</a>.</p>
+</body>
+</html>
+`;
+    writeFile(path.join(OUT_DIR, r.oldSlug, "index.html"), html);
+  });
+  if (redirects.length) {
+    console.log(`[generate-pages] 生成 ${redirects.length} 个旧 slug 过渡页`);
+  }
 
   // 4) incident/index.json（id→slug/title 映射，便于排查/未来 SSR）
   const indexMap = events.map((ev) => ({
@@ -473,7 +538,7 @@ window.__INCIDENT_SLUGS__ = ${JSON.stringify(slugsObj, null, 2)};
   );
 
   // 6) sitemap.xml
-  writeFile(SITEMAP, buildSitemap(events));
+  writeFile(SITEMAP, buildSitemap(events, dataMtime));
 
   const kb = Math.round(
     indexMap.reduce((acc, e) => acc + fs.statSync(path.join(OUT_DIR, e.slug, "index.html")).size, 0) / 1024

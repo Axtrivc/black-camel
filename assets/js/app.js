@@ -13,6 +13,9 @@
  */
 (function () {
 "use strict";
+// 标记 JS 可用：把 <html class="no-js"> 换成 js，供 CSS 兜底（无 JS 时卡片直接可见）
+document.documentElement.classList.remove("no-js");
+document.documentElement.classList.add("js");
 
 /* ============================================================
  * i18n 三语核心机制（EN / ES / ZH）
@@ -213,6 +216,7 @@ const grid = document.getElementById("cardsGrid");
 let currentFilter = "all";
 let currentSeverity = 0;
 let searchQuery = "";
+let currentSort = "featured"; // 排序：featured（头条优先，默认）/ oldest / newest
 let currentList = [];        // 当前筛选后的列表（供模态翻页用）
 
 /* ========== 搜索匹配工具 ==========
@@ -234,7 +238,10 @@ function normalizeText(s){
 }
 
 /* 将一个事件的待搜索字段汇总成一段归一化后的「拼接文本」并缓存到事件对象上，
- * 避免每次输入都重新字符串化所有字段。语言切换时缓存自动失效。 */
+ * 避免每次输入都重新字符串化所有字段。语言切换时缓存自动失效。
+ * 三语分别拼接对应字段：en→titleEn/summaryEn/detailEn/locationEn/tags/quote；
+ *                 es→titleEs/summaryEs/detailEs/locationEs/tags(无西语沿用中文)/quote；
+ *                 zh→title/summary/detail/location/tags/quote。 */
 function getSearchBlob(e, lang){
   const cacheKey = "__searchBlob_" + lang;
   if(e[cacheKey]) return e[cacheKey];
@@ -246,6 +253,15 @@ function getSearchBlob(e, lang){
     text = [
       e.titleEn, e.summaryEn, detailEn, e.locationEn, tags,
       quote.textEn, quote.authorEn
+    ].join(" ");
+  }else if(lang === "es"){
+    const detailEs = Array.isArray(e.detailEs) ? e.detailEs.join(" ") : (e.detailEs || "");
+    // tags 暂无西语版本，沿用中文 tags（保证仍可按标签命中）
+    const tags = Array.isArray(e.tags) ? e.tags.join(" ") : (e.tags || "");
+    const quote = e.quote || {};
+    text = [
+      e.titleEs, e.summaryEs, detailEs, e.locationEs, tags,
+      quote.textEs, quote.authorEs
     ].join(" ");
   }else{
     const detail = Array.isArray(e.detail) ? e.detail.join(" ") : (e.detail || "");
@@ -292,9 +308,18 @@ function renderCards(){
 
   document.getElementById("resultCount").textContent = `${t("resultCount.prefix","显示")} ${currentList.length} ${t("resultCount.suffix","条记录")}`;
 
-  // 排序：头条/置顶（severity 5 且标记「头条」）最前，其次按 severity 降序、id 降序
+  // 排序：默认「头条优先」（severity 5 且标记「头条」最前，其次 severity 降序、id 降序）；
+  //       时间正序 / 时间倒序 按 dateIso 排序（缺失 dateIso 视为最旧）。
   const maxId = Math.max(...events.map(e=>e.id));
   currentList.sort((a,b)=>{
+    if(currentSort === "oldest" || currentSort === "newest"){
+      const da = a.dateIso || "0000-01-01";
+      const db = b.dateIso || "0000-01-01";
+      // 时间相同时回退到 id 作稳定次序
+      if(da !== db) return currentSort === "oldest" ? da.localeCompare(db) : db.localeCompare(da);
+      return currentSort === "oldest" ? (a.id - b.id) : (b.id - a.id);
+    }
+    // featured（默认）
     const aTop = a.tags && a.tags.includes("头条") ? 1 : 0;
     const bTop = b.tags && b.tags.includes("头条") ? 1 : 0;
     if(aTop !== bTop) return bTop - aTop;
@@ -303,7 +328,10 @@ function renderCards(){
   });
 
   currentList.forEach((e,idx)=>{
-    const card = document.createElement("div");
+    // 卡片用真实 <a href>（slug 由构建脚本生成），让爬虫与键盘可直达子页，无 JS 也可导航
+    const slug = slugForEvent(e.id);
+    const card = document.createElement("a");
+    if(slug) card.href = "incident/" + slug + "/";
     card.className = `event-card cat-${e.cat}`;
     if(e.tags && e.tags.includes("头条")) card.classList.add("card-pinned");
     // stagger 错峰入场：按行内 index 延迟，封顶 8 张避免长列表末位等太久
@@ -327,12 +355,11 @@ function renderCards(){
         <div class="card-title">${tt(e,"title")}</div>
         <div class="card-summary">${tt(e,"summary")}</div>
         <div class="card-footer">
-          <div class="card-tags">${e.tags.slice(0,3).map(tk=>`<span class="card-tag">${tk}</span>`).join("")}</div>
+          <div class="card-tags">${tagsFor(e).slice(0,3).map(tk=>`<span class="card-tag">${tk}</span>`).join("")}</div>
           <div class="card-read">${t("card.read","查看卷宗 →")}</div>
         </div>
       </div>
     `;
-    card.addEventListener("click",()=>openModalByIdx(idx));
     grid.appendChild(card);
     revealObserver.observe(card);
   });
@@ -356,6 +383,12 @@ grid.addEventListener("error",(e)=>{
  * 提供 slugForEvent(id) 与 goToIncident(id) 两个工具，供卡片 / BREAKING /
  * 盲盒 / 地图 / 人设卡 等所有入口复用，统一导航行为。
  */
+// 按当前语言读取事件标签数组：es→tagsEs，en→tagsEn，zh→tags（缺失降级到 zh）
+function tagsFor(e){
+  if(currentLang === "es" && e.tagsEs && e.tagsEs.length) return e.tagsEs;
+  if(currentLang === "en" && e.tagsEn && e.tagsEn.length) return e.tagsEn;
+  return e.tags || [];
+}
 function slugForEvent(id){
   const map = window.__INCIDENT_SLUGS__ || {};
   return map[id] || map[String(id)] || null;
@@ -389,6 +422,11 @@ document.querySelectorAll(".filter-chip").forEach(chip=>{
 
 document.getElementById("severitySelect").addEventListener("change",(e)=>{
   currentSeverity = parseInt(e.target.value);
+  renderCards();
+});
+
+document.getElementById("sortSelect").addEventListener("change",(e)=>{
+  currentSort = e.target.value;
   renderCards();
 });
 
@@ -665,15 +703,23 @@ renderBreaking();
     setTimeout(setDur, 50);
   });
 })();
-document.getElementById("breakingCta")?.addEventListener("click",()=>{
-  // 切到「全部」筛选确保该事件在当前列表中
-  document.querySelectorAll(".filter-chip").forEach(c=>c.classList.toggle("active",c.dataset.cat==="all"));
-  currentFilter="all";
-  renderCards();  // 内部会按置顶/严重程度排序 currentList
-  // 在排序后的 currentList 中定位头条事件 id:63
-  const idx=currentList.findIndex(e=>e.id===63);
-  if(idx>=0) openModalByIdx(idx);
-});
+// breaking CTA：href 指向头条事件子页（无 JS 也可直达）；启动时用最新 slug 覆盖，
+// click 时先切「全部」筛选确保该事件在当前列表可见，再自然导航。
+(function(){
+  const cta = document.getElementById("breakingCta");
+  if(!cta) return;
+  const headSlug = slugForEvent(63);
+  if(headSlug) cta.href = "incident/" + headSlug + "/";
+  cta.addEventListener("click",(ev)=>{
+    ev.preventDefault();
+    // 切到「全部」筛选确保该事件在当前列表中
+    document.querySelectorAll(".filter-chip").forEach(c=>c.classList.toggle("active",c.dataset.cat==="all"));
+    currentFilter="all";
+    renderCards();  // 内部会按置顶/严重程度排序 currentList
+    // 导航到头条事件子页（slug 已在 href 上，复用 goToIncident 保证一致性）
+    goToIncident(63);
+  });
+})();
 
 /* ========== 统计数字自动计算（从 events 聚合） ========== */
 // 1) filter chip 的计数
