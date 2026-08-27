@@ -294,6 +294,27 @@ function eventMatchesQuery(e, query, lang){
 }
 
 /* ========== 渲染卡片 ========== */
+// 卡片分类角标配色：背景用分类色但大幅加深（贴近实色），
+// 文字统一用对应浅色调——压在照片上仍保持可读。
+// （旧做法 color+"33" 是 20% 透明底配深色文字，亮图上几乎看不清）
+const CAT_CHIP_BG = {
+  persona:  "rgba(74,35,90,.88)",
+  violence: "rgba(139,10,30,.88)",
+  offpitch: "rgba(185,119,14,.88)",
+  club:     "rgba(110,44,0,.88)",
+  national: "rgba(20,90,50,.88)"
+};
+const CAT_CHIP_TEXT = {
+  persona:  "#e8daef",
+  violence: "#fadbd8",
+  offpitch: "#fef9e7",
+  club:     "#fae5d3",
+  national: "#d5f5e3"
+};
+function catChipBg(cat){
+  return CAT_CHIP_BG[cat] || (catConfig[cat] ? catConfig[cat].color : "#4a235a");
+}
+
 function renderCards(){
   grid.innerHTML = "";
   currentList = events.filter(e=>{
@@ -346,7 +367,7 @@ function renderCards(){
     card.innerHTML = `
       <div class="card-img">
         ${pinnedBadge}${newBadge}
-        <span class="card-cat" style="background:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}33;color:${catConfig[e.cat] ? catConfig[e.cat].color : '#4a235a'}">${catLabel}</span>
+        <span class="card-cat" style="background:${catChipBg(e.cat)};color:${CAT_CHIP_TEXT[e.cat]||'#f5f5f7'}">${catLabel}</span>
         <div class="card-severity">${dots}</div>
         ${pic(e.img||'',{alt:tt(e,"title"),loading:"lazy",decoding:"async","data-cat-label":catLabel})}
       </div>
@@ -580,6 +601,8 @@ function resetQuoteTimer(){
 }
 document.getElementById("quotePrev").addEventListener("click",()=>{showQuote(quoteIdx-1);resetQuoteTimer();});
 document.getElementById("quoteNext").addEventListener("click",()=>{showQuote(quoteIdx+1);resetQuoteTimer();});
+// 立即渲染第一条，避免首个 5s 间隔内语录区空白
+showQuote(0);
 
 /* ========== Hero 轮播（37张嬷照，随机洗牌循环）========== */
 const MO_COUNT = 37;   // assets/images/hero-mo/mo-01.jpg ~ mo-37.jpg（原图，含水印）
@@ -672,9 +695,12 @@ function renderBreaking(){
   if(!el) return;
   const items = t("breaking.items", []);
   if(!Array.isArray(items) || items.length === 0) return;
-  // 两份内容，配合 translateX(-50%) 无缝循环
+  // 两份内容，配合 translateX(-50%) 无缝循环。
+  // 结构必须是 ticker(裁剪窗) > track(滚动体)：动画若直接作用在
+  // overflow:hidden 的元素上，裁剪窗口会跟着位移，文字会滑出容器
+  // 压到左侧「BREAKING」标签上（绘制顺序也在静态元素之上）。
   const one = items.map(s=>`<span class="breaking-item">${s}</span><span class="breaking-sep">◆</span>`).join("");
-  el.innerHTML = one + one.replace(/class="breaking-item"/g,'class="breaking-item" aria-hidden="true"').replace(/class="breaking-sep"/g,'class="breaking-sep" aria-hidden="true"');
+  el.innerHTML = `<span class="breaking-track">${one}${one.replace(/class="breaking-item"/g,'class="breaking-item" aria-hidden="true"').replace(/class="breaking-sep"/g,'class="breaking-sep" aria-hidden="true"')}</span>`;
 }
 renderTicker();
 renderBreaking();
@@ -687,8 +713,9 @@ renderBreaking();
   const ticker=document.getElementById("breakingTicker");
   if(!ticker) return;
   const setDur=()=>{
-    // 第一份内容宽度 ≈ scrollWidth / 2（含末尾 gap）
-    const halfW=Math.max(ticker.scrollWidth/2, 200);
+    // 第一份内容宽度 ≈ track 总宽 / 2（含末尾 gap）
+    const track=ticker.querySelector(".breaking-track");
+    const halfW=Math.max((track||ticker).scrollWidth/2, 200);
     const dur=Math.max(8, halfW/60);  // 60px/秒，下限 8s
     ticker.style.setProperty("--breaking-dur", dur.toFixed(1)+"s");
   };
@@ -946,8 +973,8 @@ document.addEventListener("ca7:lang-change", initNicknames);
     return shuffle(quizData).slice(0,QUIZ_LEN).map(item=>{
       const correctOpt=item.opts[item.a];
       const opts=shuffle(item.opts);
-      // 复制全部字段（含 qEn/fbEn），选项保留对象结构 {v,vEn}
-      return { q:item.q, qEn:item.qEn, opts, a:opts.indexOf(correctOpt), fb:item.fb, fbEn:item.fbEn };
+      // 复制全部字段（含 qEn/qEs/fbEn/fbEs），选项保留对象结构 {v,vEn,vEs}
+      return { q:item.q, qEn:item.qEn, qEs:item.qEs, opts, a:opts.indexOf(correctOpt), fb:item.fb, fbEn:item.fbEn, fbEs:item.fbEs };
     });
   }
 
@@ -1071,7 +1098,8 @@ document.addEventListener("ca7:lang-change", initNicknames);
 
 /* ========== #7 黑料真假鉴别 ========== */
 (function truthOrFakeModule(){
-  const wrap=document.getElementById("tof");
+  // 内层 .tof 容器（scanning 类需加在带 overflow:hidden 的卡片上；外层 section 仅作锚点）
+  const wrap=document.querySelector(".tof");
   if(!wrap||typeof truthOrFake==="undefined") return;
   const ROUND_LEN=10;   // 每局 10 题（题库 24 条随机抽取）
   const textEl=document.getElementById("tofText");
@@ -1416,7 +1444,7 @@ document.addEventListener("ca7:lang-change", initNicknames);
         ${moneyLedger.map((m,i)=>`
           <div class="ledger-row" data-i="${i}">
             <div class="ld-desc">
-              <span class="ledger-cat">${m.cat}</span>${tt(m,"desc")}
+              <span class="ledger-cat">${tt(m,"cat")}</span>${tt(m,"desc")}
               <small>${tt(m,"detail")}</small>
             </div>
             <div class="ld-amount">${m.amount}<span class="cur"> ${m.currency}</span></div>
@@ -1859,7 +1887,7 @@ document.addEventListener("ca7:lang-change", initNicknames);
 (function worldmapModule(){
   const svg=document.getElementById("worldmapSvg");
   const tip=document.getElementById("worldmapTip");
-  const wrap=document.getElementById("worldmap");
+  const wrap=document.querySelector(".worldmap");
   const pinsLayer=document.getElementById("wmPinsLayer");
   const trailLayer=document.getElementById("wmTrailLayer");
   const heatLayer=document.getElementById("wmHeatLayer");
@@ -2543,10 +2571,11 @@ document.addEventListener("ca7:lang-change", initNicknames);
 
   const state={read:0,quizDone:false,quizPct:0,blindbox:false,mapClick:false,personaEnd:false,wall:false,_unlocked:0};
   const unlocked=new Set();
-  // 持久化
+  // 持久化（unlocked 集合 + read 累计阅读数）
   try{
     const saved=JSON.parse(localStorage.getItem("ca7_badges")||"null");
     if(saved && Array.isArray(saved.unlocked)) saved.unlocked.forEach(id=>unlocked.add(id));
+    if(saved && typeof saved.read==="number" && saved.read>0) state.read=saved.read;
   }catch(e){}
 
   function render(){
@@ -2581,6 +2610,10 @@ document.addEventListener("ca7:lang-change", initNicknames);
     },3200);
   }
 
+  function save(){
+    try{ localStorage.setItem("ca7_badges",JSON.stringify({unlocked:[...unlocked],read:state.read})); }catch(e){}
+  }
+
   function check(){
     let changed=false;
     defs.forEach(d=>{
@@ -2598,7 +2631,7 @@ document.addEventListener("ca7:lang-change", initNicknames);
     }
     updateProgress();
     if(changed){
-      try{ localStorage.setItem("ca7_badges",JSON.stringify({unlocked:[...unlocked]})); }catch(e){}
+      save();
       render();
     }
   }
@@ -2615,11 +2648,15 @@ document.addEventListener("ca7:lang-change", initNicknames);
     else if(type==="persona"){ state.personaEnd=true; }
     else if(type==="wall"){ state.wall=true; }
     check();
+    // read 每次自增都落盘（未触发新解锁时 check() 不会写 localStorage）
+    if(type==="read") save();
   };
 
   // 监听地图点击（地图模块完成后挂载）
   document.addEventListener("click",e=>{
     if(e.target.closest(".worldmap-pinned")) window.__badge("map");
+    // 卡片是裸 <a>（不经过 goToIncident），导航前累计阅读数
+    if(e.target.closest("a.event-card")) window.__badge("read",1);
   });
 
   // 人设编年史滚到底触发

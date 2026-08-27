@@ -261,7 +261,7 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
 <link rel="mask-icon" href="/assets/img/favicon.svg" color="#E50914">
 <link rel="manifest" href="/assets/img/site.webmanifest">
 
-<link rel="stylesheet" href="${escAttr(absDepth + "assets/css/style.css")}">
+<link rel="stylesheet" href="${escAttr(absDepth + "assets/css/style.css?v=20260827b")}">
 
 <link rel="canonical" href="${escAttr(thisUrl)}">
 
@@ -465,8 +465,13 @@ function main() {
     used.add(s);
     ev._slug = s;
     // 自定义 slug 且与旧 slug 不同 → 生成旧 URL → 新 URL 的过渡页
+    // （旧 slug 若已被其它事件的真实页面占用则跳过，避免过渡页覆盖真实页）
     if (ev.slug && fromTitle && fromTitle !== s) {
-      redirects.push({ oldSlug: fromTitle, newSlug: s, id: ev.id });
+      if (used.has(fromTitle)) {
+        console.warn(`[generate-pages] 跳过 id=${ev.id} 的过渡页 "${fromTitle}"：与现有事件 slug 冲突`);
+      } else {
+        redirects.push({ oldSlug: fromTitle, newSlug: s, id: ev.id });
+      }
     }
   });
 

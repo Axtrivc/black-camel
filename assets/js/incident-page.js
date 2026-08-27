@@ -246,6 +246,17 @@
       }
       toggleLangMenu();
     });
+    // 菜单项是 <span tabindex="0">，Enter/Space 不会派发 click，需显式处理
+    btn.addEventListener("keydown", (e) => {
+      const opt = e.target.closest(".lang-option");
+      if (!opt) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const lang = opt.getAttribute("data-lang");
+        if (lang) setLanguage(lang);
+        btn.focus();
+      }
+    });
     document.addEventListener("click", (e) => {
       if (!btn.contains(e.target)) closeLangMenu();
     });

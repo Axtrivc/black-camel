@@ -529,11 +529,11 @@ const memePresets = [
   bottomEs: "siuuuuuuu"
   },
 {
-  top: "世界杯淘汰赛 8 场才 1 球",
-  topEn: "1 goal in 8 World Cup knockouts",
+  top: "世界杯淘汰赛 9 场才 1 球",
+  topEn: "1 goal in 9 World Cup knockouts",
   bottom: "但我是历史第一第二第三",
   bottomEn: "But I'm the 1st, 2nd & 3rd best ever",
-  topEs: "1 gol en 8 eliminatorias del Mundial",
+  topEs: "1 gol en 9 eliminatorias del Mundial",
   bottomEs: "Pero soy el 1.º, 2.º y 3.º mejor"
   },
 {
@@ -990,8 +990,8 @@ const quizData = [
   fbEs: "Correcto: un niño autista. Furioso tras la derrota, Cristiano le golpeó el móvil de la mano. La FA lo multó con 50.000 £ y 2 partidos."
   },
 {
-  q: "C罗两次摔队长袖标，发生在哪个赛事？",
-  qEn: "Cristiano threw his captain's armband twice — at which tournament?",
+  q: "C罗第一次摔队长袖标（对塞尔维亚绝杀被误判无效后），发生在哪个赛事？",
+  qEn: "Where did Cristiano first throw down his captain's armband (after the wrongly disallowed winner vs Serbia)?",
   opts: [
     {
       v: "2022 世界杯预选赛",
@@ -1014,11 +1014,11 @@ const quizData = [
       vEs: "Eurocopa 2016"
       }
     ],
-  a: 1,
-  fb: "正确是 2021 欧洲杯。对阵塞尔维亚被吹掉绝杀球后摔袖标；对德国惨败后又一次摔掉——袖标后来被拍卖 6.4 万欧。",
-  fbEn: "Correct: Euro 2021. He flung it after a late winner against Serbia was disallowed, then again after the thrashing by Germany. One of those armbands later sold at auction for €64k.",
-  qEs: "Cristiano tiró el brazalete de capitán dos veces — ¿en qué torneo?",
-  fbEs: "Correcto: la Eurocopa 2021 (2020 disputada en 2021). Lo tiró tras un gol mal anulado en el clasificatorio y de nuevo tras quedar eliminados."
+  a: 0,
+  fb: "正确是 2022 世界杯预选赛（2021 年 3 月进行）。对塞尔维亚的补时绝杀被误判无效后，C罗下场时怒摔袖标——这枚袖标后来被拍卖 6.4 万欧元用于慈善；同年 6 月欧洲杯出局后他又摔了一次。",
+  fbEn: "Correct: the 2022 World Cup qualifiers (played March 2021). After his stoppage-time winner vs Serbia was wrongly ruled out, Cristiano flung the armband on his way off — it later sold at auction for €64k for charity; he threw it again after Portugal's Euro exit that June.",
+  qEs: "¿Dónde tiró Cristiano el brazalete de capitán por primera vez (tras el gol mal anulado ante Serbia)?",
+  fbEs: "Correcto: la clasificación para el Mundial 2022 (disputada en marzo de 2021). Tras anularle erróneamente un gol en el descuento ante Serbia, lanzó el brazalete al salir (se subastó por 64.000 €); volvió a tirarlo tras la eliminación en la Eurocopa."
   },
 {
   q: "2016欧洲杯决赛C罗「躺冠」是怎么回事？",

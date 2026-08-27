@@ -606,6 +606,8 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   letter-spacing:1px;text-transform:uppercase;
   padding:4px 10px;border-radius:3px;
   font-weight:600;
+  /* 内联样式给的是深色实底，这里只补投影，让角标从照片上「浮」出来 */
+  box-shadow:0 2px 8px rgba(0,0,0,.45);
 }
 .card-severity{
   position:absolute;top:12px;right:12px;
@@ -1218,12 +1220,15 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   position:absolute;top:12px;left:12px;
   z-index:4;
   font-family:var(--mono);font-size:9px;
-  color:var(--crimson);
-  background:rgba(0,0,0,.7);
+  color:#ffd7df;                       /* 固定浅色：深色图片/浅色主题下都可读 */
+  background:rgba(0,0,0,.62);
   padding:4px 10px;border-radius:3px;
   letter-spacing:1px;
   text-transform:uppercase;
 }
+/* 浅色（galactico）主题下 var(--crimson) 变黑，黑字压黑底会消失，
+   因此角标文字不走主题色，统一用上面的固定浅色。 */
+[data-theme="galactico"] .hero-gallery-tag{color:#f2f5ff}
 
 /* ========== 绰号进化史 ========== */
 .nickname-section{
@@ -1387,7 +1392,9 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 /* ========== 响应式 ========== */
 /* 平板及以下：≤900px */
 @media(max-width:900px){
-  .hero{min-height:auto;padding:40px 20px 0}
+  /* .hero 基础样式是 display:flex；stats 条改为 static 后若不转纵向，
+     会和 hero-inner 并排成两栏，把正文挤成半宽 */
+  .hero{flex-direction:column;align-items:stretch;min-height:auto;padding:40px 20px 0}
   .hero-inner{grid-template-columns:1fr;gap:32px}
   .hero-visual{max-width:360px;margin:0 auto;width:100%}
   .hero-stats{
@@ -1593,7 +1600,8 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   margin-top:30px;
   overflow:hidden;
 }
-.quiz.scanning::before{
+.quiz.scanning::before,
+.tof.scanning::before{
   content:"";position:absolute;top:0;left:0;right:0;height:2px;
   background:linear-gradient(90deg,transparent,var(--crimson),transparent);
   box-shadow:0 0 20px var(--crimson);
@@ -1791,6 +1799,9 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   background:linear-gradient(135deg,var(--crimson-glow),transparent 70%)!important;
 }
 .pk-side.loser .pk-val{color:var(--crimson)}
+/* 伪元素文案无法走 data-i18n，按 <html lang> 覆盖（zh 为默认中文） */
+html[lang="en"] .pk-side.loser::after{content:"⚠ more black marks"}
+html[lang="es"] .pk-side.loser::after{content:"⚠ Más manchas negras"}
 .pk-side.loser::after{
   content:"⚠ 黑点更高";
   position:absolute;
@@ -2223,6 +2234,17 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   .pk-side.messi{text-align:center;padding-top:42px}
   /* 隐藏原 absolute 定位的 VS（移动端用上面的伪元素代替） */
   .pk-vs{display:none}
+  /* PK 维度 tabs 移动端改横滑：换行会叠 4 行且折行截断文字 */
+  .pk-tabs{
+    flex-wrap:nowrap;
+    justify-content:flex-start;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding:14px 16px;
+  }
+  .pk-tabs::-webkit-scrollbar{display:none}
+  .pk-tab{white-space:nowrap;flex-shrink:0}
   .scanner-grid{grid-template-columns:1fr 1fr}
   .scan-value{font-size:22px}
   .meme-thumbs{grid-template-columns:repeat(5,1fr)}
@@ -2325,6 +2347,7 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 }
 .breaking-tag{
   flex-shrink:0;
+  position:relative;z-index:2;   /* 压在跑马灯之上，杜绝滚动文字窜到标签区 */
   font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:2px;
   color:#fff;background:rgba(0,0,0,.4);
   padding:4px 10px;border-radius:3px;
@@ -2336,28 +2359,34 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 }
 .breaking-ticker{
   flex:1;overflow:hidden;white-space:nowrap;
-  display:flex;align-items:center;gap:24px;
+  /* 裁剪窗：静止不动，只负责把滚出边界的 track 裁掉；
+     左右 32px 渐隐让文字「淡入淡出」而不是硬切。*/
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 32px calc(100% - 32px),transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 32px calc(100% - 32px),transparent);
   font-family:var(--mono);font-size:13px;color:#fff;
   min-width:0;
-  /* 全尺寸跑马灯：内容在 HTML 里复制一份，
-     translateX(-50%) 正好滚到第二份起点，无缝循环。
-     时长按内容宽度自适应，避免宽屏滚太快 / 窄屏太慢。*/
+}
+.breaking-track{
+  display:flex;align-items:center;gap:24px;width:max-content;
   animation:breakingScroll var(--breaking-dur,30s) linear infinite;
 }
 .breaking-ticker .breaking-item{flex-shrink:0}
 .breaking-ticker .breaking-sep{color:rgba(255,255,255,.5);flex-shrink:0}
-.breaking-bar:hover .breaking-ticker{animation-play-state:paused}
+.breaking-bar:hover .breaking-track{animation-play-state:paused}
 @keyframes breakingScroll{
   from{transform:translateX(0)}
   to{transform:translateX(-50%)}
 }
-/* 窄屏：隐藏 CTA，跑马灯时长稍长一点（内容相对更窄，节奏更舒缓） */
+/* 窄屏：隐藏 CTA（选择器带父级提升优先级——本块位于 .breaking-cta 基础定义之前，
+   同优先级会被后面的基础规则覆盖），跑马灯时长稍长一点（内容相对更窄，节奏更舒缓） */
 @media(max-width:768px){
-  .breaking-cta{display:none}
-  .breaking-ticker{animation-duration:var(--breaking-dur,40s)}
+  .breaking-inner .breaking-cta{display:none}
+  .breaking-inner{gap:10px;padding:9px 12px}
+  .breaking-tag{font-size:11px}
 }
 .breaking-cta{
   flex-shrink:0;
+  position:relative;z-index:2;   /* 同 breaking-tag，保持在跑马灯之上 */
   font-family:var(--mono);font-size:12px;font-weight:700;
   color:var(--crimson);background:#fff;
   border:none;padding:6px 14px;border-radius:3px;cursor:pointer;
@@ -2525,8 +2554,10 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 @keyframes wmTrailDash{to{stroke-dashoffset:-200}}
 .worldmap-trail .wm-club{fill:rgba(232,185,35,.85);stroke:#131316;stroke-width:1.5}
 .worldmap-trail .wm-club-label{
-  font-family:var(--mono);font-size:9px;fill:var(--text-dim);
+  font-family:var(--mono);font-size:9px;fill:#c3cbdd;
   text-anchor:middle;pointer-events:none;
+  /* 深色描边光晕：欧洲多标聚集交叠时文字仍可辨认 */
+  paint-order:stroke;stroke:rgba(8,10,16,.85);stroke-width:2.5px;stroke-linejoin:round;
 }
 /* 热度图层 */
 .worldmap-heat circle{fill:var(--crimson);opacity:.12;mix-blend-mode:screen}
@@ -2581,6 +2612,8 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 /* 弹幕舞台 */
 .danmu-stage{position:relative;height:260px;background:var(--bg);border:1px solid var(--border);border-radius:6px;overflow:hidden}
 .danmu-stage::before{content:"CA7 黑历史墙";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--serif);font-size:42px;font-weight:900;color:var(--crimson);opacity:.06;pointer-events:none;white-space:nowrap}
+html[lang="en"] .danmu-stage::before{content:"CA7 Dark History Wall"}
+html[lang="es"] .danmu-stage::before{content:"Muro del Historial Negro de CA7"}
 .danmu-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:12px;color:var(--text-dim);text-align:center}
 .danmu-item{position:absolute;white-space:nowrap;font-family:var(--mono);font-size:14px;font-weight:600;animation:danmuFly linear forwards;text-shadow:0 1px 2px rgba(0,0,0,.8);will-change:transform}
 @keyframes danmuFly{from{transform:translateX(100%)}to{transform:translateX(-100vw)}}
@@ -2646,6 +2679,8 @@ html[lang="en"] .hero-desc{ font-size:14px; }
 .casino-place.disabled{opacity:.4;cursor:not-allowed}
 .casino-place.disabled:hover{background:#e8b923;transform:none}
 .casino-card.resolved .casino-q::after{content:"✓ 已开奖";display:inline-block;margin-left:8px;font-size:10px;color:#3ddc84;font-weight:400}
+html[lang="en"] .casino-card.resolved .casino-q::after{content:"✓ settled"}
+html[lang="es"] .casino-card.resolved .casino-q::after{content:"✓ liquidada"}
 .casino-result{font-size:12px;line-height:1.5;padding:8px 10px;border-radius:4px;margin-top:auto}
 .casino-result.win{background:rgba(61,220,132,.12);color:#3ddc84;border-left:3px solid #3ddc84}
 .casino-result.lose{background:rgba(255,23,68,.12);color:#ff1744;border-left:3px solid #ff1744}
@@ -2929,9 +2964,12 @@ html[lang="en"] .hero-desc{ font-size:14px; }
   color:var(--text);font-family:var(--mono);font-size:12px;
   padding:6px 12px;border-radius:4px;cursor:pointer;
   transition:all .2s;
+  position:relative;       /* 下拉菜单锚点（与 .lang-btn 同策略） */
 }
 .ip-lang:hover{border-color:var(--crimson);color:var(--crimson)}
 .ip-lang .lang-globe{margin-right:4px}
+.ip-lang.open .lang-caret{transform:rotate(180deg)}
+.ip-lang.open .lang-menu{display:flex}
 
 .ip-breadcrumb{
   max-width:860px;margin:24px auto 0;padding:0 24px;
