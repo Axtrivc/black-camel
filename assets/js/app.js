@@ -133,11 +133,6 @@ function applyStaticI18n(){
 
 /* 三语切换按钮：点击展开下拉菜单，点击选项切换语言。
    仍兼容旧"循环切换"——按钮主区点击在 EN→ES→ZH→EN 间循环。 */
-function buildLangMenu(){
-  return LANGS.map(l =>
-    `<button type="button" class="lang-option${l===currentLang?" active":""}" data-lang="${l}">${LANG_LABEL[l]}</button>`
-  ).join("");
-}
 function updateLangBtn(){
   const btn = document.getElementById("langToggleBtn");
   if(!btn) return;
@@ -145,20 +140,26 @@ function updateLangBtn(){
   if(lbl){
     lbl.innerHTML = '<span class="lang-globe">🌐</span>' + LANG_LABEL[currentLang];
   }
-  // 高亮当前项
-  btn.querySelectorAll(".lang-option").forEach(o=>{
-    o.classList.toggle("active", o.dataset.lang === currentLang);
-  });
+  // 高亮当前项（菜单是按钮的兄弟节点，从共同父级 .lang-switcher 里找）
+  const menu = btn.parentElement ? btn.parentElement.querySelector(".lang-menu") : null;
+  if(menu){
+    menu.querySelectorAll(".lang-option").forEach(o=>{
+      o.classList.toggle("active", o.dataset.lang === currentLang);
+    });
+  }
 }
 function closeLangMenu(){
   const btn = document.getElementById("langToggleBtn");
-  if(btn) btn.classList.remove("open");
+  if(!btn) return;
+  btn.classList.remove("open");
+  btn.setAttribute("aria-expanded","false");
 }
 function toggleLangMenu(open){
   const btn = document.getElementById("langToggleBtn");
   if(!btn) return;
   if(open === undefined) btn.classList.toggle("open");
   else btn.classList.toggle("open", open);
+  btn.setAttribute("aria-expanded", btn.classList.contains("open"));
   if(btn.classList.contains("open")) updateLangBtn();
 }
 
@@ -434,11 +435,25 @@ function openModalByIdx(idx){
 /* ========== 筛选交互 ========== */
 document.querySelectorAll(".filter-chip").forEach(chip=>{
   chip.addEventListener("click",()=>{
-    document.querySelectorAll(".filter-chip").forEach(c=>c.classList.remove("active"));
+    document.querySelectorAll(".filter-chip").forEach(c=>{
+      c.classList.remove("active");
+      c.setAttribute("aria-pressed","false");
+    });
     chip.classList.add("active");
+    chip.setAttribute("aria-pressed","true");
     currentFilter = chip.dataset.cat;
     renderCards();
   });
+});
+
+/* 键盘可达性：所有 [role="button"]（filter-chip / meme-thumb / persona-card / 筹码 / 地图标点等
+   由 JS 生成的 div/span）统一支持 Enter / Space 触发点击，与原生 button 行为一致。 */
+document.addEventListener("keydown",(e)=>{
+  if(e.key !== "Enter" && e.key !== " ") return;
+  const el = e.target.closest('[role="button"]');
+  if(!el || el.tagName === "BUTTON" || el.tagName === "A") return;
+  e.preventDefault();
+  el.click();
 });
 
 document.getElementById("severitySelect").addEventListener("change",(e)=>{
@@ -686,9 +701,9 @@ function renderTicker(){
   if(!track) return;
   const items = t("ticker.items", []);
   if(!Array.isArray(items) || items.length === 0) return;
-  // 复制一份实现无缝循环
-  const html = items.map(s=>`<span>${s}</span>`).join("") + items.map(s=>`<span>${s}</span>`).join("");
-  track.innerHTML = html;
+  // 复制一份实现无缝循环（副本对读屏隐藏，避免朗读两遍）
+  const half = items.map(s=>`<span>${s}</span>`).join("");
+  track.innerHTML = half + items.map(s=>`<span aria-hidden="true">${s}</span>`).join("");
 }
 function renderBreaking(){
   const el = document.getElementById("breakingTicker");
@@ -740,7 +755,11 @@ renderBreaking();
   cta.addEventListener("click",(ev)=>{
     ev.preventDefault();
     // 切到「全部」筛选确保该事件在当前列表中
-    document.querySelectorAll(".filter-chip").forEach(c=>c.classList.toggle("active",c.dataset.cat==="all"));
+    document.querySelectorAll(".filter-chip").forEach(c=>{
+      const on = c.dataset.cat==="all";
+      c.classList.toggle("active",on);
+      c.setAttribute("aria-pressed",on?"true":"false");
+    });
     currentFilter="all";
     renderCards();  // 内部会按置顶/严重程度排序 currentList
     // 导航到头条事件子页（slug 已在 href 上，复用 goToIncident 保证一致性）
@@ -1333,11 +1352,11 @@ document.addEventListener("ca7:lang-change", initNicknames);
   function buildThumbs(){
     if(thumbs.dataset.built) return;
     thumbs.dataset.built="1";
-    thumbs.innerHTML=memePhotos.map((p,i)=>`<div class="meme-thumb ${i===0?'active':''}" data-src="${p}" data-webp="${toWebp(p)}" style="background-image:url('${toWebp(p)}')"></div>`).join("");
+    thumbs.innerHTML=memePhotos.map((p,i)=>`<div class="meme-thumb ${i===0?'active':''}" role="button" tabindex="0" aria-label="表情底图 ${i+1}" data-src="${p}" data-webp="${toWebp(p)}" style="background-image:url('${toWebp(p)}')"></div>`).join("");
   }
   // 预设（读 tt 双语）
   function renderPresets(){
-    presetsEl.innerHTML=memePresets.map((p,i)=>`<span class="meme-preset" data-i="${i}">${tt(p,"top").slice(0,8)}…</span>`).join("");
+    presetsEl.innerHTML=memePresets.map((p,i)=>`<span class="meme-preset" role="button" tabindex="0" data-i="${i}">${tt(p,"top").slice(0,8)}…</span>`).join("");
   }
   renderPresets();
   document.addEventListener("ca7:lang-change", renderPresets);
@@ -1979,6 +1998,10 @@ document.addEventListener("ca7:lang-change", initNicknames);
     const g=document.createElementNS(ns,"g");
     g.setAttribute("class","worldmap-pinned");
     g.setAttribute("transform",`translate(${b.x},${b.y})`);
+    // 键盘可达：标点可 Tab 聚焦，Enter 打开卷宗（click 事件对键盘触发的 click 同样生效）
+    g.setAttribute("tabindex","0");
+    g.setAttribute("role","button");
+    g.setAttribute("aria-label",`${tt(b.items[0],"title")} · ${tt(b.items[0],"date")||""}`);
 
     const shifted=Math.hypot(b.x-b.ox, b.y-b.oy) > r+2;
     if(shifted){
@@ -2020,6 +2043,19 @@ document.addEventListener("ca7:lang-change", initNicknames);
     });
     g.addEventListener("mousemove",moveTip);
     g.addEventListener("mouseleave",()=>tip.hidden=true);
+    // 键盘聚焦时在标点正上方展示 tooltip（没有鼠标坐标，取标点屏幕位置）
+    g.addEventListener("focus",()=>{
+      const ev=b.items[0];
+      tip.hidden=false;
+      tip.innerHTML=`<b>${tt(ev,"title")}</b>`+
+        (b.items.length>1?`<small>＋${b.items.length-1} ${t("map.sameLoc","起同地事件")}</small><br>`:"")+
+        `<small>${tt(ev,"date")||""} · ${tt(ev,"location")||""}</small><br>`+
+        `${tt(ev,"summary").slice(0,60)}…`;
+      const r=g.getBoundingClientRect(), wr=wrap.getBoundingClientRect();
+      tip.style.left=(r.left+r.width/2-wr.left)+"px";
+      tip.style.top=(r.top-wr.top)+"px";
+    });
+    g.addEventListener("blur",()=>tip.hidden=true);
     g.addEventListener("click",()=>{
       const ev=b.items[0];
       let list=currentList.length?currentList:events;
@@ -2208,10 +2244,10 @@ document.addEventListener("ca7:lang-change", initNicknames);
         <div class="casino-bet-row">
           <div class="casino-stake">
             ${t("casino.stake","下注")}:<input type="number" min="10" max="${balance}" value="${st?st.stake:50}" data-i="${i}">
-            <span class="chip" data-i="${i}" data-amt="50">50</span>
-            <span class="chip" data-i="${i}" data-amt="100">100</span>
-            <span class="chip" data-i="${i}" data-amt="500">500</span>
-            <span class="chip" data-i="${i}" data-amt="all">${t("casino.allin","梭哈")}</span>
+            <span class="chip" role="button" tabindex="0" data-i="${i}" data-amt="50">50</span>
+            <span class="chip" role="button" tabindex="0" data-i="${i}" data-amt="100">100</span>
+            <span class="chip" role="button" tabindex="0" data-i="${i}" data-amt="500">500</span>
+            <span class="chip" role="button" tabindex="0" data-i="${i}" data-amt="all">${t("casino.allin","梭哈")}</span>
           </div>
           <button class="casino-place ${st&&st.pick?'':'disabled'}" data-i="${i}" ${st&&st.pick?'':'disabled'}>${t("casino.place","下注")}</button>
         </div>`}
@@ -2325,7 +2361,7 @@ document.addEventListener("ca7:lang-change", initNicknames);
       const catLabel = catConfig[ev.cat] ? tt(catConfig[ev.cat],"label") : (ev.catLabel||"");
       return `<div class="persona-item" data-id="${ev.id}">
         <div class="persona-year">${year} · №${String(ev.id).padStart(3,"0")}</div>
-        <div class="persona-card">
+        <div class="persona-card" role="button" tabindex="0" aria-label="${tt(ev,"title")}">
           <h4>${tt(ev,"title")}</h4>
           <p>${tt(ev,"summary")}</p>
           <span class="persona-tag">${catLabel}</span>
@@ -2822,16 +2858,15 @@ renderCards();
    首次 setLanguage(currentLang) 会把 HTML 初始中文替换为默认 en。 */
 (function langSwitcherInit(){
   const btn = document.getElementById("langToggleBtn");
-  if(btn){
+  // 下拉菜单是按钮的兄弟节点（不能嵌套在 <button> 内，否则出现按钮套按钮的非法结构）
+  const holder = btn ? (btn.parentElement || btn) : null;
+  if(btn && holder){
     // 主按钮：切换下拉菜单开合
-    btn.addEventListener("click", (e)=>{
-      // 点击的是下拉项 → 直接切换语言（由下方委托处理），此处不重复
-      if(e.target.closest(".lang-option")) return;
+    btn.addEventListener("click", ()=>{
       toggleLangMenu();
-      btn.setAttribute("aria-expanded", btn.classList.contains("open"));
     });
-    // 下拉项委托：选择语言
-    btn.addEventListener("click", (e)=>{
+    // 下拉项委托（挂在共同父级上）：选择语言
+    holder.addEventListener("click", (e)=>{
       const opt = e.target.closest(".lang-option");
       if(!opt) return;
       const lang = opt.getAttribute("data-lang");
@@ -2839,7 +2874,7 @@ renderCards();
     });
     // 点击页面其它位置关闭下拉
     document.addEventListener("click", (e)=>{
-      if(!btn.contains(e.target)) closeLangMenu();
+      if(!holder.contains(e.target)) closeLangMenu();
     });
     // 键盘 Esc 关闭
     document.addEventListener("keydown", (e)=>{

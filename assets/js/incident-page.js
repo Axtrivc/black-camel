@@ -201,13 +201,19 @@
     if (!btn) return;
     const lbl = btn.querySelector(".lang-label");
     if (lbl) lbl.innerHTML = '<span class="lang-globe">🌐</span>' + LANG_LABEL[currentLang];
-    btn.querySelectorAll(".lang-option").forEach((o) => {
-      o.classList.toggle("active", o.getAttribute("data-lang") === currentLang);
-    });
+    // 菜单是按钮的兄弟节点，从共同父级 .ip-lang-wrap 里找
+    const menu = btn.parentElement ? btn.parentElement.querySelector(".lang-menu") : null;
+    if (menu) {
+      menu.querySelectorAll(".lang-option").forEach((o) => {
+        o.classList.toggle("active", o.getAttribute("data-lang") === currentLang);
+      });
+    }
   }
   function closeLangMenu() {
     const btn = document.getElementById("langToggleBtn");
-    if (btn) btn.classList.remove("open");
+    if (!btn) return;
+    btn.classList.remove("open");
+    btn.setAttribute("aria-expanded", "false");
   }
   function toggleLangMenu() {
     const btn = document.getElementById("langToggleBtn");
@@ -236,29 +242,20 @@
   renderDynamic();
 
   const btn = document.getElementById("langToggleBtn");
-  if (btn) {
-    btn.addEventListener("click", (e) => {
-      const opt = e.target.closest(".lang-option");
-      if (opt) {
-        const lang = opt.getAttribute("data-lang");
-        if (lang) setLanguage(lang);
-        return;
-      }
+  // 下拉菜单是按钮的兄弟节点（不能嵌套在 <button> 内），事件挂在共同父级上
+  const holder = btn ? btn.parentElement : null;
+  if (btn && holder) {
+    btn.addEventListener("click", () => {
       toggleLangMenu();
     });
-    // 菜单项是 <span tabindex="0">，Enter/Space 不会派发 click，需显式处理
-    btn.addEventListener("keydown", (e) => {
+    holder.addEventListener("click", (e) => {
       const opt = e.target.closest(".lang-option");
       if (!opt) return;
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        const lang = opt.getAttribute("data-lang");
-        if (lang) setLanguage(lang);
-        btn.focus();
-      }
+      const lang = opt.getAttribute("data-lang");
+      if (lang) setLanguage(lang);
     });
     document.addEventListener("click", (e) => {
-      if (!btn.contains(e.target)) closeLangMenu();
+      if (!holder.contains(e.target)) closeLangMenu();
     });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeLangMenu();

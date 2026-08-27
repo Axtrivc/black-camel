@@ -33,3 +33,6 @@ assets/images/SIU-放这里.txt
 
 # 图片优化前的原始备份（压缩脚本生成，体积大，无需提交）
 _orig_backup/
+
+# 本地网盘同步临时目录（含 >100MB 文件，绝不可提交）
+.tmp.driveupload/

@@ -161,7 +161,16 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
   const ogImage = ev.img ? `${SITE_ORIGIN}/${ev.img}` : `${SITE_ORIGIN}/favicon.jpg`;
 
   const catConf = catConfig[ev.cat] || {};
-  const catColor = catConf.color || "#4a235a";
+  // 与首页 app.js 的 CAT_CHIP_BG/CAT_CHIP_TEXT 同套配色：深底浅字，
+  // 11px 白字压在原始分类色（如 offpitch #b9770e）上对比度不足 4.5:1
+  const CAT_CHIP = {
+    persona:  ["rgba(74,35,90,.92)", "#e8daef"],
+    violence: ["rgba(139,10,30,.92)", "#fadbd8"],
+    offpitch: ["rgba(185,119,14,.92)", "#fef9e7"],
+    club:     ["rgba(110,44,0,.92)", "#fae5d3"],
+    national: ["rgba(20,90,50,.92)", "#d5f5e3"]
+  };
+  const chip = CAT_CHIP[ev.cat] || [catConf.color || "#4a235a", "#fff"];
   const catLabelEn = catConf.labelEn || ev.catLabel || ev.cat || "";
   const catLabelZh = catConf.label || ev.catLabel || ev.cat || "";
   const catLabelEs = catConf.labelEs || catLabelEn;
@@ -294,15 +303,17 @@ ${JSON.stringify(jsonLdBreadcrumb, null, 2)}
 <!-- 顶部迷你导航条 -->
 <header class="ip-topbar">
   <a class="ip-brand" href="${absDepth}">🏠 <span>CA7</span> · The Aveiro Files</a>
-  <button class="ip-lang" id="langToggleBtn" type="button" aria-label="Switch language" aria-haspopup="true" aria-expanded="false">
-    <span class="lang-label">🌐 EN</span>
-    <span class="lang-caret">▾</span>
-    <span class="lang-menu" role="menu" aria-label="Language">
-      <span class="lang-option" data-lang="en" role="menuitem" tabindex="0">EN · English</span>
-      <span class="lang-option" data-lang="es" role="menuitem" tabindex="0">ES · Español</span>
-      <span class="lang-option" data-lang="zh" role="menuitem" tabindex="0">中 · 中文</span>
-    </span>
-  </button>
+  <div class="ip-lang-wrap">
+    <button class="ip-lang" id="langToggleBtn" type="button" aria-label="Switch language" aria-haspopup="true" aria-expanded="false">
+      <span class="lang-label">🌐 EN</span>
+      <span class="lang-caret">▾</span>
+    </button>
+    <div class="lang-menu" role="menu" aria-label="Language">
+      <button type="button" class="lang-option" data-lang="en" role="menuitem">EN · English</button>
+      <button type="button" class="lang-option" data-lang="es" role="menuitem">ES · Español</button>
+      <button type="button" class="lang-option" data-lang="zh" role="menuitem">中 · 中文</button>
+    </div>
+  </div>
 </header>
 
 <!-- 面包屑 -->
@@ -315,7 +326,7 @@ ${JSON.stringify(jsonLdBreadcrumb, null, 2)}
 <main class="ip-main">
   <article class="ip-article">
     <div class="modal-hero">
-      <span class="modal-cat-badge" style="background:${escAttr(catColor)};color:#fff" data-cat-en="${escAttr(catLabelEn)}" data-cat-es="${escAttr(catLabelEs)}" data-cat-zh="${escAttr(catLabelZh)}">${escText(catLabelEn)}</span>
+      <span class="modal-cat-badge" style="background:${escAttr(chip[0])};color:${escAttr(chip[1])}" data-cat-en="${escAttr(catLabelEn)}" data-cat-es="${escAttr(catLabelEs)}" data-cat-zh="${escAttr(catLabelZh)}">${escText(catLabelEn)}</span>
       ${picMarkup(ev.img, titleEn, absDepth)}
     </div>
 
@@ -405,12 +416,12 @@ ${JSON.stringify(jsonLdBreadcrumb, null, 2)}
 }
 
 // -------------------- sitemap --------------------
-function buildSitemap(events, dataMtime) {
+function buildSitemap(events, dataMtime, homeMtime) {
   const urls = [];
-  // 首页：lastmod 取 data.js 最近修改时间
+  // 首页：lastmod 取 index.html/app.js/style.css/data.js 的最新 mtime
   urls.push({
     loc: `${SITE_ORIGIN}/`,
-    lastmod: dataMtime,
+    lastmod: homeMtime || dataMtime,
     changefreq: "weekly",
     priority: "1.0",
   });
@@ -450,6 +461,18 @@ function main() {
 
   // data.js 最近修改时间（ISO 日期），供 sitemap 首页 lastmod
   const dataMtime = fs.statSync(DATA_JS).mtime.toISOString();
+  // 首页内容其实由 index.html / app.js / style.css / data.js 共同决定：
+  // 任一更新都算首页更新，取四者最新 mtime，避免 lastmod 落后于真实内容
+  const homeMtime = ["index.html", DATA_JS, "assets/js/app.js", "assets/css/style.css"]
+    .reduce((latest, f) => {
+      try {
+        const m = fs.statSync(f).mtime.getTime();
+        return Math.max(latest, m);
+      } catch (e) {
+        return latest;
+      }
+    }, new Date(dataMtime).getTime());
+  const homeMtimeIso = new Date(homeMtime).toISOString();
 
   // 1) 计算 slug（事件自带 > titleEn 生成），去重
   const used = new Set();
@@ -543,7 +566,7 @@ window.__INCIDENT_SLUGS__ = ${JSON.stringify(slugsObj, null, 2)};
   );
 
   // 6) sitemap.xml
-  writeFile(SITEMAP, buildSitemap(events, dataMtime));
+  writeFile(SITEMAP, buildSitemap(events, dataMtime, homeMtimeIso));
 
   const kb = Math.round(
     indexMap.reduce((acc, e) => acc + fs.statSync(path.join(OUT_DIR, e.slug, "index.html")).size, 0) / 1024

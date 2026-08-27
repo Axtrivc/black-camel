@@ -95,15 +95,17 @@
 <!-- 顶部迷你导航条 -->
 <header class="ip-topbar">
   <a class="ip-brand" href="../../">🏠 <span>CA7</span> · The Aveiro Files</a>
-  <button class="ip-lang" id="langToggleBtn" type="button" aria-label="Switch language" aria-haspopup="true" aria-expanded="false">
-    <span class="lang-label">🌐 EN</span>
-    <span class="lang-caret">▾</span>
-    <span class="lang-menu" role="menu" aria-label="Language">
-      <span class="lang-option" data-lang="en" role="menuitem" tabindex="0">EN · English</span>
-      <span class="lang-option" data-lang="es" role="menuitem" tabindex="0">ES · Español</span>
-      <span class="lang-option" data-lang="zh" role="menuitem" tabindex="0">中 · 中文</span>
-    </span>
-  </button>
+  <div class="ip-lang-wrap">
+    <button class="ip-lang" id="langToggleBtn" type="button" aria-label="Switch language" aria-haspopup="true" aria-expanded="false">
+      <span class="lang-label">🌐 EN</span>
+      <span class="lang-caret">▾</span>
+    </button>
+    <div class="lang-menu" role="menu" aria-label="Language">
+      <button type="button" class="lang-option" data-lang="en" role="menuitem">EN · English</button>
+      <button type="button" class="lang-option" data-lang="es" role="menuitem">ES · Español</button>
+      <button type="button" class="lang-option" data-lang="zh" role="menuitem">中 · 中文</button>
+    </div>
+  </div>
 </header>
 
 <!-- 面包屑 -->
@@ -116,7 +118,7 @@
 <main class="ip-main">
   <article class="ip-article">
     <div class="modal-hero">
-      <span class="modal-cat-badge" style="background:#4a235a;color:#fff" data-cat-en="Persona" data-cat-es="Personaje" data-cat-zh="人设争议">Persona</span>
+      <span class="modal-cat-badge" style="background:rgba(74,35,90,.92);color:#e8daef" data-cat-en="Persona" data-cat-es="Personaje" data-cat-zh="人设争议">Persona</span>
       <picture><source type="image/webp" srcset="../../assets/images/report/r-35.webp"><img src="../../assets/images/report/r-35.jpg" alt="CR7 Business Empire — A Narcissistic Personal Brand" decoding="async"></picture>
     </div>
 

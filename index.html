@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="no-js">
+<html lang="zh" class="no-js">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,14 @@
 <link rel="mask-icon" href="/assets/img/favicon.svg" color="#E50914">
 <link rel="manifest" href="/assets/img/site.webmanifest">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20260827b">
+<link rel="stylesheet" href="assets/css/style.css?v=20260828a">
+
+<!-- defer：放 head 让预加载扫描器尽早并行下载 ~830KB JS，DOM 解析完后按序执行（时序与原先置于 body 末尾一致） -->
+<script defer src="assets/js/i18n-dict.js"></script>
+<script defer src="assets/js/data.js"></script>
+<script defer src="assets/js/incident-slugs.js"></script>
+<script defer src="assets/js/extra-data.js"></script>
+<script defer src="assets/js/app.js?v=20260828a"></script>
 
 <link rel="canonical" href="https://ca7.axtrivc.com/">
 
@@ -28,12 +35,41 @@
 <meta property="og:description" content="A comprehensive archive documenting 61 major controversial incidents, career statistics, and timeline of Cristiano Ronaldo (CA7) compiled from public media reports.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ca7.axtrivc.com/">
-<meta property="og:image" content="https://ca7.axtrivc.com/assets/img/favicon-192x192.png">
+<meta property="og:image" content="https://ca7.axtrivc.com/assets/img/og-default.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Aveiro Files — CA7 Controversy & Dark History Archive">
 <meta property="og:locale" content="en_US">
-<meta name="twitter:card" content="summary">
+<meta property="og:locale:alternate" content="es_ES">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="The Aveiro Files — CA7 Controversy & Dark History Archive">
 <meta name="twitter:description" content="A comprehensive archive documenting 61 major controversial incidents of Cristiano Ronaldo (CA7).">
-<meta name="twitter:image" content="https://ca7.axtrivc.com/assets/img/favicon-192x192.png">
+<meta name="twitter:image" content="https://ca7.axtrivc.com/assets/img/og-default.png">
+
+<!-- 站点级结构化数据（子页面各有 NewsArticle + BreadcrumbList） -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://ca7.axtrivc.com/#website",
+      "url": "https://ca7.axtrivc.com/",
+      "name": "The Aveiro Files",
+      "description": "CA7 Controversy & Dark History Archive — 61 documented incidents compiled from public media reports.",
+      "inLanguage": ["en", "es", "zh-CN"]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://ca7.axtrivc.com/#org",
+      "url": "https://ca7.axtrivc.com/",
+      "name": "The Aveiro Files",
+      "logo": "https://ca7.axtrivc.com/assets/img/favicon-192x192.png"
+    }
+  ]
+}
+</script>
 
 <!-- Yandex Webmaster Verification -->
 <meta name="yandex-verification" content="efb848a3f938a3fa" />
@@ -61,7 +97,7 @@
       <a href="#casino" data-i18n="nav.casino">赌场</a>
       <a href="#wall" data-i18n="nav.wall">开火</a>
     </div>
-    <input type="text" class="nav-search" placeholder="搜索事件..." id="searchInput" data-i18n="nav.search">
+    <input type="text" class="nav-search" placeholder="搜索事件..." id="searchInput" aria-label="搜索事件" data-i18n="nav.search">
     <div class="theme-switcher" id="themeSwitcher">
       <button class="theme-btn active" data-theme="xiaoxiaoluo"><span class="theme-dot"></span><span data-i18n="theme.xiaoxiaoluo">小小罗</span></button>
       <button class="theme-btn" data-theme="camel"><span class="theme-dot"></span><span data-i18n="theme.camel">沙漠骆驼</span></button>
@@ -71,12 +107,12 @@
       <button id="langToggleBtn" class="lang-btn" aria-label="Switch language" aria-haspopup="true" aria-expanded="false">
         <span class="lang-label">🌐 EN</span>
         <span class="lang-caret">▾</span>
-        <span class="lang-menu" role="menu" aria-label="Language">
-          <span class="lang-option" data-lang="en" role="menuitem" tabindex="0">EN · English</span>
-          <span class="lang-option" data-lang="es" role="menuitem" tabindex="0">ES · Español</span>
-          <span class="lang-option" data-lang="zh" role="menuitem" tabindex="0">中 · 中文</span>
-        </span>
       </button>
+      <div class="lang-menu" role="menu" aria-label="Language">
+        <button type="button" class="lang-option" data-lang="en" role="menuitem">EN · English</button>
+        <button type="button" class="lang-option" data-lang="es" role="menuitem">ES · Español</button>
+        <button type="button" class="lang-option" data-lang="zh" role="menuitem">中 · 中文</button>
+      </div>
     </div>
     <button class="nav-toggle" id="navToggle" aria-label="菜单">
       <span></span><span></span><span></span>
@@ -85,11 +121,11 @@
 </nav>
 
 <!-- 🚨 BREAKING 头条横幅（内容由 app.js 从 i18nDict.breaking.items 渲染）-->
-<div class="breaking-bar" id="breakingBar" role="banner">
+<div class="breaking-bar" id="breakingBar">
   <div class="breaking-inner">
     <span class="breaking-tag" data-i18n="breaking.tag">🚨 BREAKING</span>
     <span class="breaking-ticker" id="breakingTicker"></span>
-    <a class="breaking-cta" id="breakingCta" href="incident/headline-six-world-cups-zero-trophies-spains-stoppage-winner-41-year-old-cr7s-te/" data-i18n="breaking.cta">查看完整卷宗 →</a>
+    <a class="breaking-cta" id="breakingCta" href="incident/six-world-cups-zero-trophies-tearful-farewell/" data-i18n="breaking.cta">查看完整卷宗 →</a>
   </div>
 </div>
 
@@ -114,7 +150,7 @@
     <div class="hero-visual">
       <div class="hero-gallery">
         <div class="hero-gallery-tag" data-i18n="hero.galleryTag">嬷照档案 · UNFLATTERING PHOTOS</div>
-        <div class="hero-gallery-track" id="heroGallery">
+        <div class="hero-gallery-track" id="heroGallery" role="button" tabindex="0" aria-label="切换照片">
           <!-- 37张嬷照由 app.js 动态注入，随机循环播放 -->
         </div>
         <div class="hero-gallery-nav"><span class="hero-counter" id="heroCounter">1 / 37</span></div>
@@ -162,24 +198,24 @@
   </div>
 
   <div class="filter-bar" id="filterBar">
-    <div class="filter-chip active" data-cat="all"><span data-i18n="filter.all">全部</span> <span class="count" id="count-all">61</span></div>
-    <div class="filter-chip" data-cat="persona"><span data-i18n="filter.persona">人设争议</span> <span class="count" id="count-persona">15</span></div>
-    <div class="filter-chip" data-cat="violence"><span data-i18n="filter.violence">场内暴力</span> <span class="count" id="count-violence">9</span></div>
-    <div class="filter-chip" data-cat="offpitch"><span data-i18n="filter.offpitch">场外失态</span> <span class="count" id="count-offpitch">12</span></div>
-    <div class="filter-chip" data-cat="club"><span data-i18n="filter.club">俱乐部与法律</span> <span class="count" id="count-club">14</span></div>
-    <div class="filter-chip" data-cat="national"><span data-i18n="filter.national">国家队争议</span> <span class="count" id="count-national">11</span></div>
+    <div class="filter-chip active" role="button" tabindex="0" aria-pressed="true" data-cat="all"><span data-i18n="filter.all">全部</span> <span class="count" id="count-all">61</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="persona"><span data-i18n="filter.persona">人设争议</span> <span class="count" id="count-persona">15</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="violence"><span data-i18n="filter.violence">场内暴力</span> <span class="count" id="count-violence">9</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="offpitch"><span data-i18n="filter.offpitch">场外失态</span> <span class="count" id="count-offpitch">12</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="club"><span data-i18n="filter.club">俱乐部与法律</span> <span class="count" id="count-club">14</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="national"><span data-i18n="filter.national">国家队争议</span> <span class="count" id="count-national">11</span></div>
   </div>
 
   <div class="severity-filter">
     <span data-i18n="severity.label">严重程度筛选：</span>
-    <select id="severitySelect">
+    <select id="severitySelect" aria-label="严重程度筛选">
       <option value="0" data-i18n="severity.all">全部级别</option>
       <option value="3" data-i18n="severity.3">3星及以上</option>
       <option value="4" data-i18n="severity.4">4星及以上</option>
       <option value="5" data-i18n="severity.5">仅5星 (最严重)</option>
     </select>
     <span data-i18n="sort.label" style="margin-left:16px">排序：</span>
-    <select id="sortSelect">
+    <select id="sortSelect" aria-label="排序方式">
       <option value="featured" data-i18n="sort.featured">头条优先</option>
       <option value="oldest" data-i18n="sort.oldest">时间正序</option>
       <option value="newest" data-i18n="sort.newest">时间倒序</option>
@@ -262,20 +298,20 @@
       </div>
       <div class="meme-controls">
         <div class="meme-field">
-          <label data-i18n="meme.select">选择嬷照</label>
-          <div class="meme-thumbs" id="memeThumbs"></div>
+          <label id="memeThumbsLabel" data-i18n="meme.select">选择嬷照</label>
+          <div class="meme-thumbs" id="memeThumbs" role="group" aria-labelledby="memeThumbsLabel"></div>
         </div>
         <div class="meme-field">
-          <label data-i18n="meme.top">顶部文字</label>
+          <label for="memeTop" data-i18n="meme.top">顶部文字</label>
           <input type="text" id="memeTop" maxlength="24" placeholder="CA7..." data-i18n="meme.topPlaceholder">
         </div>
         <div class="meme-field">
-          <label data-i18n="meme.bottom">底部文字</label>
+          <label for="memeBottom" data-i18n="meme.bottom">底部文字</label>
           <input type="text" id="memeBottom" maxlength="24" placeholder="siuuuu" data-i18n="meme.bottomPlaceholder">
         </div>
         <div class="meme-field">
-          <label data-i18n="meme.presets">一键套用预设金句</label>
-          <div class="meme-presets-list" id="memePresets"></div>
+          <label id="memePresetsLabel" data-i18n="meme.presets">一键套用预设金句</label>
+          <div class="meme-presets-list" id="memePresets" role="group" aria-labelledby="memePresetsLabel"></div>
         </div>
       </div>
     </div>
@@ -490,8 +526,8 @@
         <button class="wm-play" id="wmPlay" aria-label="Play" data-i18n="map.play">▶</button>
         <div class="wm-tl-track">
           <div class="wm-tl-range">
-            <input type="range" id="wmYearStart" min="2003" max="2026" value="2003">
-            <input type="range" id="wmYearEnd" min="2003" max="2026" value="2026">
+            <input type="range" id="wmYearStart" min="2003" max="2026" value="2003" aria-label="起始年份">
+            <input type="range" id="wmYearEnd" min="2003" max="2026" value="2026" aria-label="结束年份">
           </div>
           <div class="wm-tl-ticks" id="wmTicks"></div>
         </div>
@@ -563,7 +599,7 @@
       <!-- 弹幕发射器 -->
       <div class="wall-input-bar">
         <input type="text" id="danmuInput" maxlength="40" placeholder="发一条弹幕吐槽 C罗…（最多40字）" data-i18n="wall.inputPlaceholder">
-        <select id="danmuColor">
+        <select id="danmuColor" aria-label="弹幕颜色">
           <option value="#fff" data-i18n="wall.color">白</option>
           <option value="#dc143c" data-i18n="wall.color">红</option>
           <option value="#e8b923" data-i18n="wall.color">金</option>
@@ -662,11 +698,5 @@
 
 <!-- 返回顶部 -->
 <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
-
-<script src="assets/js/i18n-dict.js"></script>
-<script src="assets/js/data.js"></script>
-<script src="assets/js/incident-slugs.js"></script>
-<script src="assets/js/extra-data.js"></script>
-<script src="assets/js/app.js?v=20260827b"></script>
 </body>
 </html>
