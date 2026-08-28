@@ -61,5 +61,9 @@ window.__INCIDENT_SLUGS__ = {
   "64": "binance-1b-class-action-harvesting-his-own-fans",
   "65": "two-covid-rule-breaches-a-privileged-quarantine",
   "66": "euro-2024-penalty-miss-tears-redemption-or-scene-stealing",
-  "67": "snatching-the-breakaway-blocked-higuains-open-goal"
+  "67": "snatching-the-breakaway-blocked-higuains-open-goal",
+  "68": "small-mentality-the-iceland-rant",
+  "69": "rich-handsome-and-a-great-player-the-jealousy-defence",
+  "70": "refused-to-come-on-walked-out-suspended-fined-by-united",
+  "71": "the-cr7-museum-a-shrine-to-himself-before-retiring-the-infamous-airport-bust"
 };

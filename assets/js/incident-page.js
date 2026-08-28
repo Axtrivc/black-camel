@@ -173,6 +173,11 @@
       el.textContent = field(el, "data");
     });
 
+    // 相关卷宗卡片标题
+    document.querySelectorAll(".ip-related-name").forEach((el) => {
+      if (el.hasAttribute("data-en")) el.textContent = field(el, "data");
+    });
+
     // <title> 跟随语言（SEO 友好；EN 用规范格式）
     const inc = window.__INCIDENT__ || {};
     const titleByLang = {

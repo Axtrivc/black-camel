@@ -16,23 +16,23 @@
 <link rel="mask-icon" href="/assets/img/favicon.svg" color="#E50914">
 <link rel="manifest" href="/assets/img/site.webmanifest">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20260828a">
+<link rel="stylesheet" href="assets/css/style.css?v=20260828c">
 
 <!-- defer：放 head 让预加载扫描器尽早并行下载 ~830KB JS，DOM 解析完后按序执行（时序与原先置于 body 末尾一致） -->
 <script defer src="assets/js/i18n-dict.js"></script>
 <script defer src="assets/js/data.js"></script>
 <script defer src="assets/js/incident-slugs.js"></script>
 <script defer src="assets/js/extra-data.js"></script>
-<script defer src="assets/js/app.js?v=20260828a"></script>
+<script defer src="assets/js/app.js?v=20260828c"></script>
 
 <link rel="canonical" href="https://ca7.axtrivc.com/">
 
 <!-- SEO & Social Sharing -->
-<meta name="description" content="A comprehensive archive documenting 61 major controversial incidents, career statistics, and timeline of Cristiano Ronaldo (CA7) compiled from public media reports.">
+<meta name="description" content="A comprehensive archive documenting 65 major controversial incidents, career statistics, and timeline of Cristiano Ronaldo (CA7) compiled from public media reports.">
 <meta name="keywords" content="CR7, CA7, Cristiano Ronaldo, Aveiro Files, dark history, controversy, football, Messi vs Ronaldo, penalties">
 <meta name="author" content="Axtrivc">
 <meta property="og:title" content="The Aveiro Files — CA7 Controversy & Dark History Archive">
-<meta property="og:description" content="A comprehensive archive documenting 61 major controversial incidents, career statistics, and timeline of Cristiano Ronaldo (CA7) compiled from public media reports.">
+<meta property="og:description" content="A comprehensive archive documenting 65 major controversial incidents, career statistics, and timeline of Cristiano Ronaldo (CA7) compiled from public media reports.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ca7.axtrivc.com/">
 <meta property="og:image" content="https://ca7.axtrivc.com/assets/img/og-default.png">
@@ -44,7 +44,7 @@
 <meta property="og:locale:alternate" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="The Aveiro Files — CA7 Controversy & Dark History Archive">
-<meta name="twitter:description" content="A comprehensive archive documenting 61 major controversial incidents of Cristiano Ronaldo (CA7).">
+<meta name="twitter:description" content="A comprehensive archive documenting 65 major controversial incidents of Cristiano Ronaldo (CA7).">
 <meta name="twitter:image" content="https://ca7.axtrivc.com/assets/img/og-default.png">
 
 <!-- 站点级结构化数据（子页面各有 NewsArticle + BreadcrumbList） -->
@@ -57,7 +57,7 @@
       "@id": "https://ca7.axtrivc.com/#website",
       "url": "https://ca7.axtrivc.com/",
       "name": "The Aveiro Files",
-      "description": "CA7 Controversy & Dark History Archive — 61 documented incidents compiled from public media reports.",
+      "description": "CA7 Controversy & Dark History Archive — 65 documented incidents compiled from public media reports.",
       "inLanguage": ["en", "es", "zh-CN"]
     },
     {
@@ -95,6 +95,7 @@
       <a href="#tof" data-i18n="nav.tof">真假</a>
       <a href="#worldmap" data-i18n="nav.worldmap">地图</a>
       <a href="#casino" data-i18n="nav.casino">赌场</a>
+      <a href="#penalty" data-i18n="nav.penalty">点球</a>
       <a href="#wall" data-i18n="nav.wall">开火</a>
     </div>
     <input type="text" class="nav-search" placeholder="搜索事件..." id="searchInput" aria-label="搜索事件" data-i18n="nav.search">
@@ -154,9 +155,9 @@
           <!-- 37张嬷照由 app.js 动态注入，随机循环播放 -->
         </div>
         <div class="hero-gallery-nav"><span class="hero-counter" id="heroCounter">1 / 37</span></div>
-        <div class="hero-stamp" data-i18n="hero.stamp">
-          <span id="heroCaseCount">61</span>
-          CASES<br>ON FILE
+        <div class="hero-stamp">
+          <span id="heroCaseCount">65</span>
+          <span class="stamp-text" data-i18n="hero.stamp">CASES<br>ON FILE</span>
         </div>
       </div>
     </div>
@@ -166,7 +167,7 @@
       <div class="hstat"><div class="hstat-num" data-target="14">0</div><div class="hstat-label" data-i18n="hero.statRed">红牌</div></div>
       <div class="hstat"><div class="hstat-num" data-target="1880" data-suffix="万">0</div><div class="hstat-label" data-i18n="hero.statTax">逃税罚款 (€)</div></div>
       <div class="hstat"><div class="hstat-num" data-target="40" data-suffix="亿">0</div><div class="hstat-label" data-i18n="hero.statCoke">可乐市值蒸发 ($)</div></div>
-      <div class="hstat"><div class="hstat-num" data-target="61">0</div><div class="hstat-label" data-i18n="hero.statEvents">收录事件</div></div>
+      <div class="hstat"><div class="hstat-num" data-target="65">0</div><div class="hstat-label" data-i18n="hero.statEvents">收录事件</div></div>
       <div class="hstat"><div class="hstat-num" data-target="5">0</div><div class="hstat-label" data-i18n="hero.statCats">争议分类</div></div>
       <div class="hstat"><div class="hstat-num" data-target="12">0</div><div class="hstat-label" data-i18n="hero.statGirls">历任女友</div></div>
     </div>
@@ -198,12 +199,12 @@
   </div>
 
   <div class="filter-bar" id="filterBar">
-    <div class="filter-chip active" role="button" tabindex="0" aria-pressed="true" data-cat="all"><span data-i18n="filter.all">全部</span> <span class="count" id="count-all">61</span></div>
-    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="persona"><span data-i18n="filter.persona">人设争议</span> <span class="count" id="count-persona">15</span></div>
+    <div class="filter-chip active" role="button" tabindex="0" aria-pressed="true" data-cat="all"><span data-i18n="filter.all">全部</span> <span class="count" id="count-all">65</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="persona"><span data-i18n="filter.persona">人设争议</span> <span class="count" id="count-persona">17</span></div>
     <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="violence"><span data-i18n="filter.violence">场内暴力</span> <span class="count" id="count-violence">9</span></div>
     <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="offpitch"><span data-i18n="filter.offpitch">场外失态</span> <span class="count" id="count-offpitch">12</span></div>
-    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="club"><span data-i18n="filter.club">俱乐部与法律</span> <span class="count" id="count-club">14</span></div>
-    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="national"><span data-i18n="filter.national">国家队争议</span> <span class="count" id="count-national">11</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="club"><span data-i18n="filter.club">俱乐部与法律</span> <span class="count" id="count-club">15</span></div>
+    <div class="filter-chip" role="button" tabindex="0" aria-pressed="false" data-cat="national"><span data-i18n="filter.national">国家队争议</span> <span class="count" id="count-national">12</span></div>
   </div>
 
   <div class="severity-filter">
@@ -220,10 +221,33 @@
       <option value="oldest" data-i18n="sort.oldest">时间正序</option>
       <option value="newest" data-i18n="sort.newest">时间倒序</option>
     </select>
-    <span id="resultCount" style="margin-left:auto;color:var(--text-dim)">显示全部 61 条记录</span>
+    <span id="resultCount" style="margin-left:auto;color:var(--text-dim)">显示全部 65 条记录</span>
   </div>
 
   <div class="cards-grid" id="cardsGrid"></div>
+</section>
+
+<!-- 今天他惹事了 · Today in Dark History -->
+<section class="otd-section">
+  <div class="innov-section">
+    <div class="section-header">
+      <div>
+        <div class="section-label" data-i18n="otd.label">// 档案日历 · TODAY IN DARK HISTORY</div>
+        <div class="section-title" data-i18n="otd.title">今天，他惹事了</div>
+      </div>
+      <div class="section-desc" data-i18n="otd.desc">档案官每日巡查：历史上的今天，CA7 干过什么。点击直达卷宗。</div>
+    </div>
+    <div class="otd">
+      <div class="otd-calendar">
+        <div class="otd-calendar-icon">📅</div>
+        <div class="otd-calendar-month" id="otdDate">—</div>
+        <div class="otd-calendar-tag" id="otdTag"></div>
+      </div>
+      <div class="otd-list" id="otdList">
+        <!-- JS 渲染：N年前的今天 / 本月黑历 -->
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- 梅罗 PK 大战 -->
@@ -463,7 +487,7 @@
         <div class="section-label" data-i18n="blindbox.label">// 每日通缉 · CASE OF THE DAY</div>
         <div class="section-title" data-i18n="blindbox.title">黑料盲盒</div>
       </div>
-      <div class="section-desc" data-i18n="blindbox.desc">从 61 卷宗里随机抽取一份，看看今天 CA7 又因为什么被立案。换一张，再来一单。</div>
+      <div class="section-desc" data-i18n="blindbox.desc">从 65 卷宗里随机抽取一份，看看今天 CA7 又因为什么被立案。换一张，再来一单。</div>
     </div>
     <div class="blindbox" id="blindbox">
       <div class="blindbox-poster" id="blindboxPoster">
@@ -569,6 +593,38 @@
   </div>
 </section>
 
+<!-- ⚽ 点球大师：SIU 挑战 -->
+<section class="penalty-section" id="penalty">
+  <div class="innov-section">
+    <div class="section-header">
+      <div>
+        <div class="section-label" data-i18n="penalty.label">// 十二码刑场 · PENALTY CHALLENGE</div>
+        <div class="section-title" data-i18n="penalty.title">点球大师：SIU 挑战</div>
+      </div>
+      <div class="section-desc" data-i18n="penalty.desc">你来当一回 CA7：5 轮点球，门将正在读你的眼神。被扑出也别慌——总裁宇宙里，VAR 有几率判定「门将提前移动」直接判进。进球≥4 解锁徽章。</div>
+    </div>
+    <div class="penalty">
+      <div class="penalty-hud">
+        <div class="penalty-stat"><span class="penalty-stat-n" id="penRound">1</span><small>/5</small><span class="penalty-stat-l" data-i18n="penalty.round">轮次</span></div>
+        <div class="penalty-stat"><span class="penalty-stat-n" id="penScore">0</span><span class="penalty-stat-l" data-i18n="penalty.score">进球</span></div>
+        <div class="penalty-stat"><span class="penalty-stat-n" id="penBest">0</span><span class="penalty-stat-l" data-i18n="penalty.best">最佳</span></div>
+      </div>
+      <div class="penalty-pitch">
+        <div class="penalty-goal" id="penaltyZones" role="group" aria-label="射门区">
+          <!-- 3×3 射门区由 JS 注入 -->
+        </div>
+        <div class="penalty-msg pen-msg" id="penMsg"></div>
+      </div>
+      <div class="penalty-result" id="penResult" hidden>
+        <div class="penalty-result-score"><span id="penResultScore">0 / 5</span></div>
+        <div class="penalty-result-verdict" id="penResultVerdict">—</div>
+        <div class="penalty-result-stat" id="penResultStat"></div>
+        <button class="btn btn-primary" id="penRestart" data-i18n="penalty.restart">再来一轮</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- 人设崩塌编年史 -->
 <section class="persona-section" id="persona">
   <div class="innov-section">
@@ -636,6 +692,37 @@
   </div>
 </section>
 
+<!-- 🖊️ 总裁道歉声明生成器 -->
+<section class="apology-section" id="apology">
+  <div class="innov-section">
+    <div class="section-header">
+      <div>
+        <div class="section-label" data-i18n="apology.label">// 危机公关 · APOLOGY FOUNDRY</div>
+        <div class="section-title" data-i18n="apology.title">总裁道歉声明生成器</div>
+      </div>
+      <div class="section-desc" data-i18n="apology.desc">选一起丑闻，挑一种语气，AI 总裁公关部 0.1 秒代拟道歉声明。句句眼熟？毕竟 20 年来全是同一套模板。生成即解锁徽章。</div>
+    </div>
+    <div class="apology">
+      <div class="apology-controls">
+        <div class="apology-field">
+          <label for="apoScandal" data-i18n="apology.scandal">道歉事项</label>
+          <select id="apoScandal" aria-label="道歉事项"></select>
+        </div>
+        <div class="apology-field">
+          <label for="apoTone" data-i18n="apology.tone">声明语气</label>
+          <select id="apoTone" aria-label="声明语气"></select>
+        </div>
+        <button class="btn btn-primary" id="apoGenerate" data-i18n="apology.generate">✍️ 代拟声明</button>
+      </div>
+      <div class="apology-paper" id="apoPaper" hidden></div>
+      <div class="apology-actions">
+        <button class="btn btn-ghost" id="apoCopy" data-i18n="apology.copy" hidden>复制声明</button>
+        <a class="btn btn-ghost" id="apoFileLink" href="#archive" hidden data-i18n="apology.fileLink">查看对应卷宗 →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- 成就 / 徽章系统 -->
 <section class="badges-section" id="badges">
   <div class="innov-section">
@@ -650,7 +737,7 @@
       <!-- JS 渲染 -->
     </div>
     <div class="badges-progress">
-      <span id="badgesCount">0 / 10</span>
+      <span id="badgesCount">0 / 12</span>
       <div class="badges-bar"><div class="badges-fill" id="badgesFill"></div></div>
     </div>
   </div>

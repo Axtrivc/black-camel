@@ -2584,6 +2584,294 @@ document.addEventListener("ca7:lang-change", initNicknames);
   showPrompt();
 })();
 
+/* ========== 今天他惹事了（Today in Dark History）==========
+ * 从 events 的 dateIso 聚合：优先展示「N年前的今天」；
+ * 当天无命中时降级为「本月黑历」（同月事件）；再兜底「馆长今日补签」（随机）。
+ * 点击条目 → goToIncident 跳独立卷宗（同时累计阅读徽章）。
+ */
+(function onThisDayModule(){
+  const wrap=document.getElementById("otdList");
+  const dateEl=document.getElementById("otdDate");
+  const tagEl=document.getElementById("otdTag");
+  if(!wrap) return;
+
+  const now=new Date();
+  const m=now.getMonth()+1, d=now.getDate();
+
+  function matches(ev,mm,dd){
+    if(!ev.dateIso) return false;
+    const p=String(ev.dateIso).split("-");
+    return parseInt(p[1],10)===mm && parseInt(p[2],10)===dd;
+  }
+  function sameMonth(ev,mm){
+    if(!ev.dateIso) return false;
+    return parseInt(String(ev.dateIso).split("-")[1],10)===mm;
+  }
+  function fmtDate(){
+    const locale=currentLang==="zh"?"zh-CN":(currentLang==="es"?"es-ES":"en-US");
+    try{
+      return new Intl.DateTimeFormat(locale,{month:"long",day:"numeric"}).format(now);
+    }catch(e){ return (now.getMonth()+1)+"-"+now.getDate(); }
+  }
+  function yearsAgo(ev){
+    const y=parseInt(String(ev.dateIso).split("-")[0],10);
+    return now.getFullYear()-y;
+  }
+
+  let mode="today"; let list=[];
+  const todayList=events.filter(e=>matches(e,m,d));
+  const monthList=events.filter(e=>sameMonth(e,m)).sort((a,b)=>String(a.dateIso).localeCompare(String(b.dateIso)));
+
+  function render(){
+    dateEl.textContent=fmtDate();
+    let head, items;
+    if(todayList.length){ mode="today"; head=t("otd.todayIn","年前的今天"); items=todayList; }
+    else if(monthList.length){ mode="month"; head=t("otd.monthIn","本月黑历"); items=monthList.slice(0,4); }
+    else { mode="random"; head=t("otd.randomPick","馆长今日补签"); items=[...events].sort(()=>Math.random()-.5).slice(0,3); }
+    if(tagEl) tagEl.textContent=head;
+
+    wrap.innerHTML=items.map(ev=>{
+      const label = mode==="today"
+        ? (yearsAgo(ev)>0 ? (yearsAgo(ev)+t("otd.yearsAgo","年前")) : t("otd.thisYear","今年"))
+        : (String(ev.dateIso||"").slice(0,7) || "");
+      const catLabel = catConfig[ev.cat] ? tt(catConfig[ev.cat],"label") : (ev.catLabel||"");
+      let dots="";
+      for(let i=0;i<5;i++) dots+=`<span class="dot ${i<ev.severity?'on':''}"></span>`;
+      return `<div class="otd-item" data-id="${ev.id}" role="button" tabindex="0" aria-label="${tt(ev,"title")}">
+        <div class="otd-item-when">${label}<span class="otd-item-cat">${catLabel}</span></div>
+        <div class="otd-item-body">
+          <div class="otd-item-title">${tt(ev,"title")}</div>
+          <div class="otd-item-sum">${tt(ev,"summary")}</div>
+        </div>
+        <div class="otd-item-sev">${dots}</div>
+      </div>`;
+    }).join("");
+    wrap.querySelectorAll(".otd-item").forEach(el=>{
+      el.addEventListener("click",()=>goToIncident(parseInt(el.dataset.id,10)));
+      revealObserver.observe(el);
+    });
+  }
+  render();
+  document.addEventListener("ca7:lang-change", render);
+})();
+
+/* ========== ⚽ 点球大师：SIU 挑战 ==========
+ * 你来主罚 5 轮点球（3×3 射门区），门将 AI 加权扑救；
+ * 致敬「总裁宇宙」规则：被扑出时有概率触发 VAR 重罚（门将提前移动）→ 直接判进。
+ * 进球播放全站统一 SIU 音效（window.__siuSound）；进球≥4 解锁徽章。
+ */
+(function penaltyModule(){
+  const grid=document.getElementById("penaltyZones");
+  const hudRound=document.getElementById("penRound");
+  const hudScore=document.getElementById("penScore");
+  const msg=document.getElementById("penMsg");
+  const result=document.getElementById("penResult");
+  const resultScore=document.getElementById("penResultScore");
+  const resultVerdict=document.getElementById("penResultVerdict");
+  const resultStat=document.getElementById("penResultStat");
+  const bestEl=document.getElementById("penBest");
+  const restartBtn=document.getElementById("penRestart");
+  if(!grid) return;
+
+  const ZONE_WEIGHT=[1.4,2,1.4, 2,3,2, 1.4,2,1.4];   // 门将站位权重：中路/半高更易被扑
+  const CORNER_ZONES=[0,2,6,8];
+  let round=0, goals=0, playing=false, lock=false;
+  let best=0;
+  try{ best=parseInt(localStorage.getItem("ca7_penalty_best")||"0",10)||0; }catch(e){}
+
+  function pickKeeper(){
+    const total=ZONE_WEIGHT.reduce((a,b)=>a+b,0);
+    let r=Math.random()*total;
+    for(let i=0;i<ZONE_WEIGHT.length;i++){ r-=ZONE_WEIGHT[i]; if(r<=0) return i; }
+    return 4;
+  }
+  function lines(key,fallback){
+    const arr=t(key,null);
+    return (Array.isArray(arr)&&arr.length)?arr:fallback;
+  }
+  function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function updateHud(){
+    hudRound.textContent=Math.min(round+1,5);
+    hudScore.textContent=goals;
+    if(bestEl) bestEl.textContent=best;
+  }
+  function showMsg(html,cls){
+    msg.innerHTML=html;
+    msg.className="pen-msg "+(cls||"");
+  }
+
+  function start(){
+    round=0; goals=0; playing=true; lock=false;
+    result.hidden=true; grid.hidden=false;
+    grid.querySelectorAll(".pen-zone").forEach(z=>{
+      z.className="pen-zone";
+      z.removeAttribute("data-res");
+      z.textContent="";
+    });
+    updateHud();
+    showMsg(t("penalty.ready","选一个格子，稳住呼吸——SIU 靠你了"),"");
+  }
+
+  function shoot(zoneIdx,zoneEl){
+    if(lock||!playing) return;
+    lock=true;
+    const keeper=pickKeeper();
+    const keeperEl=grid.querySelector('.pen-zone[data-zone="'+keeper+'"]');
+    keeperEl.classList.add("pen-keeper");
+    zoneEl.classList.add("pen-shot");
+
+    let outcome;   // "goal" | "save" | "post" | "var"
+    if(zoneIdx===keeper && Math.random()<0.25){ outcome="var"; }
+    else if(zoneIdx===keeper){ outcome="save"; }
+    else if(CORNER_ZONES.indexOf(zoneIdx)>-1 && Math.random()<0.12){ outcome="post"; }
+    else { outcome="goal"; }
+
+    const SAVED=lines("penalty.saveL",["被扑出了！","门将读懂了你！","他甚至不需要飞！"]);
+    const POST=lines("penalty.postL",["中柱！弹出来了！","横梁拒绝了 SIU！","门框：今天不营业。"]);
+    const GOAL=lines("penalty.goalL",["SIUUUU！","进了！庆祝动作预载完毕！","教科书点球（含水量：0%）"]);
+    const VAR=lines("penalty.varL",["VAR 介入：门将提前移动——重罚直接判进！","门将：我扑到了。VAR：你动早了。进球有效！","总裁宇宙规则生效：扑出也可判进。"]);
+
+    setTimeout(()=>{
+      zoneEl.setAttribute("data-res",outcome);
+      if(outcome==="goal"||outcome==="var"){
+        goals++;
+        if(outcome==="var"){ showMsg(rand(VAR),"var"); }
+        else{
+          showMsg(rand(GOAL),"goal");
+          if(typeof window.__siuSound==="function"){ try{ window.__siuSound(); }catch(e){} }
+        }
+      }else if(outcome==="post"){
+        showMsg(rand(POST),"post");
+      }else{
+        showMsg(rand(SAVED),"save");
+      }
+      updateHud();
+      setTimeout(()=>{
+        keeperEl.classList.remove("pen-keeper");
+        zoneEl.classList.remove("pen-shot");
+        round++;
+        lock=false;
+        if(round>=5) finish();
+      },900);
+    },650);
+  }
+
+  function finish(){
+    playing=false;
+    grid.hidden=true;
+    if(goals>best){
+      best=goals;
+      try{ localStorage.setItem("ca7_penalty_best",String(best)); }catch(e){}
+    }
+    updateHud();
+    resultScore.textContent=goals+" / 5";
+    // 评语：5/4/2-3/0-1
+    const ranks=lines("penalty.ranks",["超越总裁本尊——你才是真·点球之王","点球大师！含金量认证通过","还需修炼：总裁生涯点球命中率约 83%","建议改踢中锋，别碰十二码"]);
+    const idx=goals>=5?0:(goals>=4?1:(goals>=2?2:3));
+    resultVerdict.textContent=ranks[idx];
+    const win=lines("penalty.statWin",["恭喜：你在这轮里比 CA7 更稳。","点球这东西，果然还是看脸。","你与总裁之间，只差一个VAR。"]);
+    const lose=lines("penalty.statLose",["CA7 职业生涯点球命中率约 83%——这轮总裁赢了。","别灰心，他还有VAR兜底。","回去练练，再来挑战。"]);
+    resultStat.textContent=goals>=4?rand(win):rand(lose);
+    result.hidden=false;
+    if(goals>=4 && window.__badge) window.__badge("penalty",{win:true});
+  }
+
+  // 构建 3×3 射门区
+  for(let i=0;i<9;i++){
+    const z=document.createElement("div");
+    z.className="pen-zone";
+    z.setAttribute("data-zone",i);
+    z.setAttribute("role","button");
+    z.setAttribute("tabindex","0");
+    z.setAttribute("aria-label",t("penalty.zoneAria","射门区")+" "+(i+1));
+    z.addEventListener("click",()=>shoot(i,z));
+    grid.appendChild(z);
+  }
+  restartBtn.addEventListener("click",start);
+  start();
+  document.addEventListener("ca7:lang-change",()=>{
+    // 语言切换：刷新射门区 aria 与动态提示文案
+    grid.querySelectorAll(".pen-zone").forEach((z,i)=>{
+      z.setAttribute("aria-label",t("penalty.zoneAria","射门区")+" "+(i+1));
+    });
+    if(playing) showMsg(t("penalty.ready","选一个格子，稳住呼吸——SIU 靠你了"),"");
+  });
+})();
+
+/* ========== 🖊️ 总裁道歉声明生成器 ==========
+ * 从 apologyBank（extra-data.js）随机拼装三语「道歉声明」：
+ * 事件 × 语气 → 开场/认错/甩锅/升华 四段 + 落款。可一键复制、跳转对应卷宗。
+ */
+(function apologyModule(){
+  const scandalSel=document.getElementById("apoScandal");
+  const toneSel=document.getElementById("apoTone");
+  const genBtn=document.getElementById("apoGenerate");
+  const paper=document.getElementById("apoPaper");
+  const copyBtn=document.getElementById("apoCopy");
+  const fileLink=document.getElementById("apoFileLink");
+  if(!paper||typeof apologyBank==="undefined") return;
+
+  // 下拉选项（三语）
+  function buildOptions(){
+    const lang=currentLang;
+    scandalSel.innerHTML=apologyBank.scandals.map((s,i)=>`<option value="${i}">${lang==="en"?(s.labelEn[0].toUpperCase()+s.labelEn.slice(1)):lang==="es"?(s.labelEs[0].toUpperCase()+s.labelEs.slice(1)):s.label}</option>`).join("");
+    toneSel.innerHTML=apologyBank.tones.map((tn,i)=>`<option value="${tn.id}">${lang==="en"?tn.labelEn:lang==="es"?tn.labelEs:tn.label}</option>`).join("");
+  }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function generate(){
+    const si=parseInt(scandalSel.value,10)||0;
+    const toneId=toneSel.value||"sincere";
+    const tone=apologyBank.tones.find(x=>x.id===toneId)||apologyBank.tones[0];
+    const sc=apologyBank.scandals[si];
+    const lang=currentLang;
+    const bank=apologyBank.parts[tone.id];
+    const scLabel = lang==="en"?sc.labelEn : lang==="es"?sc.labelEs : sc.label;
+    const paras=["open","admit","blame","close"].map(sec=>{
+      const p=pick(bank[sec][lang]||bank[sec].en);
+      return p.replace(/\{scandal\}/g,scLabel);
+    });
+    paper.innerHTML=`
+      <div class="apo-head">INSTAGRAM · @cristiano</div>
+      ${paras.map(p=>`<p>${p}</p>`).join("")}
+      <div class="apo-sign">${apologyBank.signature[lang]||apologyBank.signature.en}</div>
+      <div class="apo-meta">#Factos · #问心无愧 · #1000%</div>
+    `;
+    paper.hidden=false;
+    copyBtn.hidden=false;
+    // 对应卷宗跳转（有 evId 才显示）
+    if(fileLink){
+      if(sc.evId && slugForEvent(sc.evId)){
+        fileLink.hidden=false;
+        fileLink.onclick=(e)=>{ e.preventDefault(); goToIncident(sc.evId); };
+      }else fileLink.hidden=true;
+    }
+    if(window.__badge) window.__badge("apology");
+  }
+
+  genBtn.addEventListener("click",generate);
+  copyBtn.addEventListener("click",()=>{
+    const text=paper.innerText||"";
+    const done=()=>{ copyBtn.textContent=t("apology.copied","已复制！请转达总裁"); setTimeout(()=>{ copyBtn.textContent=t("apology.copy","复制声明"); },1800); };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(()=>{ fallbackCopy(text); done(); });
+    }else{ fallbackCopy(text); done(); }
+    function fallbackCopy(str){
+      const ta=document.createElement("textarea");
+      ta.value=str; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); }catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+
+  buildOptions();
+  document.addEventListener("ca7:lang-change",()=>{
+    buildOptions();
+    if(!paper.hidden) generate();   // 已生成过 → 换语言重新拼一份
+  });
+})();
+
 /* ========== 成就 / 徽章系统 ========== */
 (function badgesModule(){
   const grid=document.getElementById("badgesGrid");
@@ -2602,10 +2890,12 @@ document.addEventListener("ca7:lang-change", initNicknames);
     {id:"explorer",  icon:"🗺️", name:"环球追踪", nameEn:"Global Tracker", desc:"查看争议地图任意标点", descEn:"Click any map pin", test:st=>st.mapClick},
     {id:"narrative", icon:"📖", name:"编年通读", nameEn:"Chronicle Reader", desc:"浏览人设编年史到底", descEn:"Scroll the Persona Chronicle to the end", test:st=>st.personaEnd},
     {id:"roaster",   icon:"🔥", name:"罗黑开火", nameEn:"Roaster", desc:"弹幕墙发弹幕或段子接龙投稿", descEn:"Fire danmu or submit a joke", test:st=>st.wall},
-    {id:"ottoman",   icon:"OTTOMAN", name:"首席档案官", nameEn:"Chief Archivist", desc:"集齐以上九枚", descEn:"Unlock all nine above", test:st=>st._unlocked>=9},
+    {id:"striker",   icon:"⚽", name:"十二码亲王", nameEn:"Penalty Prince", desc:"点球挑战打进 4 球以上", descEn:"Score 4+ in the Penalty Challenge", test:st=>st.penaltyWin},
+    {id:"spinmaster",icon:"📝", name:"公关鬼才", nameEn:"Spin Doctor", desc:"代拟一份总裁道歉声明", descEn:"Ghost-write a presidential apology", test:st=>st.apology},
+    {id:"ottoman",   icon:"OTTOMAN", name:"首席档案官", nameEn:"Chief Archivist", desc:"集齐以上十一枚", descEn:"Unlock all eleven above", test:st=>st._unlocked>=11},
   ];
 
-  const state={read:0,quizDone:false,quizPct:0,blindbox:false,mapClick:false,personaEnd:false,wall:false,_unlocked:0};
+  const state={read:0,quizDone:false,quizPct:0,blindbox:false,mapClick:false,personaEnd:false,wall:false,penaltyWin:false,apology:false,_unlocked:0};
   const unlocked=new Set();
   // 持久化（unlocked 集合 + read 累计阅读数）
   try{
@@ -2683,6 +2973,8 @@ document.addEventListener("ca7:lang-change", initNicknames);
     else if(type==="map"){ state.mapClick=true; }
     else if(type==="persona"){ state.personaEnd=true; }
     else if(type==="wall"){ state.wall=true; }
+    else if(type==="penalty"){ if(payload&&payload.win) state.penaltyWin=true; }
+    else if(type==="apology"){ state.apology=true; }
     check();
     // read 每次自增都落盘（未触发新解锁时 check() 不会写 localStorage）
     if(type==="read") save();

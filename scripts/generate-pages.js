@@ -144,7 +144,7 @@ function writeFile(file, content) {
 }
 
 // -------------------- 子页面 HTML 生成 --------------------
-function buildIncidentHtml(ev, prev, next, catConfig) {
+function buildIncidentHtml(ev, prev, next, catConfig, events) {
   const slug = ev._slug;
   const absDepth = "../../"; // incident/<slug>/index.html → 根
   const thisUrl = `${SITE_ORIGIN}/incident/${slug}/`;
@@ -226,6 +226,38 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
   const prevTitleEs = prev ? (prev.titleEs || prev.titleEn || prev.title) : null;
   const nextTitleEs = next ? (next.titleEs || next.titleEn || next.title) : null;
 
+  // 相关卷宗推荐：同分类，按严重度接近 + 年份接近排序，取 3 条
+  // （内链目的：同主题事件互链，提升爬虫发现深度与用户停留）
+  function relatedOf(ev) {
+    const year = ev.dateIso ? parseInt(ev.dateIso.slice(0, 4), 10) || 0 : 0;
+    return events
+      .filter((o) => o.id !== ev.id && o.cat === ev.cat)
+      .map((o) => {
+        const oy = o.dateIso ? parseInt(o.dateIso.slice(0, 4), 10) || 0 : 0;
+        return { o, score: Math.abs((o.severity || 3) - (ev.severity || 3)) * 100 + Math.abs(oy - year) };
+      })
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 3)
+      .map((r) => r.o);
+  }
+  const related = relatedOf(ev);
+  const relatedHtml = related.length
+    ? `
+  <section class="ip-related" aria-label="Related dossiers">
+    <div class="ip-related-title" data-i18n="incident.related">// RELATED FILES · 相关卷宗</div>
+    <div class="ip-related-grid">
+      ${related
+        .map(
+          (r) => `<a class="ip-related-card" href="${absDepth}incident/${r._slug}/">
+        <span class="ip-related-sev">${"●".repeat(r.severity || 3)}${"○".repeat(5 - (r.severity || 3))}</span>
+        <span class="ip-related-name" data-en="${escAttr(r.titleEn || r.title)}" data-es="${escAttr(r.titleEs || r.titleEn || r.title)}" data-zh="${escAttr(r.title || r.titleEn)}">${escText(r.titleEn || r.title)}</span>
+      </a>`
+        )
+        .join("")}
+    </div>
+  </section>`
+    : "";
+
   // 标签：按索引对齐三语（zh/en/es），静态默认英文，运行时由 incident-page.js 切换
   const tagsZh = ev.tags || [];
   const tagsEn = ev.tagsEn || tagsZh;
@@ -270,7 +302,7 @@ function buildIncidentHtml(ev, prev, next, catConfig) {
 <link rel="mask-icon" href="/assets/img/favicon.svg" color="#E50914">
 <link rel="manifest" href="/assets/img/site.webmanifest">
 
-<link rel="stylesheet" href="${escAttr(absDepth + "assets/css/style.css?v=20260827b")}">
+<link rel="stylesheet" href="${escAttr(absDepth + "assets/css/style.css?v=20260828c")}">
 
 <link rel="canonical" href="${escAttr(thisUrl)}">
 
@@ -374,6 +406,8 @@ ${JSON.stringify(jsonLdBreadcrumb, null, 2)}
       <div class="modal-tags">${tagsHtml}</div>
     </div>
   </article>
+
+${relatedHtml}
 
   <!-- 上一个 / 下一个 内链 -->
   ${(prev || next) ? `
@@ -516,7 +550,7 @@ function main() {
     const i = chrono.indexOf(ev);
     const prev = chrono[i - 1] || null; // 时间最早的无 prev
     const next = chrono[i + 1] || null; // 时间最晚的无 next
-    const html = buildIncidentHtml(ev, prev, next, catConfig);
+    const html = buildIncidentHtml(ev, prev, next, catConfig, events);
     const dir = path.join(OUT_DIR, ev._slug);
     writeFile(path.join(dir, "index.html"), html);
   });

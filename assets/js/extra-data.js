@@ -1824,3 +1824,99 @@ const casinoBets = [
   }
 ];
 
+/* ========== 总裁道歉声明生成器 — 句库（三语）==========
+ * 每份声明 = 开场(open) + 认错(admit) + 甩锅(blame) + 升华(close) + 落款(signature)
+ * 语气(tone)决定句库：sincere 深情忏悔 / victim 受害者叙事 / factos 嘴硬到底
+ * scandals 引用真实卷宗 evId，生成后可一键跳转对应档案。
+ */
+const apologyBank = {
+  scandals: [
+    { evId: 1,  label: "逃税案", labelEn: "the tax fraud case", labelEs: "el caso de fraude fiscal" },
+    { evId: 11, label: "摔碎小球迷手机", labelEn: "smashing the fan's phone", labelEs: "romper el móvil del niño aficionado" },
+    { evId: 68, label: "怒喷冰岛", labelEn: "the Iceland rant", labelEs: "la bronca a Islandia" },
+    { evId: 70, label: "拒绝登场提前离场", labelEn: "the tunnel walkout", labelEs: "la marcha por el túnel" },
+    { evId: 12, label: "扔记者麦克风", labelEn: "throwing the reporter's mic", labelEs: "lanzar el micrófono del periodista" },
+    { evId: 4,  label: "双红会三连踢", labelEn: "the three-kick derby", labelEs: "el tres-patadas del derbi" },
+    { evId: 16, label: "移走可口可乐", labelEn: "moving the Coke bottles", labelEs: "apartar las cocas" },
+    { evId: 19, label: "炮轰曼联专访", labelEn: "the bombshell interview", labelEs: "la entrevista bomba" }
+  ],
+  tones: [
+    { id: "sincere", label: "深情忏悔", labelEn: "Deep & Sincere", labelEs: "Arrepentimiento profundo" },
+    { id: "victim",  label: "受害者叙事", labelEn: "Victim Narrative", labelEs: "Narrativa de víctima" },
+    { id: "factos",  label: "嘴硬到底", labelEn: "Factos Mode", labelEs: "Modo Factos" }
+  ],
+  parts: {
+    sincere: {
+      open: {
+        zh: ["亲爱的球迷们，", "致所有关心我的人们，", "深夜里，我辗转反侧，写下这些文字。", "这是一个艰难的时刻，我想亲自对大家说几句。"],
+        en: ["Dear fans,", "To everyone who cares about me,", "Late at night, sleepless, I write these words.", "This is a difficult moment, and I want to speak to you personally."],
+        es: ["Queridos aficionados,", "A todos los que se preocupan por mí,", "De madrugada, dando vueltas en la cama, escribo estas palabras.", "Es un momento difícil y quiero hablaros en persona."]
+      },
+      admit: {
+        zh: ["关于{scandal}，我的处理方式确实不够冷静。", "对于{scandal}，我愿意承担全部责任。", "{scandal}的发生，让我重新审视了自己。", "我知道，{scandal}让大家失望了，这份失望我感同身受。"],
+        en: ["Regarding {scandal}, my handling of it was not calm enough.", "Concerning {scandal}, I take full responsibility.", "What happened with {scandal} has forced me to look at myself again.", "I know {scandal} disappointed you, and I feel that disappointment too."],
+        es: ["Sobre {scandal}, mi forma de manejarlo no fue lo suficientemente serena.", "En cuanto a {scandal}, asumo toda la responsabilidad.", "Lo ocurrido con {scandal} me ha obligado a mirarme de nuevo.", "Sé que {scandal} os defraudó, y siento esa decepción con vosotros."]
+      },
+      blame: {
+        zh: ["但请理解，那一刻的情绪是真实的——我只是太想赢了。", "不过，任何一个处在我的位置上的人，也许都会做出同样的反应。", "当然，如果当时的舆论环境不是那样，事情本不会走到这一步。", "只是希望大家记得，在事情发生之前，也发生过很多你们没看到的事。"],
+        en: ["But please understand — the emotion in that moment was real. I simply wanted to win too much.", "Still, anyone in my position might have reacted the same way.", "Of course, had the media environment been different, it would never have come to this.", "I only ask that you remember: before it happened, things happened that you never saw."],
+        es: ["Pero entendedme: la emoción de aquel momento era real — solo quería ganar demasiado.", "Aun así, cualquiera en mi posición quizá habría reaccionado igual.", "Por supuesto, si el ambiente mediático hubiera sido otro, nunca habríamos llegado a esto.", "Solo pido que recordéis: antes de que ocurriera, pasaron cosas que no visteis."]
+      },
+      close: {
+        zh: ["明天醒来，我依然会是那个第一个到训练场的人。问心无愧。", "我会用球场上的表现回应一切。SIU。", "感谢一直相信我的人。历史会站在努力的人这一边。", "这不是结束。这只是我传奇生涯中，又一座待攀登的山峰。"],
+        en: ["Tomorrow I will wake up and still be the first man at the training ground. Clear conscience.", "I will answer everything with my performances on the pitch. SIU.", "Thank you to those who never stopped believing. History sides with the hard workers.", "This is not the end. It is merely another peak waiting to be climbed in my legendary career."],
+        es: ["Mañana seguiré siendo el primero en llegar al entrenamiento. Conciencia tranquila.", "Responderé a todo con mi rendimiento sobre el campo. SIU.", "Gracias a los que nunca dejaron de creer. La historia se pone del lado de los que trabajan.", "No es el final. Es solo otra cumbre que espera en mi legendaria carrera."]
+      }
+    },
+    victim: {
+      open: {
+        zh: ["有些话，我忍了很久，今天必须说出来。", "当所有人都在你身上寻找错误时，沉默就成了一种罪。", "我很少回应争议，但这一次，沉默对我是不公平的。", "这篇声明，写给那些只看到标题的人。"],
+        en: ["There are things I have held back for a long time. Today I must speak.", "When everyone is searching for your mistakes, silence becomes a crime.", "I rarely respond to controversy, but this time silence would be unfair to me.", "This statement is written for those who only read the headlines."],
+        es: ["Hay cosas que me he callado mucho tiempo. Hoy tengo que hablar.", "Cuando todos buscan tus errores, el silencio se convierte en un delito.", "Rara vez respondo a las polémicas, pero esta vez el silencio sería injusto conmigo.", "Este comunicado va para los que solo leen los titulares."]
+      },
+      admit: {
+        zh: ["是的，{scandal}看起来是我的问题。看起来。", "关于{scandal}，你们看到了画面，但没看到前因。", "{scandal}被断章取义地传播，而我成了完美的反派。", "我不完美，但{scandal}里被放大的那个版本的我，并不存在。"],
+        en: ["Yes, {scandal} looks like my fault. Looks like it.", "With {scandal}, you saw the clip, but not what came before it.", "{scandal} was shared out of context, and I became the perfect villain.", "I am not perfect, but the version of me amplified in {scandal} does not exist."],
+        es: ["Sí, {scandal} parece culpa mía. Parece.", "Con {scandal} visteis el clip, pero no lo que vino antes.", "{scandal} se difundió fuera de contexto y me convertí en el villano perfecto.", "No soy perfecto, pero la versión de mí amplificada en {scandal} no existe."]
+      },
+      blame: {
+        zh: ["人们嫉妒我，因为我富有、英俊、还是个伟大的球员。我找不到别的解释。", "如果是别的球员做了同样的事，三天后就会被人遗忘。但我是C罗。", "媒体需要流量，而我，永远是那台永动印钞机。", "你们之所以要这样对我，是因为我是C罗。"],
+        en: ["People are jealous of me because I'm rich, handsome and a great player. I don't have any other explanation.", "If any other player had done the same thing, it would be forgotten in three days. But I am Cristiano.", "The media needs traffic, and I am forever the printing press.", "The only reason you treat me this way is because I am CR7."],
+        es: ["La gente me tiene envidia porque soy rico, guapo y un gran jugador. No tengo otra explicación.", "Si otro jugador hubiera hecho lo mismo, se olvidaría en tres días. Pero yo soy Cristiano.", "Los medios necesitan tráfico, y yo soy, para siempre, la máquina de imprimir dinero.", "La única razón por la que me tratáis así es porque soy CR7."]
+      },
+      close: {
+        zh: ["我会继续做我认为正确的事，无论场上场下。", "真金不怕火炼。Factos，终有一天会浮出水面。", "那些今天嘲笑我的人，明天会排队向我道歉。", "我不需要被所有人喜欢——历史自会给我公正的评价。"],
+        en: ["I will keep doing what I believe is right, on and off the pitch.", "Gold fears no fire. The facts will surface one day.", "Those who laugh at me today will queue up to apologise tomorrow.", "I don't need to be liked by everyone — history will judge me fairly."],
+        es: ["Seguiré haciendo lo que creo correcto, dentro y fuera del campo.", "El oro no teme al fuego. Los factos saldrán a la luz algún día.", "Los que hoy se ríen de mí, mañana harán cola para pedirme perdón.", "No necesito que me quiera todo el mundo — la historia hará justicia."]
+      }
+    },
+    factos: {
+      open: {
+        zh: ["声明如下，不接受采访，不接受提问。", "以下内容，字字属实。Factos。", "我不常发声明，但今天这条，请逐字阅读。", "长文预警。但我保证，每一句都值得。"],
+        en: ["Statement as follows. No interviews. No questions.", "Everything below is fact. Factos.", "I rarely post statements, but please read this one word by word.", "Long post ahead. But I promise, every word is worth it."],
+        es: ["Comunicado como sigue. Sin entrevistas. Sin preguntas.", "Todo lo que sigue es un hecho. Factos.", "No suelo publicar comunicados, pero lean este palabra por palabra.", "Texto largo por delante. Pero prometo que cada palabra lo vale."]
+      },
+      admit: {
+        zh: ["{scandal}？首先，我们从事实出发。", "关于{scandal}，公众掌握的信息，不到全部事实的十分之一。", "我不需要为{scandal}辩护，因为根本没有辩解的必要。", "{scandal}的热闹属于流量，真相属于我。"],
+        en: ["{scandal}? First, let us start with the facts.", "On {scandal}, the public holds less than a tenth of the full picture.", "I do not need to defend myself over {scandal}, because no defence is needed.", "The noise around {scandal} belongs to the algorithm. The truth belongs to me."],
+        es: ["¿{scandal}? Empecemos por los hechos.", "Sobre {scandal}, el público conoce menos de la décima parte de la verdad.", "No necesito defenderme por {scandal}, porque no hay nada que defender.", "El ruido de {scandal} es del algoritmo. La verdad es mía."]
+      },
+      blame: {
+        zh: ["一个数据：我，历史第一、第二、第三。请以此为前提重新理解整件事。", "有趣的是，同样的事发生在别人身上叫「激情」，发生在我身上叫「丑闻」。", "我建议各位去查一查，是谁在幕后推动这些话题。你们会惊讶的。", "如果世界杯不是我的梦想，你们凭什么认为这点小事能伤害我？"],
+        en: ["One piece of data: I am the first, second and third best in history. Please re-read everything with that premise.", "Funny how the same act is called 'passion' when others do it, and a 'scandal' when I do.", "I suggest you look into who is pushing these stories behind the scenes. You would be surprised.", "If the World Cup is not even my dream, why would this little thing hurt me?"],
+        es: ["Un dato: soy el primero, el segundo y el tercero de la historia. Relean todo con esa premisa.", "Es curioso: el mismo acto es «pasión» si lo hacen otros y «escándalo» si lo hago yo.", "Les sugiero investigar quién empuja estos temas entre bambalinas. Se llevarían una sorpresa.", "Si ni el Mundial es mi sueño, ¿por qué me iba a dañar esta cosita?"]
+      },
+      close: {
+        zh: ["Factos. Factos. Factos.", "我1000%问心无愧。就这样。", "以上。勿念。SIU。", "截图保存吧，五年后你们会为今天感到羞愧。"],
+        en: ["Factos. Factos. Factos.", "I am 1000% at peace with my conscience. That is all.", "End of statement. SIU.", "Screenshot this. In five years you will be ashamed of today."],
+        es: ["Factos. Factos. Factos.", "Estoy 1000% en paz con mi conciencia. Eso es todo.", "Fin del comunicado. SIU.", "Guarden la captura. En cinco años les avergonzará el día de hoy."]
+      }
+    }
+  },
+  signature: {
+    zh: "—— CR7 全球公关部 · AI代拟（总裁本人未过目）",
+    en: "— CR7 Global PR Dept. · AI-drafted (not reviewed by the President)",
+    es: "— Dept. de PR Global de CR7 · Redactado por IA (sin revisión del Presidente)"
+  }
+};
+
