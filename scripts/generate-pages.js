@@ -495,9 +495,9 @@ function main() {
 
   // data.js 最近修改时间（ISO 日期），供 sitemap 首页 lastmod
   const dataMtime = fs.statSync(DATA_JS).mtime.toISOString();
-  // 首页内容其实由 index.html / app.js / style.css / data.js 共同决定：
-  // 任一更新都算首页更新，取四者最新 mtime，避免 lastmod 落后于真实内容
-  const homeMtime = ["index.html", DATA_JS, "assets/js/app.js", "assets/css/style.css"]
+  // 首页内容其实由 index.html / data.js / app.js / style.css / i18n-dict.js / extra-data.js 共同决定：
+  // 任一更新都算首页更新，取所有相关文件最新 mtime，避免 lastmod 落后于真实内容
+  const homeMtime = ["index.html", DATA_JS, "assets/js/app.js", "assets/css/style.css", "assets/js/i18n-dict.js", "assets/js/extra-data.js"]
     .reduce((latest, f) => {
       try {
         const m = fs.statSync(f).mtime.getTime();

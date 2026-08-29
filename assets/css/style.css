@@ -3202,3 +3202,10 @@ html[lang="es"] .casino-card.resolved .casino-q::after{content:"✓ liquidada"}
 .ip-related-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.5}
 [data-theme="galactico"] .ip-related-card{background:#f5f6f8}
 @media (max-width:640px){.ip-related-grid{grid-template-columns:1fr}}
+
+/* 移动端：人设编年史入场动画改为纵向滑入。
+   桌面端 translateX(20px) 的未入场项在窄屏会撑出页面横向滚动（约 3px），
+   纵向位移不产生横向溢出；入场态 .persona-item.in 特异性更高，自动覆盖。 */
+@media (max-width:900px){
+  .persona-item{transform:translateY(24px)}
+}
