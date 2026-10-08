@@ -750,7 +750,7 @@ renderBreaking();
 (function(){
   const cta = document.getElementById("breakingCta");
   if(!cta) return;
-  const headSlug = slugForEvent(63);
+  const headSlug = slugForEvent(72);
   if(headSlug) cta.href = "incident/" + headSlug + "/";
   cta.addEventListener("click",(ev)=>{
     ev.preventDefault();
@@ -763,7 +763,7 @@ renderBreaking();
     currentFilter="all";
     renderCards();  // 内部会按置顶/严重程度排序 currentList
     // 导航到头条事件子页（slug 已在 href 上，复用 goToIncident 保证一致性）
-    goToIncident(63);
+    goToIncident(72);
   });
 })();
 

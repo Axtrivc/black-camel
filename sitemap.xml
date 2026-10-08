@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ca7.axtrivc.com/</loc>
-    <lastmod>2026-08-29T00:59:08.013Z</lastmod>
+    <lastmod>2026-10-08T12:41:54.069Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -393,6 +393,12 @@
   <url>
     <loc>https://ca7.axtrivc.com/incident/the-cr7-museum-a-shrine-to-himself-before-retiring-the-infamous-airport-bust/</loc>
     <lastmod>2013-12-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ca7.axtrivc.com/incident/ronaldo-jesus-fallout-quits-national-team/</loc>
+    <lastmod>2026-09-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

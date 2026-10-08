@@ -65,5 +65,6 @@ window.__INCIDENT_SLUGS__ = {
   "68": "small-mentality-the-iceland-rant",
   "69": "rich-handsome-and-a-great-player-the-jealousy-defence",
   "70": "refused-to-come-on-walked-out-suspended-fined-by-united",
-  "71": "the-cr7-museum-a-shrine-to-himself-before-retiring-the-infamous-airport-bust"
+  "71": "the-cr7-museum-a-shrine-to-himself-before-retiring-the-infamous-airport-bust",
+  "72": "ronaldo-jesus-fallout-quits-national-team"
 };

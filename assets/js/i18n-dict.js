@@ -18,6 +18,7 @@ const i18nDict = {
 "en": {
   // —— 跑马灯 ticker（数组，由 app.js 渲染）——
   "ticker.items": [
+    "BREAKING: fallout with coach Jorge Jesus — 41-year-old CA7 walks out of Portugal's training camp",
     "Real name: Cristiano dos Santos Aveiro — \"Ronaldo\" is only a middle name",
     "Abandoned his family surname — stole the trendy \"Ronaldo\" — real initials: CA7",
     "Nickname evolution: Little Ronaldo → Showboat → Diver → Three-Vote → Desert Camel → Boss → Ball-king → Ah-Wei → Donkey",
@@ -50,17 +51,17 @@ const i18nDict = {
   // —— BREAKING 头条 ——
   "breaking.tag": "🚨 BREAKING",
   "breaking.items": [
-    "[HEADLINE] Six World Cups, zero trophies — Spain's 91st-minute stoppage winner, 41-year-old CA7 bids tearful farewell",
-    "Merino 91' winner · Portugal 0-1 Spain · out in Round of 16",
-    "\"I gave it my all, I leave with a clear conscience.\" — CA7, in tears at the mixed zone",
-    "Six editions · nine knockout games · only one goal · zero trophies"
+    "[HEADLINE] Fallout with coach Jorge Jesus — 41-year-old CR7 walks out of Portugal's national team",
+    "\"He broke his word twice\" · long statement, apology & self-requested punishment · Portuguese press: ban could run until he's 42",
+    "Ronaldo-less Portugal thrash Denmark 4-2 · four straight Nations League wins · farewell match already being planned",
+    "Benched by Santos in 2022, walks out on Jesus in 2026 — the last dance ends off-stage"
   ],
   "breaking.cta": "View full dossier →",
   // —— Hero ——
   "hero.tag": "CONFIDENTIAL FILE",
   "hero.title": "CA7<br><span class=\"strike\">Dark History</span> Archive",
   "hero.sub": "The Aveiro Files — A complete record of controversies",
-  "hero.desc": "He calls himself <strong>CR7</strong>, but his full name is actually <strong>Cristiano Ronaldo dos Santos Aveiro</strong> — \"<strong>Aveiro</strong>\" is his family surname, while \"Ronaldo\" is merely a middle name. To chase fame, he abandoned his family surname and stole the trendy \"Ronaldo\". The real initials should be <strong style=\"color:var(--crimson)\">CA7</strong>. This archive systematically documents the <strong>65 most controversial incidents</strong> of his career, across five categories. All content is compiled from public news reports.",
+  "hero.desc": "He calls himself <strong>CR7</strong>, but his full name is actually <strong>Cristiano Ronaldo dos Santos Aveiro</strong> — \"<strong>Aveiro</strong>\" is his family surname, while \"Ronaldo\" is merely a middle name. To chase fame, he abandoned his family surname and stole the trendy \"Ronaldo\". The real initials should be <strong style=\"color:var(--crimson)\">CA7</strong>. This archive systematically documents the <strong>66 most controversial incidents</strong> of his career, across five categories. All content is compiled from public news reports.",
   "hero.btnArchive": "Enter Archive",
   "hero.btnTimeline": "View Timeline",
   "hero.galleryTag": "UNFLATTERING PHOTOS",
@@ -221,7 +222,7 @@ const i18nDict = {
   // —— 黑料盲盒 ——
   "blindbox.label": "// CASE OF THE DAY",
   "blindbox.title": "Black-Mark Blind Box",
-  "blindbox.desc": "Draw a random dossier from 65 cases — see what CA7 got flagged for today. Shuffle for another.",
+  "blindbox.desc": "Draw a random dossier from 66 cases — see what CA7 got flagged for today. Shuffle for another.",
   "blindbox.stamp": "CLASSIFIED",
   "blindbox.cat": "Category",
   "blindbox.date": "Date",
@@ -389,6 +390,7 @@ const i18nDict = {
 },
 "es": {
   "ticker.items": [
+    "ÚLTIMA HORA: ruptura con el seleccionador Jorge Jesus — el CA7 de 41 años abandona la concentración de Portugal",
     "Nombre real: Cristiano dos Santos Aveiro — «Ronaldo» es solo un segundo nombre",
     "Abandonó su apellido familiar — robó el «Ronaldo» de moda — iniciales reales: CA7",
     "Evolución de apodos: Little Ronaldo → Showboat → Simulator → Three-Vote → El Camello → El Jefe → Ball-King → Ah-Wei → El Burro",
@@ -419,16 +421,16 @@ const i18nDict = {
   "theme.galactico": "Penaldo",
   "breaking.tag": "🚨 ÚLTIMA HORA",
   "breaking.items": [
-    "[TITULAR] Seis Mundiales, cero títulos — gol de Merino en el descuento (91'), el CA7 de 41 años se despide entre lágrimas",
-    "Gol de Merino al 91' · Portugal 0-1 España · eliminado en octavos",
-    "«Lo di todo, me voy con la conciencia tranquila.» — CA7, llorando en la zona mixta",
-    "Seis ediciones · nueve partidos de eliminatoria · un solo gol · cero títulos"
+    "[TITULAR] Ruptura con el seleccionador Jorge Jesus — CR7, de 41 años, se marcha de la selección de Portugal",
+    "«Rompió su palabra dos veces» · comunicado largo, disculpa y castigo autoimpuesto · prensa lusa: sanción hasta los 42 años",
+    "Portugal sin Cristiano golea 4-2 a Dinamarca · cuatro victorias seguidas en la Nations League · ya se prepara su partido de despedida",
+    "Suplente con Santos en 2022, se marcha de Jesus en 2026 — la última danza termina fuera del escenario"
   ],
   "breaking.cta": "Ver expediente completo →",
   "hero.tag": "EXPEDIENTE CONFIDENCIAL",
   "hero.title": "CA7<br><span class=\"strike\">Historial Negro</span> Archive",
   "hero.sub": "The Aveiro Files — Un registro completo de polémicas",
-  "hero.desc": "Se hace llamar <strong>CR7</strong>, pero su nombre completo es en realidad <strong>Cristiano Ronaldo dos Santos Aveiro</strong> — «<strong>Aveiro</strong>» es su apellido familiar, mientras que «Ronaldo» es solo un segundo nombre. Para perseguir la fama, abandonó su apellido y robó el «Ronaldo» de moda. Las iniciales reales deberían ser <strong style=\"color:var(--crimson)\">CA7</strong>. Este archivo documenta de forma sistemática los <strong>65 incidentes más polémicos</strong> de su carrera, en cinco categorías. Todo el contenido está recopilado de noticias públicas.",
+  "hero.desc": "Se hace llamar <strong>CR7</strong>, pero su nombre completo es en realidad <strong>Cristiano Ronaldo dos Santos Aveiro</strong> — «<strong>Aveiro</strong>» es su apellido familiar, mientras que «Ronaldo» es solo un segundo nombre. Para perseguir la fama, abandonó su apellido y robó el «Ronaldo» de moda. Las iniciales reales deberían ser <strong style=\"color:var(--crimson)\">CA7</strong>. Este archivo documenta de forma sistemática los <strong>66 incidentes más polémicos</strong> de su carrera, en cinco categorías. Todo el contenido está recopilado de noticias públicas.",
   "hero.btnArchive": "Entrar al Archivo",
   "hero.btnTimeline": "Ver Cronología",
   "hero.galleryTag": "FOTOS POCO HALAGUEÑAS",
@@ -527,7 +529,7 @@ const i18nDict = {
   "map.legendSev5": "Extremo",
   "blindbox.label": "// CASO DEL DÍA",
   "blindbox.title": "Caja Ciega de Historial Negro",
-  "blindbox.desc": "Saca un dosier al azar de 65 casos — mira en qué pillaron a CA7.",
+  "blindbox.desc": "Saca un dosier al azar de 66 casos — mira en qué pillaron a CA7.",
   "blindbox.stamp": "CLASIFICADO",
   "blindbox.cat": "Categoría",
   "blindbox.date": "Fecha",
@@ -736,6 +738,7 @@ const i18nDict = {
 "zh": {
   // —— 跑马灯 ——
   "ticker.items": [
+    "突发：与主帅热苏斯闹崩 · 41岁C罗擅自退出葡萄牙国家队训练营",
     "本名 Cristiano dos Santos Aveiro — \"Ronaldo\"只是中间名",
     "背弃祖姓 · 改用蹭热度的\"Ronaldo\" · 真缩写是 CA7",
     "绰号进化：小小罗→花罗→水罗→罗三票→沙漠骆驼→总裁→球玊→阿伟罗→骡子",
@@ -768,17 +771,17 @@ const i18nDict = {
   // —— BREAKING 头条 ——
   "breaking.tag": "🚨 BREAKING",
   "breaking.items": [
-    "【头条】六届世界杯0冠 — 西班牙第91分钟补时绝杀，41岁CA7泪别最后一舞",
-    "梅里诺91'绝杀 · 葡萄牙0-1西班牙 · 1/8决赛出局",
-    "「我已倾尽所有，问心无愧地离开。」—— CA7，泪洒混采区",
-    "六届 · 九场淘汰赛 · 仅一球 · 零冠军"
+    "【头条】与葡萄牙主帅热苏斯闹崩 — 41岁C罗擅自退出国家队",
+    "「他两次食言」· 长文道歉自请重罚 · 葡媒：禁赛或至42岁 · 告别赛已在筹备",
+    "没有C罗的葡萄牙4-2丹麦 · 国家联赛四连胜 · 「为什么没他反而更好」冲上热搜",
+    "2022被桑托斯按上替补席，2026与热苏斯掀桌走人 — 最后一舞，落幕在舞台之外"
   ],
   "breaking.cta": "查看完整卷宗 →",
   // —— Hero ——
   "hero.tag": "机密档案 · CONFIDENTIAL",
   "hero.title": "CA7<br><span class=\"strike\">黑历史</span>档案馆",
   "hero.sub": "The Aveiro Files — 一部关于争议的全记录",
-  "hero.desc": "他自称\"<strong>CR7</strong>\"，但全名其实是<strong>Cristiano Ronaldo dos Santos Aveiro</strong>——\"<strong>Aveiro</strong>\"才是他的家族姓氏，\"Ronaldo\"不过是中间名。为了出名，他背弃祖姓、选择了蹭热度的\"Ronaldo\"。真正的缩写应该是 <strong style=\"color:var(--crimson)\">CA7</strong>。本档案馆系统收录其职业生涯中最具争议的<strong>65起事件</strong>，横跨人设、暴力、失态、俱乐部与国家队五大类别。所有内容均基于公开新闻报道整理。",
+  "hero.desc": "他自称\"<strong>CR7</strong>\"，但全名其实是<strong>Cristiano Ronaldo dos Santos Aveiro</strong>——\"<strong>Aveiro</strong>\"才是他的家族姓氏，\"Ronaldo\"不过是中间名。为了出名，他背弃祖姓、选择了蹭热度的\"Ronaldo\"。真正的缩写应该是 <strong style=\"color:var(--crimson)\">CA7</strong>。本档案馆系统收录其职业生涯中最具争议的<strong>66起事件</strong>，横跨人设、暴力、失态、俱乐部与国家队五大类别。所有内容均基于公开新闻报道整理。",
   "hero.btnArchive": "进入档案库",
   "hero.btnTimeline": "查看时间线",
   "hero.galleryTag": "嬷照档案 · UNFLATTERING PHOTOS",
@@ -939,7 +942,7 @@ const i18nDict = {
   // —— 黑料盲盒 ——
   "blindbox.label": "// 每日通缉 · CASE OF THE DAY",
   "blindbox.title": "黑料盲盒",
-  "blindbox.desc": "从 65 卷宗里随机抽取一份，看看今天 CA7 又因为什么被立案。换一张，再来一单。",
+  "blindbox.desc": "从 66 卷宗里随机抽取一份，看看今天 CA7 又因为什么被立案。换一张，再来一单。",
   "blindbox.stamp": "CLASSIFIED",
   "blindbox.cat": "分类",
   "blindbox.date": "日期",
