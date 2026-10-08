@@ -558,13 +558,18 @@ function main() {
   // 3b) 旧 slug → 新 slug 过渡页（<meta refresh> + canonical，便于旧外链/索引过渡）
   redirects.forEach((r) => {
     const newUrl = `${SITE_ORIGIN}/incident/${r.newSlug}/`;
+    // 标题带上事件英文标题，避免多个过渡页 <title> 重复
+    const evForTitle = events.find((e) => e.id === r.id);
+    const movedTitle = evForTitle
+      ? `Moved — ${(evForTitle.titleEn || evForTitle.title || "").slice(0, 80)} | The Aveiro Files`
+      : "Moved — The Aveiro Files";
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="refresh" content="0; url=${escAttr(newUrl)}">
 <link rel="canonical" href="${escAttr(newUrl)}">
-<title>Moved — The Aveiro Files</title>
+<title>${escText(movedTitle)}</title>
 <meta name="robots" content="noindex">
 </head>
 <body>
