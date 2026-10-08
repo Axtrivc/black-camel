@@ -18,7 +18,7 @@ const i18nDict = {
 "en": {
   // —— 跑马灯 ticker（数组，由 app.js 渲染）——
   "ticker.items": [
-    "BREAKING: fallout with coach Jorge Jesus — 41-year-old CA7 walks out of Portugal's training camp",
+    "BREAKING: promised 30 minutes, benched instead — CA7 falls out with Jorge Jesus and walks out of Portugal's camp",
     "Real name: Cristiano dos Santos Aveiro — \"Ronaldo\" is only a middle name",
     "Abandoned his family surname — stole the trendy \"Ronaldo\" — real initials: CA7",
     "Nickname evolution: Little Ronaldo → Showboat → Diver → Three-Vote → Desert Camel → Boss → Ball-king → Ah-Wei → Donkey",
@@ -51,10 +51,10 @@ const i18nDict = {
   // —— BREAKING 头条 ——
   "breaking.tag": "🚨 BREAKING",
   "breaking.items": [
-    "[HEADLINE] Fallout with coach Jorge Jesus — 41-year-old CR7 walks out of Portugal's national team",
+    "[HEADLINE] Promised 30 minutes, benched instead — 41-year-old CR7 falls out with Jorge Jesus and walks out on Portugal",
     "\"He broke his word twice\" · long statement, apology & self-requested punishment · Portuguese press: ban could run until he's 42",
     "Ronaldo-less Portugal thrash Denmark 4-2 · four straight Nations League wins · farewell match already being planned",
-    "Benched by Santos in 2022, walks out on Jesus in 2026 — the last dance ends off-stage"
+    "Benched by Santos in 2022 he cried; benched by Jesus in 2026 he left — the last dance ends off-stage"
   ],
   "breaking.cta": "View full dossier →",
   // —— Hero ——
@@ -390,7 +390,7 @@ const i18nDict = {
 },
 "es": {
   "ticker.items": [
-    "ÚLTIMA HORA: ruptura con el seleccionador Jorge Jesus — el CA7 de 41 años abandona la concentración de Portugal",
+    "ÚLTIMA HORA: le prometieron 30 minutos y acabó en el banquillo — el CA7 de 41 años rompe con Jorge Jesus y abandona la concentración",
     "Nombre real: Cristiano dos Santos Aveiro — «Ronaldo» es solo un segundo nombre",
     "Abandonó su apellido familiar — robó el «Ronaldo» de moda — iniciales reales: CA7",
     "Evolución de apodos: Little Ronaldo → Showboat → Simulator → Three-Vote → El Camello → El Jefe → Ball-King → Ah-Wei → El Burro",
@@ -421,10 +421,10 @@ const i18nDict = {
   "theme.galactico": "Penaldo",
   "breaking.tag": "🚨 ÚLTIMA HORA",
   "breaking.items": [
-    "[TITULAR] Ruptura con el seleccionador Jorge Jesus — CR7, de 41 años, se marcha de la selección de Portugal",
+    "[TITULAR] Le prometieron 30 minutos y acabó en el banquillo — CR7, de 41 años, rompe con Jorge Jesus y abandona Portugal",
     "«Rompió su palabra dos veces» · comunicado largo, disculpa y castigo autoimpuesto · prensa lusa: sanción hasta los 42 años",
     "Portugal sin Cristiano golea 4-2 a Dinamarca · cuatro victorias seguidas en la Nations League · ya se prepara su partido de despedida",
-    "Suplente con Santos en 2022, se marcha de Jesus en 2026 — la última danza termina fuera del escenario"
+    "Con Santos en 2022 lloró; con Jesus en 2026 se marchó — la última danza termina fuera del escenario"
   ],
   "breaking.cta": "Ver expediente completo →",
   "hero.tag": "EXPEDIENTE CONFIDENCIAL",
