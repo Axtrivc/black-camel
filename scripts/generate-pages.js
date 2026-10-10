@@ -32,6 +32,9 @@ const OUT_DIR = path.join(ROOT, "incident");
 const SLUGS_JS = path.join(ROOT, "assets/js/incident-slugs.js");
 const SITEMAP = path.join(ROOT, "sitemap.xml");
 const INDEX_JSON = path.join(OUT_DIR, "index.json");
+const I18N_DICT_JS = path.join(ROOT, "assets/js/i18n-dict.js");
+const I18N_INCIDENT_JS = path.join(ROOT, "assets/js/i18n-incident.js");
+const INCIDENT_PAGE_JS = path.join(ROOT, "assets/js/incident-page.js");
 
 // -------------------- 数据加载（vm 沙箱） --------------------
 // data.js 用顶层 `const events = [...]` 声明，vm 直接执行时这些 const 是词法绑定，
@@ -55,6 +58,20 @@ function loadData() {
   return { events: exp.events, catConfig: exp.catConfig };
 }
 
+/** 用同一 vm 方案执行 i18n-dict.js，读出完整三语字典 */
+function loadI18nDict() {
+  const src = fs.readFileSync(I18N_DICT_JS, "utf8");
+  const wrapped =
+    "(function(){\n" +
+    src +
+    "\n;this.__dict = i18nDict;\n}).call(globalThis);";
+  const sandbox = { window: {}, self: {} };
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(wrapped, sandbox, { filename: "i18n-dict.js" });
+  return sandbox.__dict || {};
+}
+
 // -------------------- 工具函数 --------------------
 /** 由 titleEn 生成 URL-safe slug */
 function slugify(text) {
@@ -64,9 +81,9 @@ function slugify(text) {
     .replace(/[^\w\s-]/g, "")      // 去标点/非英文数字
     .trim()
     .replace(/[\s_]+/g, "-")       // 空格/下划线 → 连字符
+    .slice(0, 80)
     .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
+    .replace(/^-+|-+$/g, "");      // 截断后再去首尾连字符，避免 80 字截断留下尾 "-"
 }
 
 /** HTML 属性 / 文本转义（防注入；正文中的 <strong> 等需另行处理） */
@@ -82,6 +99,11 @@ function escText(s) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/** JSON 序列化并转义 "<"，防止内容含 "</script>" 时提前闭合内联 <script> 块 */
+function jsonInline(obj, indent) {
+  return JSON.stringify(obj, null, indent).replace(/</g, "\\u003c");
 }
 
 /** meta description：去掉 HTML 标签 + 截断到 ~160 字符 */
@@ -119,10 +141,14 @@ function renderDetail(detailArr) {
   return detailArr.map((p) => (blockTag.test(p) ? p : `<p>${p}</p>`)).join("");
 }
 
-/** 清洗一段 HTML 文本里可被 innerHTML 的部分（轻量；正文 detail 由维护者把关，这里仅做最小化处理） */
+/** 清洗一段 HTML 文本里可被 innerHTML 的部分（轻量；正文 detail 由维护者把关，这里仅做最小化处理）
+ *  除成对的危险标签外，也移除未闭合的残留危险标签与 on* 内联事件属性——
+ *  data.js 是 700KB 级手维护文件，一次误粘贴不应变成全站存储型 XSS。 */
 function safeInline(html) {
-  // 仅移除 <script>/<style> 等危险标签，其余保留（detail 文案由开发者维护，含 <strong>/<em>）
-  return String(html || "").replace(/<\s*(script|style|iframe|object|embed)\b[^>]*>[\s\S]*?<\s*\/\1\s*>/gi, "");
+  return String(html || "")
+    .replace(/<\s*(script|style|iframe|object|embed)\b[^>]*>[\s\S]*?<\s*\/\1\s*>/gi, "")
+    .replace(/<\s*\/?\s*(script|style|iframe|object|embed)\b[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
 }
 
 /** 子页面路径修正：detail 文案在首页根目录撰写，内嵌图为裸相对路径 assets/...，
@@ -186,7 +212,9 @@ function buildIncidentHtml(ev, prev, next, catConfig, events) {
   // 正文（EN 写进静态 HTML 利于 SEO；ZH/ES 作为 data-*-html 属性携带，运行时由 incident-page.js 替换）
   const detailEn = ev.detailEn && ev.detailEn.length ? ev.detailEn : ev.detail || [];
   const detailZh = ev.detail || ev.detailEn || [];
-  const detailEs = ev.detailEs && ev.detailEs.length ? ev.detailEs : detailEn;
+  // ES 缺译时保持 null（data-es-html 输出空串），让运行时降级 en + "待译"提示真正生效，
+  // 而不是在构建期就静默填入英文、令 hasEsDetail 恒为 true
+  const detailEs = ev.detailEs && ev.detailEs.length ? ev.detailEs : null;
 
   // JSON-LD 结构化数据（NewsArticle）
   // datePublished/dateModified 用合法 ISO 日期（dateIso），保证 Google 富结果校验通过
@@ -312,6 +340,7 @@ function buildIncidentHtml(ev, prev, next, catConfig, events) {
 <meta property="og:title" content="${escAttr(titleEn + " | The Aveiro Files")}">
 <meta property="og:description" content="${escAttr(desc)}">
 <meta property="og:type" content="article">
+<meta property="og:site_name" content="The Aveiro Files">
 <meta property="og:url" content="${escAttr(thisUrl)}">
 <meta property="og:image" content="${escAttr(ogImage)}">
 <meta property="og:locale" content="en_US">
@@ -324,10 +353,10 @@ function buildIncidentHtml(ev, prev, next, catConfig, events) {
 
 <!-- 结构化数据：NewsArticle + BreadcrumbList -->
 <script type="application/ld+json">
-${JSON.stringify(jsonLd, null, 2)}
+${jsonInline(jsonLd, 2)}
 </script>
 <script type="application/ld+json">
-${JSON.stringify(jsonLdBreadcrumb, null, 2)}
+${jsonInline(jsonLdBreadcrumb, 2)}
 </script>
 </head>
 <body class="incident-page">
@@ -434,15 +463,15 @@ ${relatedHtml}
   // 把本事件的三语内容注入全局，供 incident-page.js 做语言切换
   window.__INCIDENT__ = {
     id: ${Number(ev.id) || 0},
-    slug: ${JSON.stringify(slug)},
-    titleEn: ${JSON.stringify(titleEn)},
-    titleEs: ${JSON.stringify(titleEs)},
-    titleZh: ${JSON.stringify(titleZh)},
+    slug: ${jsonInline(slug)},
+    titleEn: ${jsonInline(titleEn)},
+    titleEs: ${jsonInline(titleEs)},
+    titleZh: ${jsonInline(titleZh)},
     hasZhDetail: ${detailZh && detailZh.length ? "true" : "false"},
-    hasEsDetail: ${detailEs && detailEs.length ? "true" : "false"}
+    hasEsDetail: ${detailEs ? "true" : "false"}
   };
 </script>
-<script src="${absDepth}assets/js/i18n-dict.js"></script>
+<script src="${absDepth}assets/js/i18n-incident.js"></script>
 <script src="${absDepth}assets/js/incident-page.js"></script>
 </body>
 </html>
@@ -450,12 +479,16 @@ ${relatedHtml}
 }
 
 // -------------------- sitemap --------------------
+/** ISO 时间截到秒（lastmod 毫秒精度无意义，且影响 diff 可读性） */
+function isoSec(iso) {
+  return String(iso).replace(/\.\d{3}Z$/, "Z");
+}
 function buildSitemap(events, dataMtime, homeMtime) {
   const urls = [];
   // 首页：lastmod 取 index.html/app.js/style.css/data.js 的最新 mtime
   urls.push({
     loc: `${SITE_ORIGIN}/`,
-    lastmod: homeMtime || dataMtime,
+    lastmod: isoSec(homeMtime || dataMtime),
     changefreq: "weekly",
     priority: "1.0",
   });
@@ -463,7 +496,7 @@ function buildSitemap(events, dataMtime, homeMtime) {
   events.forEach((ev) => {
     urls.push({
       loc: `${SITE_ORIGIN}/incident/${ev._slug}/`,
-      lastmod: ev.dateIso || dataMtime,
+      lastmod: ev.dateIso || isoSec(dataMtime),
       changefreq: "monthly",
       priority: "0.8",
     });
@@ -497,7 +530,9 @@ function main() {
   const dataMtime = fs.statSync(DATA_JS).mtime.toISOString();
   // 首页内容其实由 index.html / data.js / app.js / style.css / i18n-dict.js / extra-data.js 共同决定：
   // 任一更新都算首页更新，取所有相关文件最新 mtime，避免 lastmod 落后于真实内容
+  // （相对路径一律基于 ROOT 解析，脚本从任意 cwd 运行结果一致）
   const homeMtime = ["index.html", DATA_JS, "assets/js/app.js", "assets/css/style.css", "assets/js/i18n-dict.js", "assets/js/extra-data.js"]
+    .map((f) => (path.isAbsolute(f) ? f : path.join(ROOT, f)))
     .reduce((latest, f) => {
       try {
         const m = fs.statSync(f).mtime.getTime();
@@ -509,9 +544,11 @@ function main() {
   const homeMtimeIso = new Date(homeMtime).toISOString();
 
   // 1) 计算 slug（事件自带 > titleEn 生成），去重
+  // 两遍扫描：第一遍先为全部事件分配真实 slug 并记录「旧 slug」（基于 titleEn 截断生成），
+  // 第二遍再基于「完整」的已占用集合决定过渡页——否则先处理的自定义 slug 事件排队的
+  // 过渡页 oldSlug 可能恰好是后处理事件的真实 slug，写入时把真实事件页覆盖成跳转桩。
   const used = new Set();
-  // 记录带自定义 slug 的事件及其「旧 slug」（基于 titleEn 截断生成），用于生成过渡页
-  const redirects = [];
+  const oldSlugOf = new Map(); // id → titleEn 生成的旧 slug
   events.forEach((ev) => {
     const fromTitle = slugify(ev.titleEn || ev.title || `incident-${ev.id}`);
     let s = ev.slug ? slugify(ev.slug) : fromTitle;
@@ -521,14 +558,17 @@ function main() {
     while (used.has(s)) s = `${base}-${n++}`;
     used.add(s);
     ev._slug = s;
+    oldSlugOf.set(ev.id, fromTitle);
+  });
+  const redirects = [];
+  const redirectOlds = new Set(); // 过渡页路径去重（两个事件的旧 slug 理论上可同值）
+  events.forEach((ev) => {
+    const fromTitle = oldSlugOf.get(ev.id);
     // 自定义 slug 且与旧 slug 不同 → 生成旧 URL → 新 URL 的过渡页
-    // （旧 slug 若已被其它事件的真实页面占用则跳过，避免过渡页覆盖真实页）
-    if (ev.slug && fromTitle && fromTitle !== s) {
-      if (used.has(fromTitle)) {
-        console.warn(`[generate-pages] 跳过 id=${ev.id} 的过渡页 "${fromTitle}"：与现有事件 slug 冲突`);
-      } else {
-        redirects.push({ oldSlug: fromTitle, newSlug: s, id: ev.id });
-      }
+    // （旧 slug 已被任何事件的真实页面或其它过渡页占用则跳过，避免覆盖真实页）
+    if (ev.slug && fromTitle && fromTitle !== ev._slug && !used.has(fromTitle) && !redirectOlds.has(fromTitle)) {
+      redirectOlds.add(fromTitle);
+      redirects.push({ oldSlug: fromTitle, newSlug: ev._slug, id: ev.id });
     }
   });
 
@@ -546,11 +586,13 @@ function main() {
     if (da !== db) return da.localeCompare(db);
     return a.id - b.id;
   });
+  const i18nKeys = new Set(); // 收集子页模板实际用到的 data-i18n 键
   events.forEach((ev) => {
     const i = chrono.indexOf(ev);
     const prev = chrono[i - 1] || null; // 时间最早的无 prev
     const next = chrono[i + 1] || null; // 时间最晚的无 next
     const html = buildIncidentHtml(ev, prev, next, catConfig, events);
+    for (const m of html.matchAll(/data-i18n="([^"]+)"/g)) i18nKeys.add(m[1]);
     const dir = path.join(OUT_DIR, ev._slug);
     writeFile(path.join(dir, "index.html"), html);
   });
@@ -604,6 +646,34 @@ window.__INCIDENT_SLUGS__ = ${JSON.stringify(slugsObj, null, 2)};
 `
   );
 
+  // 5b) i18n-incident.js — 子页面专用精简字典
+  // 子页面只用到十几个 UI 键，却随 i18n-dict.js 加载全站 60KB（约 15KB gzip）字典；
+  // 这里按「子页模板 data-i18n 实际出现的键 + incident-page.js t() 引用的键」生成三语精简版。
+  // 键集合由构建自动收集，模板/脚本新增键后重新构建即自动纳入，无需手工维护清单。
+  const incidentI18nKeys = new Set(i18nKeys);
+  const ipSrc = fs.readFileSync(INCIDENT_PAGE_JS, "utf8");
+  for (const m of ipSrc.matchAll(/\bt\(\s*"([a-zA-Z0-9_.-]+)"/g)) incidentI18nKeys.add(m[1]);
+  const fullDict = loadI18nDict();
+  const trimmed = {};
+  for (const lang of ["en", "es", "zh"]) {
+    trimmed[lang] = {};
+    for (const k of [...incidentI18nKeys].sort()) {
+      if (fullDict[lang] && fullDict[lang][k] !== undefined) {
+        trimmed[lang][k] = fullDict[lang][k];
+      } else {
+        console.warn(`[generate-pages] i18n-incident: ${lang} 字典缺键 "${k}"（子页将显示键名兜底）`);
+      }
+    }
+  }
+  writeFile(
+    I18N_INCIDENT_JS,
+    `/* 自动生成 — 勿手改。运行 npm run build:seo 重新生成。 */
+/* 子页面专用精简 i18n 字典：仅含事件页模板 data-i18n 与 incident-page.js
+   实际使用的键（三语）。键集合由构建时自动收集。 */
+const i18nDict = ${jsonInline(trimmed, 2)};
+`
+  );
+
   // 6) sitemap.xml
   writeFile(SITEMAP, buildSitemap(events, dataMtime, homeMtimeIso));
 
@@ -611,7 +681,7 @@ window.__INCIDENT_SLUGS__ = ${JSON.stringify(slugsObj, null, 2)};
     indexMap.reduce((acc, e) => acc + fs.statSync(path.join(OUT_DIR, e.slug, "index.html")).size, 0) / 1024
   );
   console.log(
-    `[generate-pages] ✓ 生成 ${events.length} 个子页面（约 ${kb} KB）+ sitemap（${events.length + 1} 条 URL）+ slugs.js`
+    `[generate-pages] ✓ 生成 ${events.length} 个子页面（约 ${kb} KB）+ sitemap（${events.length + 1} 条 URL）+ slugs.js + i18n-incident.js（${incidentI18nKeys.size} 键 × 3 语）`
   );
   console.log(`[generate-pages] 完成，耗时 ${Date.now() - t0}ms`);
 }

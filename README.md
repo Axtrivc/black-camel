@@ -34,6 +34,7 @@ assets/
     app.js              # 首页渲染与交互逻辑（卡片点击跳转子页）
     incident-page.js    # 子页面专用轻量 i18n 脚本
     incident-slugs.js   # 自动生成：id → slug 查询表（供首页 app.js 跳转）
+    i18n-incident.js    # 自动生成：子页面专用精简 i18n 字典（仅子页实际用到的键，三语）
   images/               # 事件图 / 嬷照 / 绰号图 / 场景图
 scripts/
   generate-pages.js     # SEO 构建脚本：生成子页面 + sitemap + slugs 映射
@@ -108,7 +109,8 @@ npm run build:seo          # 等价于 node scripts/generate-pages.js
 - 读取 `data.js` 的 `events` 数组；
 - 为每个事件生成 `incident/<slug>/index.html`（含独立 `<title>` / meta / OG / canonical / JSON-LD 结构化数据，英文内容静态直出，爬虫无需 JS 即可收录）；
 - 重新生成 `sitemap.xml`（首页 + 全部事件页，`changefreq=monthly` / `priority=0.8`）；
-- 重新生成 `assets/js/incident-slugs.js`（id → slug 查询表）。
+- 重新生成 `assets/js/incident-slugs.js`（id → slug 查询表）；
+- 重新生成 `assets/js/i18n-incident.js`（子页面专用精简字典：按子页模板与 `incident-page.js` 实际引用的键自动收集，免维护键清单）。
 
 > slug 由事件英文标题 `titleEn` 自动生成（如 `Spanish Tax Fraud Case` → `spanish-tax-fraud-case`）。若某事件自带 `slug` 字段则优先使用，以便未来固化 URL。
 

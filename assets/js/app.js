@@ -163,15 +163,17 @@ function toggleLangMenu(open){
   if(btn.classList.contains("open")) updateLangBtn();
 }
 
-function setLanguage(lang){
+function setLanguage(lang, silent){
   currentLang = normalizeLang(lang);
   try { localStorage.setItem("ca7-lang", currentLang); } catch(e){}
   document.documentElement.lang = LANG_HTML[currentLang];
   applyStaticI18n();
   updateLangBtn();
   closeLangMenu();
-  // 派发事件：各闭包模块自治重渲染（有状态模块仅更新文本）
-  document.dispatchEvent(new CustomEvent("ca7:lang-change", { detail:{ lang: currentLang } }));
+  // 派发事件：各闭包模块自治重渲染（有状态模块仅更新文本）。
+  // silent=true 供首次初始化用——各模块初始化时已按 currentLang 渲染过，
+  // 再派发只会把 66 张卡与全部模块同步重渲染一遍（纯浪费）
+  if(!silent) document.dispatchEvent(new CustomEvent("ca7:lang-change", { detail:{ lang: currentLang } }));
 }
 
 // 暴露给 app.js 内其他模块引用（同 IIFE 作用域，直接用即可，无需 window）。
@@ -185,6 +187,10 @@ function svgFallback(text){
 function handleImgError(img, catLabel){
   if(img.dataset.fallback) return;     // 只兜底一次
   img.dataset.fallback = "1";
+  // picture 内 <source>（如 404 的 webp）在资源选择算法里恒优先于 img.src，
+  // 必须先移除 source 再改 src，占位图才会真正生效
+  const pic = img.closest("picture");
+  if(pic) pic.querySelectorAll("source").forEach(s=>s.remove());
   img.src = svgFallback(catLabel);
 }
 
@@ -425,13 +431,6 @@ function goToIncident(id){
   if(window.__badge) window.__badge("read", 1);
   location.href = "incident/" + slug + "/";
 }
-// 兼容旧调用：openModalByIdx(idx) → 跳转该 idx 对应的事件
-function openModalByIdx(idx){
-  const e = currentList[idx];
-  if(!e) return;
-  goToIncident(e.id);
-}
-
 /* ========== 筛选交互 ========== */
 document.querySelectorAll(".filter-chip").forEach(chip=>{
   chip.addEventListener("click",()=>{
@@ -1037,7 +1036,6 @@ document.addEventListener("ca7:lang-change", initNicknames);
         if(ok) score++;
         fb.hidden=false;
         fb.className="quiz-fb"+(ok?" correct-fb":"");
-        const correctStr = ok ? t("tof.correct","✓ 答对了") : ("✗ "+t("quiz.feedback","答对得分，答错 0 分").split(",")[0]+" "+String.fromCharCode(65+q.a));
         fb.innerHTML=`<strong>${ok?t("tof.correct","✓ 答对了"):"✗ "+String.fromCharCode(65+q.a)}</strong><br>${tt(q,"fb")}`;
         next.disabled=false;
         next.textContent= idx===total-1?t("quiz.result","查看诊断结果 →"):t("quiz.next","下一题 →");
@@ -1599,14 +1597,19 @@ document.addEventListener("ca7:lang-change", initNicknames);
   function playSIU(){
     window.__siuCelebration();
   }
-  // 探测原版视频是否可用（启动时异步，仅用于决定是否走视频分支）
+  // 探测原版视频是否可用（启动时异步，仅用于决定是否走视频分支）。
+  // 结果缓存到 window —— 下方 siuFab 模块也要探测同一文件，避免重复 HEAD 请求
   let siuVideoOk=false;
-  (function probeVideo(){
-    const x=new XMLHttpRequest();
-    x.open("HEAD","assets/videos/siu.mp4",true);
-    x.onload=()=>{ siuVideoOk = x.status>=200 && x.status<300; };
-    x.send();
-  })();
+  if(!window.__siuVideoProbe){
+    window.__siuVideoProbe=new Promise(res=>{
+      const x=new XMLHttpRequest();
+      x.open("HEAD","assets/videos/siu.mp4",true);
+      x.onload=()=>res(x.status>=200&&x.status<300?"assets/videos/siu.mp4":null);
+      x.onerror=()=>res(null);
+      x.send();
+    });
+  }
+  window.__siuVideoProbe.then(u=>{ siuVideoOk=!!u; });
   window.__siuCelebration=function(){
     if(siuPlaying) return;
     siuPlaying=true;
@@ -1888,11 +1891,7 @@ document.addEventListener("ca7:lang-change", initNicknames);
   document.getElementById("blindboxDownload").addEventListener("click",download);
   document.getElementById("blindboxOpen").addEventListener("click",()=>{
     if(!current) return;
-    // 找到该事件在 currentList 中的位置（若被筛选则回退到全集）
-    let list=currentList.length?currentList:events;
-    let idx=list.findIndex(e=>e.id===current.id);
-    if(idx<0){ list=events; idx=list.findIndex(e=>e.id===current.id); }
-    if(idx>=0){ openModalByIdx(idx); }
+    goToIncident(current.id);
   });
 
   shuffle();
@@ -2058,10 +2057,7 @@ document.addEventListener("ca7:lang-change", initNicknames);
     g.addEventListener("blur",()=>tip.hidden=true);
     g.addEventListener("click",()=>{
       const ev=b.items[0];
-      let list=currentList.length?currentList:events;
-      let idx=list.findIndex(e=>e.id===ev.id);
-      if(idx<0){ list=events; idx=list.findIndex(e=>e.id===ev.id); }
-      if(idx>=0) openModalByIdx(idx);
+      goToIncident(ev.id);
     });
     pinsLayer.appendChild(g);
     b.g=g;
@@ -2100,7 +2096,8 @@ document.addEventListener("ca7:lang-change", initNicknames);
     });
   }
   renderTrail();
-  document.addEventListener("ca7:lang-change",renderTrail);
+  // 语言切换重绘轨迹后，年份筛选状态会随新 DOM 丢失（站点全部恢复全不透明），需重放一次
+  document.addEventListener("ca7:lang-change",()=>{ renderTrail(); applyFilter(); });
 
   /* —— #8-2 热度图：每个 bucket 一个柔光大圆，半径随事件数/严重度 —— */
   function renderHeat(){
@@ -2343,6 +2340,12 @@ document.addEventListener("ca7:lang-change", initNicknames);
 /* ========== 人设崩塌编年史 ========== */
 (function personaModule(){
   const wrap=document.getElementById("personaScroll");
+  // 入场动画观察器：模块级单例，语言切换重渲染后复用（自 unobserve，不泄漏）
+  const personaObs=new IntersectionObserver((ents)=>{
+    ents.forEach(en=>{
+      if(en.isIntersecting){ en.target.classList.add("in"); personaObs.unobserve(en.target); }
+    });
+  },{threshold:.15});
   if(!wrap) return;
 
   const persona=events
@@ -2372,20 +2375,13 @@ document.addEventListener("ca7:lang-change", initNicknames);
     wrap.querySelectorAll(".persona-card").forEach(card=>{
       card.addEventListener("click",()=>{
         const id=parseInt(card.parentElement.dataset.id,10);
-        let list=currentList.length?currentList:events;
-        let idx=list.findIndex(e=>e.id===id);
-        if(idx<0){ list=events; idx=list.findIndex(e=>e.id===id); }
-        if(idx>=0) openModalByIdx(idx);
+        goToIncident(id);
       });
     });
     wrap.querySelectorAll(".persona-item").forEach(item=>revealObserver.observe(item));
-    // 入场动画：滚入视口时加 .in（重渲染后重挂）
-    const obs=new IntersectionObserver((ents)=>{
-      ents.forEach(en=>{
-        if(en.isIntersecting){ en.target.classList.add("in"); obs.unobserve(en.target); }
-      });
-    },{threshold:.15});
-    wrap.querySelectorAll(".persona-item").forEach(el=>obs.observe(el));
+    // 入场动画：滚入视口时加 .in（观察器只建一个、跨重渲染复用——
+    // 每次语言切换 new 一个会累积持有已废弃 DOM 的观察器）
+    wrap.querySelectorAll(".persona-item").forEach(el=>personaObs.observe(el));
   }
   initPersona();
   document.addEventListener("ca7:lang-change", initPersona);
@@ -3048,7 +3044,8 @@ document.addEventListener("ca7:lang-change", initNicknames);
   probeSequential(audioCandidates).then(u=>{ if(u) audioUrl=u; });
   // 图片仅在「视频不可用」时才探测——否则直接被视频优先级覆盖，
   // 探了也是白探（4 张全缺时会刷出 4 条 404 控制台噪音）。
-  probeSequential(["assets/videos/siu.mp4"]).then(v=>{
+  // siu.mp4 的探测复用印章模块缓存的 Promise（两个模块探测同一文件）
+  (window.__siuVideoProbe||probeSequential(["assets/videos/siu.mp4"])).then(v=>{
     if(v) return;   // 有视频，跳过图片探测
     return probeSequential(imgCandidates);
   }).then(u=>{ if(u){ imgUrl=u; window.__siuImg=u; } });
@@ -3173,8 +3170,9 @@ renderCards();
       if(e.key === "Escape") closeLangMenu();
     });
   }
-  // 首次应用语言（默认 en 会覆盖 HTML 中的中文初始文本）
-  setLanguage(currentLang);
+  // 首次应用语言（默认 en 会覆盖 HTML 中的中文初始文本）；
+  // silent：此时各模块已在各自初始化时按 currentLang 渲染，无需再广播重渲染
+  setLanguage(currentLang, true);
 })();
 
 })();
