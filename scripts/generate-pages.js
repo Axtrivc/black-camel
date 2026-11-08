@@ -148,7 +148,7 @@ function safeInline(html) {
   return String(html || "")
     .replace(/<\s*(script|style|iframe|object|embed)\b[^>]*>[\s\S]*?<\s*\/\1\s*>/gi, "")
     .replace(/<\s*\/?\s*(script|style|iframe|object|embed)\b[^>]*>/gi, "")
-    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+    .replace(/[\s'"/]on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
 }
 
 /** 子页面路径修正：detail 文案在首页根目录撰写，内嵌图为裸相对路径 assets/...，
@@ -316,6 +316,8 @@ function buildIncidentHtml(ev, prev, next, catConfig, events) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escText(titleEn)} | The Aveiro Files</title>
 <!-- Favicon（Google-compliant：根路径 .ico 绝对 URL 最优先，确保 Googlebot-Favicon 直达；
@@ -609,6 +611,8 @@ function main() {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta http-equiv="refresh" content="0; url=${escAttr(newUrl)}">
 <link rel="canonical" href="${escAttr(newUrl)}">
 <title>${escText(movedTitle)}</title>

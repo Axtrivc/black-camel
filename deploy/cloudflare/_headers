@@ -1,0 +1,64 @@
+# =====================================================================
+# deploy/cloudflare/_headers — 安全响应头定义(单一样式来源, 零密钥)
+# ---------------------------------------------------------------------
+# 重要前提: 这些响应头只有前置 CDN 才能发; GitHub Pages 源站发不了任何
+# 自定义响应头。本文件按 Cloudflare Pages 的 _headers 格式书写, 有三种用法:
+#
+#   用法 1 — 当前架构(GitHub Pages 源站 + Cloudflare 代理, 即本站现状):
+#     到 CF 面板 → Rules → Transform Rules → Response Header Transformation,
+#     Create rule → 匹配全部入站 URL(表达式留空),
+#     然后逐条 "Set static" 下面 5 个头(名称与值照抄, 一字不改)。
+#     Free 计划即可用, 1 条规则覆盖全站。
+#
+#   用法 2 — 若日后迁移到 Cloudflare Pages 托管:
+#     把本文件复制到发布根目录(即仓库根), 文件名保持 _headers, 自动生效,
+#     此时删除 Transform Rule 避免 double。
+#
+#   用法 3 — 若用 Worker 反代源站:
+#     在 Worker 返回 response 前逐条 set 下面 5 个头。
+#
+# 与页面内 CSP 的关系: 页面 <head> 已注入 <meta http-equiv="Content-Security-Policy">,
+# 指令串与下方 Content-Security-Policy 逐字一致(grep -c 实测 index.html 命中 1 次,
+# 68 个子页全部携带)。meta 与 header 双通道并存时浏览器取两者交集 — 同串无行为差异;
+# header 通道的增益是覆盖任何无 meta 的旧缓存/异形响应。
+# 改动任何一侧前必须同步另一侧, 保持逐字一致。
+#
+# 验证(任一机器, 注意 WAF 工具 UA 规则启用后需带浏览器 UA):
+#   curl -A "Mozilla/5.0" -sI https://<自定义子域>/ \
+#     | grep -iE 'x-content-type-options|x-frame-options|referrer-policy|strict-transport|content-security-policy'
+#   → 5 行全部出现即注入成功。
+# =====================================================================
+
+# --- 逐头说明 ---------------------------------------------------------
+# X-Content-Type-Options: nosniff
+#   禁止浏览器 MIME 嗅探, 防止文本资产被猜成可执行内容。
+# X-Frame-Options: SAMEORIGIN
+#   只许同源 iframe 嵌入, 防点击劫持、防被第三方页面框嵌嫁祸。
+# Referrer-Policy: no-referrer
+#   出站跳转不带 Referer, 不向第三方泄露本站域名(人肉防线的一环)。
+# Strict-Transport-Security:
+#   强制 HTTPS。见文件末尾 HSTS 注意事项 — 与 CF 面板设置二选一, 勿叠加。
+# Content-Security-Policy:
+#   内容注入防线: 脚本/样式/图片/字体/连接全部限定同源,
+#   object-src 'none' + base-uri 'self' + form-action 'none' 关死插件与表单面。
+#   保留 'unsafe-inline' 是因为现有页面的内联脚本/样式依赖它;
+#   若未来重构为 nonce/hash 模型, 双侧同步更新。
+# ----------------------------------------------------------------------
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: no-referrer
+  Strict-Transport-Security: max-age=15552000
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'
+
+# --- HSTS 注意事项 ----------------------------------------------------
+# - max-age=15552000(180 天)起步; 站点稳定运行半年后可提到 31536000(1 年)。
+# - 绝不追加 includeSubDomains: 本站是父域下的一个子域, 父域可能还挂着
+#   邮件等其他非 Web 服务, 区域级 HSTS 会波及全部子域。
+# - 绝不去 hstspreload.org 提交预载(preload): 预载进入浏览器内置列表后
+#   移除要数月, 会把域名钉死 — 与"举报冲击下紧急换域/换宿主的灵活性"
+#   直接冲突。本文件的 HSTS 行只写 max-age, 就是为了物理上防止误开子域/预载。
+# - 单一来源原则: 若已按 rules.md E2 在 CF 面板(SSL/TLS → Edge Certificates
+#   → HSTS)开启, 迁移 CF Pages 后可删除本文件中的 HSTS 行, 值保持一致即可。
+# ----------------------------------------------------------------------
